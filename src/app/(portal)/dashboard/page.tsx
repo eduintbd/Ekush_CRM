@@ -4,7 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { ActionCard } from "@/components/dashboard/action-card";
-import { TrendingUp, Calendar, Coins, PieChart } from "lucide-react";
+import {
+  TrendingUp,
+  Calendar,
+  Coins,
+  PieChart,
+  FileText,
+  UserPen,
+  Award,
+  Gift,
+} from "lucide-react";
 
 async function getFunds() {
   return prisma.fund.findMany({ orderBy: { code: "asc" } });
@@ -26,8 +35,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Quick Action Cards — 2x2 Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Quick Action Cards — 4x2 Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <ActionCard
           href="/transactions/buy"
           label="Buy Units"
@@ -55,6 +64,34 @@ export default async function DashboardPage() {
           icon={PieChart}
           iconColor="#2DAAB8"
           iconBg="#E8F8FA"
+        />
+        <ActionCard
+          href="/transactions"
+          label="Transactions"
+          icon={FileText}
+          iconColor="#7C3AED"
+          iconBg="#F3EFFE"
+        />
+        <ActionCard
+          href="/profile"
+          label="Profile"
+          icon={UserPen}
+          iconColor="#0EA5E9"
+          iconBg="#E0F2FE"
+        />
+        <ActionCard
+          href="/tax-certificate"
+          label="Tax Certificate"
+          icon={Award}
+          iconColor="#16A34A"
+          iconBg="#DCFCE7"
+        />
+        <ActionCard
+          href="/dividends"
+          label="Dividend Statement"
+          icon={Gift}
+          iconColor="#DB2777"
+          iconBg="#FCE7F3"
         />
       </div>
 

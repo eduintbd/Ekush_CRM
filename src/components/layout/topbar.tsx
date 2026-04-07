@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import { LogOut, User } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 interface TopBarProps {
@@ -14,8 +15,19 @@ export function TopBar({ userName, investorCode, userImage }: TopBarProps) {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 bg-white px-6 py-3">
-      <div className="flex items-center justify-end">
+    <header className="sticky top-0 z-30 bg-white shadow-sidebar">
+      <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
+        {/* Brand — links back to dashboard */}
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-ekush-orange rounded-lg flex items-center justify-center font-bold text-white text-lg shrink-0">
+            E
+          </div>
+          <div>
+            <h1 className="font-bold text-[16px] text-navy font-rajdhani leading-none">Ekush WML</h1>
+            <p className="text-[10px] text-text-muted tracking-wider uppercase mt-1">Investor Portal</p>
+          </div>
+        </Link>
+
         {/* Profile Avatar & Dropdown */}
         <div className="relative">
           <button
@@ -45,6 +57,13 @@ export function TopBar({ userName, investorCode, userImage }: TopBarProps) {
                     <p className="text-white/60 text-[12px]">ID: {investorCode}</p>
                   )}
                 </div>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setShowMenu(false)}
+                  className="flex items-center justify-center w-full px-3 py-2 mb-2 text-[13px] text-white/80 hover:text-white rounded transition-colors"
+                >
+                  Dashboard
+                </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
                   className="flex items-center gap-2 w-full px-3 py-2 text-[13px] text-white/80 hover:text-white rounded transition-colors"
