@@ -246,5 +246,48 @@ export async function importTransactions(prisma: PrismaClient) {
   }
   logProgress(`  Updated ${updated} fund holdings with firstPurchaseDate`);
 
+  // Backfill NavRecord per (fund, date) by averaging the NAVs of transactions
+  // that occurred on that date. Skips dates with NAV = 0.
+  logProgress("Backfilling NavRecord from transaction NAVs...");
+  for (const fundId of fundByCode.values()) {
+    const grouped = await prisma.transaction.groupBy({
+      by: ["orderDate"],
+      where: { fundId, nav: { gt: 0 } },
+      _avg: { nav: true },
+    });
+
+    // Wipe stale records for this fund (keep current upsert from seed step 4)
+    await prisma.navRecord.deleteMany({ where: { fundId } });
+
+    if (grouped.length === 0) continue;
+
+    const records = grouped
+      .filter((g) => g._avg.nav && g._avg.nav > 0)
+      .map((g) => {
+        // Normalize to start-of-day to dedupe with seed/admin entries
+        const d = new Date(g.orderDate);
+        d.setHours(0, 0, 0, 0);
+        return { fundId, date: d, nav: g._avg.nav as number };
+      });
+
+    // Dedupe in case multiple transactions on same day produced the same date key
+    const byDate = new Map<string, { fundId: string; date: Date; nav: number }>();
+    for (const r of records) {
+      byDate.set(r.date.toISOString(), r);
+    }
+    const unique = Array.from(byDate.values());
+
+    const BATCH = 1000;
+    let inserted = 0;
+    for (let i = 0; i < unique.length; i += BATCH) {
+      const result = await prisma.navRecord.createMany({
+        data: unique.slice(i, i + BATCH),
+        skipDuplicates: true,
+      });
+      inserted += result.count;
+    }
+    logProgress(`  Fund ${fundId}: inserted ${inserted} NAV records`);
+  }
+
   logProgress("=== Transaction import done ===");
 }

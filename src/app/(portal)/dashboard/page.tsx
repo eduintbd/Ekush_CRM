@@ -1,9 +1,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { ActionCard } from "@/components/dashboard/action-card";
+import { NavTrendChart } from "@/components/dashboard/nav-trend-chart";
 import {
   TrendingUp,
   Calendar,
@@ -19,6 +18,19 @@ async function getFunds() {
   return prisma.fund.findMany({ orderBy: { code: "asc" } });
 }
 
+async function getNavHistoryByFund() {
+  const records = await prisma.navRecord.findMany({
+    select: { fundId: true, date: true, nav: true },
+    orderBy: { date: "asc" },
+  });
+  const map = new Map<string, { date: string; nav: number }[]>();
+  for (const r of records) {
+    if (!map.has(r.fundId)) map.set(r.fundId, []);
+    map.get(r.fundId)!.push({ date: r.date.toISOString(), nav: r.nav });
+  }
+  return map;
+}
+
 export default async function DashboardPage() {
   let session;
   try {
@@ -31,7 +43,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const funds = await getFunds();
+  const [funds, navByFund] = await Promise.all([getFunds(), getNavHistoryByFund()]);
 
   return (
     <div className="space-y-8">
@@ -95,45 +107,23 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Fund Table */}
-      <Card>
-        <CardContent className="p-0 pt-5">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-0 hover:bg-transparent">
-                <TableHead>Funds</TableHead>
-                <TableHead>NAV</TableHead>
-                <TableHead>Buy/ Sell Price</TableHead>
-                <TableHead className="text-center">Annualized Rtn Fund</TableHead>
-                <TableHead className="text-center">Annualized Rtn DSEX</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {funds.map((fund) => {
-                const nav = Number(fund.currentNav);
-                const prevNav = Number(fund.previousNav);
-                const returnPct = prevNav > 0 ? ((nav - prevNav) / prevNav) * 100 : 0;
-
-                return (
-                  <TableRow key={fund.id}>
-                    <TableCell className="font-medium text-text-dark">{fund.name}</TableCell>
-                    <TableCell className="font-medium text-text-dark">{nav.toFixed(2)}</TableCell>
-                    <TableCell className="font-medium text-text-dark">{nav.toFixed(2)}</TableCell>
-                    <TableCell className="text-center">
-                      <span className={returnPct >= 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
-                        {returnPct >= 0 ? "" : ""}{returnPct.toFixed(2)}%
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="text-red-500 font-medium">—</span>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* NAV trend charts — one per fund */}
+      <div>
+        <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-4">
+          NAV per Unit — Market Trend
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {funds.map((fund) => (
+            <NavTrendChart
+              key={fund.id}
+              fundCode={fund.code}
+              fundName={fund.name}
+              currentNav={Number(fund.currentNav)}
+              data={navByFund.get(fund.id) ?? []}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
