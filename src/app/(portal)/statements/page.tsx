@@ -94,37 +94,24 @@ export default async function StatementsPage() {
     <div className="space-y-8">
       {/* Portfolio Statements (formerly Capital Gain / Loss Report) */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-[16px]">Portfolio Statements</CardTitle>
+          <DownloadPortfolioStatement />
         </CardHeader>
         <CardContent className="p-0">
           <PortfolioStatementsTable holdings={tableRows} />
         </CardContent>
       </Card>
 
-      {/* Charts Row — Fund Weight + Portfolio Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[16px]">Fund weight</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AllocationChart funds={fundsForChart} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-[16px]">Portfolio Performance</CardTitle>
-            <DownloadPortfolioStatement />
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center text-text-body text-sm">
-              <p>Performance chart based on NAV history</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Fund Weight chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-[16px]">Fund weight</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AllocationChart funds={fundsForChart} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

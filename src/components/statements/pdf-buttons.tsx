@@ -24,7 +24,7 @@ export function DownloadPortfolioStatement() {
   };
 
   return (
-    <Button onClick={handleDownload} disabled={loading} size="sm" className="bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white">
+    <Button onClick={handleDownload} disabled={loading} size="sm">
       {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
       Download PDF
     </Button>

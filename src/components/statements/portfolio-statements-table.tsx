@@ -34,7 +34,6 @@ export function PortfolioStatementsTable({ holdings }: Props) {
   const totalMv = holdings.reduce((s, h) => s + h.marketValue, 0);
   const totalRealized = holdings.reduce((s, h) => s + h.realizedGain, 0);
   const totalUnrealized = holdings.reduce((s, h) => s + h.unrealizedGain, 0);
-  const totalGainAll = totalRealized + totalUnrealized;
 
   const toggle = (id: string) => setExpanded((curr) => (curr === id ? null : id));
 
@@ -47,13 +46,11 @@ export function PortfolioStatementsTable({ holdings }: Props) {
           <TableHead className="text-right">Market Value</TableHead>
           <TableHead className="text-right">Realized Gain</TableHead>
           <TableHead className="text-right">Unrealized Gain</TableHead>
-          <TableHead className="text-right">Total Gain</TableHead>
           <TableHead className="w-12"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {holdings.map((h) => {
-          const totalGain = h.realizedGain + h.unrealizedGain;
           const isOpen = expanded === h.id;
           return (
             <Fragment key={h.id}>
@@ -66,9 +63,6 @@ export function PortfolioStatementsTable({ holdings }: Props) {
                 </TableCell>
                 <TableCell className={`text-right ${h.unrealizedGain >= 0 ? "text-green-500" : "text-red-500"}`}>
                   {formatBDT(h.unrealizedGain)}
-                </TableCell>
-                <TableCell className={`text-right font-semibold ${totalGain >= 0 ? "text-green-500" : "text-red-500"}`}>
-                  {formatBDT(totalGain)}
                 </TableCell>
                 <TableCell className="text-center">
                   <button
@@ -88,7 +82,7 @@ export function PortfolioStatementsTable({ holdings }: Props) {
 
               {isOpen && (
                 <TableRow className="bg-page-bg/40 hover:bg-page-bg/40">
-                  <TableCell colSpan={7} className="p-0">
+                  <TableCell colSpan={6} className="p-0">
                     <div className="px-8 py-6">
                       <p className="text-[13px] font-semibold text-text-dark mb-3">{h.fundName}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1 text-[13px]">
@@ -104,12 +98,6 @@ export function PortfolioStatementsTable({ holdings }: Props) {
                           label="Unrealized Gain"
                           value={formatBDT(h.unrealizedGain)}
                           valueClass={h.unrealizedGain >= 0 ? "text-green-500" : "text-red-500"}
-                        />
-                        <DetailRow
-                          label="Total Gain"
-                          value={formatBDT(totalGain)}
-                          bold
-                          valueClass={totalGain >= 0 ? "text-green-500" : "text-red-500"}
                         />
                         <DetailRow
                           label="Realized Gain during this Tax Period"
@@ -139,9 +127,6 @@ export function PortfolioStatementsTable({ holdings }: Props) {
           </TableCell>
           <TableCell className={`text-right font-semibold ${totalUnrealized >= 0 ? "text-green-500" : "text-red-500"}`}>
             {formatBDT(totalUnrealized)}
-          </TableCell>
-          <TableCell className={`text-right font-semibold ${totalGainAll >= 0 ? "text-green-500" : "text-red-500"}`}>
-            {formatBDT(totalGainAll)}
           </TableCell>
           <TableCell></TableCell>
         </TableRow>
