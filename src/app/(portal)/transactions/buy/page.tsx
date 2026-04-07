@@ -59,10 +59,15 @@ export default function BuyPage() {
     setError("");
 
     try {
+      const form = new FormData();
+      form.set("fundCode", selectedFund);
+      form.set("amount", String(actualAmount));
+      form.set("channel", "LS");
+      if (paymentSlip) form.set("paymentSlip", paymentSlip);
+
       const res = await fetch("/api/transactions/buy", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fundCode: selectedFund, amount: actualAmount, channel: "LS" }),
+        body: form,
       });
       const data = await res.json();
       if (!res.ok) {
@@ -293,7 +298,7 @@ export default function BuyPage() {
               <Badge variant="pending" className="mt-2">Pending Approval</Badge>
             </div>
             <div className="flex gap-3 justify-center">
-              <Button variant="outline" onClick={() => { setResult(null); setStep(0); setAmount(""); }}>
+              <Button variant="outline" onClick={() => { setResult(null); setStep(0); setAmount(""); setPaymentSlip(null); }}>
                 Place Another Order
               </Button>
               <Button onClick={() => router.push("/transactions")}>

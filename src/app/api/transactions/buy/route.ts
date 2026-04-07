@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,8 +14,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { fundCode, amount, channel } = body;
+  // Accept either JSON or multipart/form-data (with optional payment slip)
+  const contentType = req.headers.get("content-type") || "";
+  let fundCode: string | undefined;
+  let amount: number | undefined;
+  let channel: string | undefined;
+  let paymentSlip: File | null = null;
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await req.formData();
+    fundCode = form.get("fundCode") as string | undefined;
+    amount = parseFloat(form.get("amount") as string);
+    channel = (form.get("channel") as string) || "LS";
+    paymentSlip = form.get("paymentSlip") as File | null;
+  } else {
+    const body = await req.json();
+    fundCode = body.fundCode;
+    amount = body.amount;
+    channel = body.channel;
+  }
 
   if (!fundCode || !amount || amount <= 0) {
     return NextResponse.json({ error: "Fund and positive amount required" }, { status: 400 });
@@ -33,6 +52,18 @@ export async function POST(req: NextRequest) {
   const unitCapital = units * 10; // face value
   const unitPremium = amount - unitCapital;
 
+  // Persist payment slip to local uploads dir (same pattern as /api/documents)
+  let paymentRef: string | null = null;
+  if (paymentSlip && paymentSlip.size > 0) {
+    const uploadDir = path.join(process.cwd(), "uploads", investorId, "payment-slips");
+    await mkdir(uploadDir, { recursive: true });
+    const fileName = `${Date.now()}_${paymentSlip.name.replace(/[^\w.\-]/g, "_")}`;
+    const filePath = path.join(uploadDir, fileName);
+    const bytes = await paymentSlip.arrayBuffer();
+    await writeFile(filePath, Buffer.from(bytes));
+    paymentRef = `uploads/${investorId}/payment-slips/${fileName}`;
+  }
+
   // Create pending transaction
   const transaction = await prisma.transaction.create({
     data: {
@@ -51,6 +82,8 @@ export async function POST(req: NextRequest) {
       costOfUnitsSold: 0,
       orderDate: new Date(),
       status: "PENDING",
+      paymentMethod: "BANK_TRANSFER",
+      paymentRef,
     },
   });
 
@@ -83,6 +116,7 @@ export async function POST(req: NextRequest) {
     amount,
     estimatedUnits: units,
     nav,
+    paymentRef,
     message: "Order submitted successfully. Pending approval.",
   });
 }
