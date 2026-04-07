@@ -1,27 +1,44 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatBDT, formatNumber, formatDate } from "@/lib/utils";
+import { formatNumber, formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TransactionFilters } from "@/components/transactions/transaction-filters";
 import { Download } from "lucide-react";
+import type { Prisma } from "@prisma/client";
 
 const PAGE_SIZE = 50;
+// Years to populate the year dropdown — current year and previous 4
+const YEARS = (() => {
+  const y = new Date().getFullYear();
+  return [y, y - 1, y - 2, y - 3, y - 4];
+})();
 
-async function getTransactions(investorId: string, page: number) {
-  return prisma.transaction.findMany({
-    where: { investorId },
-    include: { fund: { select: { code: true, name: true } } },
-    orderBy: { orderDate: "desc" },
-    take: PAGE_SIZE,
-    skip: (page - 1) * PAGE_SIZE,
-  });
+interface SearchParams {
+  page?: string;
+  fund?: string;
+  type?: string;
+  year?: string;
+  yearType?: string;
+}
+
+function buildDateRange(year?: string, yearType?: string): { gte?: Date; lt?: Date } | undefined {
+  if (!year) return undefined;
+  const y = parseInt(year);
+  if (isNaN(y)) return undefined;
+  if (yearType === "fiscal") {
+    // Bangladesh fiscal year: July of `year` → June of `year + 1`
+    return { gte: new Date(y, 6, 1), lt: new Date(y + 1, 6, 1) };
+  }
+  // Default: calendar year
+  return { gte: new Date(y, 0, 1), lt: new Date(y + 1, 0, 1) };
 }
 
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: SearchParams;
 }) {
   const session = await getServerSession(authOptions);
   const investorId = (session?.user as any)?.investorId;
@@ -31,34 +48,40 @@ export default async function TransactionsPage({
   }
 
   const page = Math.max(1, parseInt(searchParams.page || "1"));
-  const transactions = await getTransactions(investorId, page);
+
+  // Resolve filters
+  const funds = await prisma.fund.findMany({
+    select: { id: true, code: true, name: true },
+    orderBy: { code: "asc" },
+  });
+  const fundByCode = new Map(funds.map((f) => [f.code, f]));
+
+  const where: Prisma.TransactionWhereInput = { investorId };
+  if (searchParams.fund) {
+    const f = fundByCode.get(searchParams.fund);
+    if (f) where.fundId = f.id;
+  }
+  if (searchParams.type === "BUY" || searchParams.type === "SELL") {
+    where.direction = searchParams.type;
+  }
+  const dateRange = buildDateRange(searchParams.year, searchParams.yearType);
+  if (dateRange) {
+    where.orderDate = dateRange;
+  }
+
+  const transactions = await prisma.transaction.findMany({
+    where,
+    include: { fund: { select: { code: true, name: true } } },
+    orderBy: { orderDate: "desc" },
+    take: PAGE_SIZE,
+    skip: (page - 1) * PAGE_SIZE,
+  });
 
   return (
     <div className="space-y-6">
       <h1 className="text-[20px] font-semibold text-text-dark font-rajdhani">All Transactions</h1>
 
-      {/* Filter Row */}
-      <div className="flex flex-wrap gap-4">
-        <select className="h-[42px] px-4 bg-input-bg border border-input-border rounded-[5px] text-[13px] text-text-body min-w-[180px] focus:outline-none focus:border-ekush-orange">
-          <option value="">Select a fund</option>
-        </select>
-        <select className="h-[42px] px-4 bg-input-bg border border-input-border rounded-[5px] text-[13px] text-text-body min-w-[180px] focus:outline-none focus:border-ekush-orange">
-          <option value="">Select a year type</option>
-          <option value="calendar">Calendar Year</option>
-          <option value="fiscal">Fiscal Year</option>
-        </select>
-        <select className="h-[42px] px-4 bg-input-bg border border-input-border rounded-[5px] text-[13px] text-text-body min-w-[160px] focus:outline-none focus:border-ekush-orange">
-          <option value="">Select a year</option>
-          <option value="2026">2026</option>
-          <option value="2025">2025</option>
-          <option value="2024">2024</option>
-        </select>
-        <select className="h-[42px] px-4 bg-input-bg border border-input-border rounded-[5px] text-[13px] text-text-body min-w-[160px] focus:outline-none focus:border-ekush-orange">
-          <option value="">Select txn type</option>
-          <option value="BUY">Buy</option>
-          <option value="SELL">Sell</option>
-        </select>
-      </div>
+      <TransactionFilters funds={funds} years={YEARS} />
 
       {/* Transactions Table */}
       <Card>
@@ -86,7 +109,7 @@ export default async function TransactionsPage({
               <TableBody>
                 {transactions.map((tx, idx) => (
                   <TableRow key={tx.id}>
-                    <TableCell className="text-text-dark">{idx + 1}</TableCell>
+                    <TableCell className="text-text-dark">{(page - 1) * PAGE_SIZE + idx + 1}</TableCell>
                     <TableCell className="whitespace-nowrap text-text-dark">{formatDate(tx.orderDate)}</TableCell>
                     <TableCell className="font-mono text-[12px] text-text-body">{tx.id.slice(0, 16)}</TableCell>
                     <TableCell className="text-text-dark">{tx.fund.code}</TableCell>
