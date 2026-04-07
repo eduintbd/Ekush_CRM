@@ -19,7 +19,6 @@ export default function BuyPage() {
   const [selectedFund, setSelectedFund] = useState("");
   const [amount, setAmount] = useState("");
   const [dividendOption, setDividendOption] = useState("CIP");
-  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
@@ -31,7 +30,12 @@ export default function BuyPage() {
   const fund = funds.find(f => f.code === selectedFund);
   const nav = fund?.currentNav || 0;
   const amountNum = parseFloat(amount) || 0;
-  const estimatedUnits = nav > 0 ? amountNum / nav : 0;
+  // Round units to 4 decimals (matches what will be persisted) so unit price * units == amount
+  const estimatedUnits = nav > 0 ? Math.floor((amountNum / nav) * 10000) / 10000 : 0;
+  const actualAmount = estimatedUnits * nav;
+
+  const formatBD = (n: number, decimals = 2) =>
+    n.toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
   const handleSubmit = async () => {
     if (!selectedFund || amountNum <= 0) return;
@@ -42,7 +46,7 @@ export default function BuyPage() {
       const res = await fetch("/api/transactions/buy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fundCode: selectedFund, amount: amountNum, channel: "LS" }),
+        body: JSON.stringify({ fundCode: selectedFund, amount: actualAmount, channel: "LS" }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -111,7 +115,7 @@ export default function BuyPage() {
                 <label className="text-[14px] font-medium text-text-label">Unit price *</label>
                 <input
                   type="text"
-                  value={nav > 0 ? nav.toFixed(2) : ""}
+                  value={nav > 0 ? formatBD(nav, 4) : ""}
                   readOnly
                   className="w-full h-[50px] rounded-[5px] border border-input-border bg-gray-50 px-5 text-[14px] text-text-body"
                 />
@@ -121,7 +125,7 @@ export default function BuyPage() {
                 <label className="text-[14px] font-medium text-text-label">No of units *</label>
                 <input
                   type="text"
-                  value={estimatedUnits > 0 ? estimatedUnits.toFixed(4) : ""}
+                  value={estimatedUnits > 0 ? formatBD(estimatedUnits, 4) : ""}
                   readOnly
                   className="w-full h-[50px] rounded-[5px] border border-input-border bg-gray-50 px-5 text-[14px] text-text-body"
                 />
@@ -138,34 +142,12 @@ export default function BuyPage() {
                   <option value="CASH">Cash</option>
                 </select>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-[14px] font-medium text-text-label">First Nominee</label>
-                <select
-                  className="w-full h-[50px] rounded-[5px] border border-input-border bg-input-bg px-5 text-[14px] text-text-dark focus:outline-none focus:border-ekush-orange"
-                >
-                  <option value="100">100%</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-3 pt-2">
-                <input
-                  type="checkbox"
-                  id="agree"
-                  checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
-                  className="w-4 h-4 accent-ekush-orange"
-                />
-                <label htmlFor="agree" className="text-[13px] text-text-body">
-                  I agree to pay 2% fees in case of liquidation in 60 calendar days
-                </label>
-              </div>
             </div>
 
             <div className="mt-8 text-center">
               <Button
                 onClick={() => setStep(1)}
-                disabled={!selectedFund || amountNum <= 0 || !agreed}
+                disabled={!selectedFund || amountNum <= 0}
                 className="px-10"
               >
                 Next Step
@@ -212,15 +194,15 @@ export default function BuyPage() {
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Amount</span>
-                <span className="text-text-dark font-medium">৳{amountNum.toLocaleString("en-IN")}</span>
+                <span className="text-text-dark font-medium">৳{formatBD(actualAmount)}</span>
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">NAV</span>
-                <span className="text-text-dark font-medium">{nav.toFixed(4)}</span>
+                <span className="text-text-dark font-medium">{formatBD(nav, 4)}</span>
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Estimated Units</span>
-                <span className="text-text-dark font-medium">{estimatedUnits.toFixed(4)}</span>
+                <span className="text-text-dark font-medium">{formatBD(estimatedUnits, 4)}</span>
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Dividend Option</span>
@@ -251,12 +233,12 @@ export default function BuyPage() {
             <p className="text-[14px] text-text-body mb-4">{result.message}</p>
             <div className="inline-block bg-page-bg rounded-[10px] p-6 space-y-2 text-left mb-6">
               <p className="text-[14px] text-text-body">Fund: <strong className="text-text-dark">{result.fund}</strong></p>
-              <p className="text-[14px] text-text-body">Amount: <strong className="text-text-dark">৳{result.amount?.toLocaleString("en-IN")}</strong></p>
-              <p className="text-[14px] text-text-body">Est. Units: <strong className="text-text-dark">{result.estimatedUnits?.toFixed(4)}</strong></p>
+              <p className="text-[14px] text-text-body">Amount: <strong className="text-text-dark">৳{formatBD(Number(result.amount) || 0)}</strong></p>
+              <p className="text-[14px] text-text-body">Est. Units: <strong className="text-text-dark">{formatBD(Number(result.estimatedUnits) || 0, 4)}</strong></p>
               <Badge variant="pending" className="mt-2">Pending Approval</Badge>
             </div>
             <div className="flex gap-3 justify-center">
-              <Button variant="outline" onClick={() => { setResult(null); setStep(0); setAmount(""); setAgreed(false); }}>
+              <Button variant="outline" onClick={() => { setResult(null); setStep(0); setAmount(""); }}>
                 Place Another Order
               </Button>
               <Button onClick={() => router.push("/transactions")}>
