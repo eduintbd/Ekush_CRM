@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Plus, Pause, Play, X, Loader2, Calendar } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 
 interface SipPlan {
   id: string;
@@ -22,13 +20,11 @@ interface SipPlan {
 interface Fund { code: string; name: string; currentNav: number; }
 
 export default function SipPage() {
-  const router = useRouter();
   const [plans, setPlans] = useState<SipPlan[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ fundCode: "", amount: "", frequency: "MONTHLY", debitDay: "10" });
+  const [form, setForm] = useState({ fundCode: "", amount: "", frequency: "MONTHLY", debitDay: "5" });
   const [loading, setLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchPlans = () => fetch("/api/sip").then(r => r.json()).then(setPlans).catch(() => {});
   const fetchFunds = () => fetch("/api/funds").then(r => r.json()).then(setFunds).catch(() => {});
@@ -46,32 +42,12 @@ export default function SipPage() {
       });
       if (res.ok) {
         setShowCreate(false);
-        setForm({ fundCode: "", amount: "", frequency: "MONTHLY", debitDay: "10" });
+        setForm({ fundCode: "", amount: "", frequency: "MONTHLY", debitDay: "5" });
         fetchPlans();
       }
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleAction = async (id: string, action: string) => {
-    setActionLoading(id);
-    try {
-      await fetch("/api/sip", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action }),
-      });
-      fetchPlans();
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const statusVariant = (s: string) => {
-    if (s === "ACTIVE") return "success" as const;
-    if (s === "PAUSED") return "warning" as const;
-    return "danger" as const;
   };
 
   const activePlans = plans.filter(p => p.status === "ACTIVE");
@@ -134,7 +110,18 @@ export default function SipPage() {
                   <option value="QUARTERLY">Quarterly</option>
                 </select>
               </div>
-              <Input label="Debit Day" type="number" value={form.debitDay} onChange={(e) => setForm({ ...form, debitDay: e.target.value })} min="1" max="28" />
+              <div>
+                <label className="text-sm font-medium text-text-label block mb-1">Debit Day</label>
+                <select
+                  value={form.debitDay}
+                  onChange={(e) => setForm({ ...form, debitDay: e.target.value })}
+                  className="w-full h-[50px] rounded-[5px] border border-input-border bg-input-bg px-3 text-sm"
+                >
+                  <option value="5">5th day of the month</option>
+                  <option value="15">15th day of the month</option>
+                  <option value="26">26th day of the month</option>
+                </select>
+              </div>
               <div className="md:col-span-2 flex gap-2">
                 <Button type="submit" disabled={loading} className="bg-ekush-orange hover:bg-ekush-orange/90 text-white rounded-[5px] text-[13px]">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
@@ -147,56 +134,6 @@ export default function SipPage() {
         </Card>
       )}
 
-      {/* Plans List */}
-      <Card className="rounded-[10px] shadow-card">
-        <CardHeader>
-          <CardTitle className="text-[16px] font-semibold text-text-dark">Your SIP Plans</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {plans.length === 0 ? (
-            <div className="text-center py-10 text-text-body">
-              <RefreshCw className="w-10 h-10 text-text-muted mx-auto mb-3" />
-              <p className="text-sm">No SIP plans yet. Create one to start investing regularly.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {plans.map((plan) => (
-                <div key={plan.id} className="flex items-center justify-between p-4 bg-page-bg rounded-[10px]">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-semibold text-sm text-text-dark">{plan.fund.code}</p>
-                      <Badge variant={statusVariant(plan.status)}>{plan.status}</Badge>
-                    </div>
-                    <p className="text-xs text-text-body">{plan.fund.name}</p>
-                    <div className="flex gap-4 mt-1 text-xs text-text-body">
-                      <span>৳{Number(plan.amount).toLocaleString("en-IN")} / {plan.frequency.toLowerCase()}</span>
-                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Day {plan.debitDay}</span>
-                      <span>Since {new Date(plan.startDate).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {plan.status === "ACTIVE" && (
-                      <Button size="sm" variant="outline" onClick={() => handleAction(plan.id, "pause")} disabled={actionLoading === plan.id} className="rounded-[5px]">
-                        {actionLoading === plan.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Pause className="w-3 h-3" />}
-                      </Button>
-                    )}
-                    {plan.status === "PAUSED" && (
-                      <Button size="sm" variant="outline" onClick={() => handleAction(plan.id, "resume")} disabled={actionLoading === plan.id} className="rounded-[5px]">
-                        {actionLoading === plan.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                      </Button>
-                    )}
-                    {plan.status !== "CANCELLED" && (
-                      <Button size="sm" variant="destructive" onClick={() => { if (confirm("Cancel this SIP?")) handleAction(plan.id, "cancel"); }} disabled={actionLoading === plan.id} className="rounded-[5px]">
-                        <X className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
