@@ -20,7 +20,6 @@ export interface HoldingRow {
   realizedGain: number;
   unrealizedGain: number;
   realizedGainTaxPeriod: number;
-  holdingPeriodReturn: number;
   annualizedReturn: number;
 }
 
@@ -107,11 +106,6 @@ export function PortfolioStatementsTable({ holdings }: Props) {
                           valueClass={h.unrealizedGain >= 0 ? "text-green-500" : "text-red-500"}
                         />
                         <DetailRow
-                          label="Realized Gain since Inception"
-                          value={formatBDT(h.realizedGain)}
-                          valueClass={h.realizedGain >= 0 ? "text-green-500" : "text-red-500"}
-                        />
-                        <DetailRow
                           label="Total Gain"
                           value={formatBDT(totalGain)}
                           bold
@@ -121,11 +115,6 @@ export function PortfolioStatementsTable({ holdings }: Props) {
                           label="Realized Gain during this Tax Period"
                           value={formatBDT(h.realizedGainTaxPeriod)}
                           valueClass={h.realizedGainTaxPeriod >= 0 ? "text-green-500" : "text-red-500"}
-                        />
-                        <DetailRow
-                          label="Holding Period Return"
-                          value={`${h.holdingPeriodReturn.toFixed(1)}%`}
-                          italic
                         />
                         <DetailRow
                           label="Annualized Return"

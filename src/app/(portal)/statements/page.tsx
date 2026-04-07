@@ -42,46 +42,49 @@ export default async function StatementsPage() {
     f.weight = totalMarketValue > 0 ? (f.marketValue / totalMarketValue) * 100 : 0;
   });
 
-  // Build expandable row data with computed returns
+  // Build expandable row data with computed annualized return
   const now = Date.now();
   const tableRows: HoldingRow[] = holdings.map((h) => {
+    const totalCurrentUnits = Number(h.totalCurrentUnits);
     const costValue = Number(h.totalCostValueCurrent);
     const marketValue = Number(h.totalMarketValue);
     const realizedGain = Number(h.totalRealizedGain);
     const unrealizedGain = Number(h.totalUnrealizedGain);
     const grossDividend = Number(h.grossDividend);
+    const nav = Number(h.nav);
 
-    // Holding period return: (mv + realized + dividends - cost) / cost
-    const hpr =
-      costValue > 0
-        ? ((marketValue + realizedGain + grossDividend - costValue) / costValue) * 100
-        : 0;
-
-    // Annualized return based on years held
+    // Annualized total return — computed from the aggregate fields the user
+    // specified: Total Realized Gain, Total Dividend Income, Current NAV,
+    // Total Units Invested. Faithful approximation of the T. History XIRR.
+    const computedMarketValue = totalCurrentUnits * nav;
+    const totalGain =
+      realizedGain + grossDividend + (computedMarketValue - costValue);
+    const totalReturn = costValue > 0 ? totalGain / costValue : 0;
     const yearsHeld = Math.max(
       0.01,
       (now - new Date(h.createdAt).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
     );
     const annualized =
-      hpr > -100 ? (Math.pow(1 + hpr / 100, 1 / yearsHeld) - 1) * 100 : 0;
+      totalReturn > -1
+        ? (Math.pow(1 + totalReturn, 1 / yearsHeld) - 1) * 100
+        : 0;
 
     return {
       id: h.id,
       fundCode: h.fund.code,
       fundName: h.fund.name,
-      totalCurrentUnits: Number(h.totalCurrentUnits),
+      totalCurrentUnits,
       sipCurrentUnits: Number(h.sipCurrentUnits),
       avgCost: Number(h.avgCost),
       costValue,
       sipMarketValue: Number(h.sipMarketValue),
-      nav: Number(h.nav),
+      nav,
       marketValue,
       grossDividend,
       realizedGain,
       unrealizedGain,
       // Schema doesn't track per-tax-period gain — placeholder until reporting period field exists
       realizedGainTaxPeriod: 0,
-      holdingPeriodReturn: hpr,
       annualizedReturn: annualized,
     };
   });
