@@ -171,6 +171,9 @@ model FundHolding {
   // Gross Dividend (from simpler fund files)
   grossDividend Float @default(0)
 
+  // First purchase date (earliest LS/SIP transaction); used for return calculations
+  firstPurchaseDate DateTime?
+
   investor Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
   fund     Fund     @relation(fields: [fundId], references: [id], onDelete: Cascade)
 

@@ -60,9 +60,10 @@ export default async function StatementsPage() {
     const totalGain =
       realizedGain + grossDividend + (computedMarketValue - costValue);
     const totalReturn = costValue > 0 ? totalGain / costValue : 0;
+    const startDate = h.firstPurchaseDate ?? h.createdAt;
     const yearsHeld = Math.max(
       0.01,
-      (now - new Date(h.createdAt).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+      (now - new Date(startDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
     );
     const annualized =
       totalReturn > -1

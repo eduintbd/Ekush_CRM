@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { importInvestors } from "./import-investors";
+import { importTransactions } from "./import-transactions";
 import { logProgress } from "./helpers";
 
 const prisma = new PrismaClient();
@@ -80,6 +81,9 @@ async function main() {
 
   // Step 3: Import investors and holdings from Excel files
   await importInvestors(prisma);
+
+  // Step 3b: Import LS/SIP transaction history and backfill firstPurchaseDate
+  await importTransactions(prisma);
 
   // Step 4: Create NAV records from current values
   logProgress("Creating initial NAV records...");
