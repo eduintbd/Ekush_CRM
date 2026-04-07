@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback } from "react";
+import { DownloadTransactionReport } from "@/components/statements/pdf-buttons";
 
 interface Fund {
   code: string;
@@ -70,6 +71,12 @@ export function TransactionFilters({ funds, years }: Props) {
         <option value="BUY">Buy</option>
         <option value="SELL">Sell</option>
       </select>
+
+      <DownloadTransactionReport
+        fund={params.get("fund") ?? undefined}
+        year={params.get("year") ?? undefined}
+        type={params.get("type") ?? undefined}
+      />
     </div>
   );
 }

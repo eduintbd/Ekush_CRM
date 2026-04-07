@@ -249,6 +249,159 @@ export function generateTaxCertificatePDF(data: TaxCertData): jsPDF {
   return doc;
 }
 
+interface TransactionReportData {
+  investorName: string;
+  investorCode: string;
+  investorType: string;
+  generatedDate: string;
+  filters: { fund: string; year: string; type: string };
+  transactions: {
+    id: string;
+    orderDate: string;
+    fundCode: string;
+    direction: string;
+    units: number;
+    nav: number;
+    amount: number;
+  }[];
+}
+
+export function generateTransactionReportPDF(data: TransactionReportData): jsPDF {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // Header
+  doc.setFillColor(242, 112, 35); // ekush orange
+  doc.rect(0, 0, pageWidth, 35, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Ekush Wealth Management Ltd", 14, 15);
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.text("Transaction Report", 14, 25);
+
+  doc.setFontSize(8);
+  doc.text("Licensed by BSEC", pageWidth - 14, 15, { align: "right" });
+  doc.text(`Generated: ${data.generatedDate}`, pageWidth - 14, 22, { align: "right" });
+
+  // Investor Info
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Investor Details", 14, 45);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Name: ${data.investorName}`, 14, 53);
+  doc.text(`Code: ${data.investorCode}`, 14, 59);
+  doc.text(`Type: ${data.investorType}`, 14, 65);
+
+  // Filter chips
+  doc.setFont("helvetica", "bold");
+  doc.text("Filters", pageWidth - 90, 45);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Fund: ${data.filters.fund}`, pageWidth - 90, 53);
+  doc.text(`Year: ${data.filters.year}`, pageWidth - 90, 59);
+  doc.text(`Type: ${data.filters.type}`, pageWidth - 90, 65);
+
+  // Totals
+  const totalBuy = data.transactions
+    .filter((t) => t.direction === "BUY")
+    .reduce((s, t) => s + t.amount, 0);
+  const totalSell = data.transactions
+    .filter((t) => t.direction === "SELL")
+    .reduce((s, t) => s + t.amount, 0);
+
+  // Transaction Table
+  const tableData = data.transactions.map((tx, idx) => [
+    String(idx + 1),
+    new Date(tx.orderDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+    tx.fundCode,
+    tx.direction === "BUY" ? "Buy" : "Sell",
+    tx.units.toLocaleString("en-IN", { maximumFractionDigits: 0 }),
+    tx.nav.toFixed(2),
+    formatAmount(tx.amount),
+  ]);
+
+  // Add totals row
+  if (data.transactions.length > 0) {
+    tableData.push([
+      "",
+      "",
+      "",
+      "TOTAL BUY",
+      "",
+      "",
+      formatAmount(totalBuy),
+    ]);
+    tableData.push([
+      "",
+      "",
+      "",
+      "TOTAL SELL",
+      "",
+      "",
+      formatAmount(totalSell),
+    ]);
+  }
+
+  autoTable(doc, {
+    startY: 75,
+    head: [["#", "Date", "Fund", "Type", "Units", "NAV", "Amount (BDT)"]],
+    body: tableData,
+    theme: "grid",
+    headStyles: {
+      fillColor: [242, 112, 35],
+      textColor: [255, 255, 255],
+      fontSize: 9,
+      fontStyle: "bold",
+    },
+    bodyStyles: { fontSize: 8 },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    columnStyles: {
+      0: { halign: "center", cellWidth: 12 },
+      1: { cellWidth: 28 },
+      2: { cellWidth: 24 },
+      3: { cellWidth: 24 },
+      4: { halign: "right", cellWidth: 28 },
+      5: { halign: "right", cellWidth: 22 },
+      6: { halign: "right" },
+    },
+    didParseCell: (cellData: any) => {
+      const lastIdx = tableData.length - 1;
+      const secondLastIdx = tableData.length - 2;
+      if (
+        data.transactions.length > 0 &&
+        (cellData.row.index === lastIdx || cellData.row.index === secondLastIdx)
+      ) {
+        cellData.cell.styles.fontStyle = "bold";
+        cellData.cell.styles.fillColor = [255, 240, 230];
+      }
+    },
+  });
+
+  // Footer
+  const finalY = (doc as any).lastAutoTable?.finalY || 150;
+  doc.setFontSize(7);
+  doc.setTextColor(128, 128, 128);
+  doc.text(
+    `Total ${data.transactions.length} transaction(s) listed.`,
+    14,
+    finalY + 10
+  );
+  doc.text(
+    "This is a computer-generated report. For any discrepancy please contact support.",
+    14,
+    finalY + 16
+  );
+  doc.text("Ekush Wealth Management Ltd | www.ekushwml.com", 14, finalY + 22);
+
+  return doc;
+}
+
 function formatAmount(amount: number): string {
   if (amount === 0) return "-";
   const abs = Math.abs(amount);

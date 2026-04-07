@@ -5,7 +5,6 @@ import { formatNumber, formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TransactionFilters } from "@/components/transactions/transaction-filters";
-import { Download } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 
 const PAGE_SIZE = 50;
@@ -95,7 +94,6 @@ export default async function TransactionsPage({
                   <TableHead className="text-right">No. of units</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-center">Ack slip</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -118,11 +116,6 @@ export default async function TransactionsPage({
                     </TableCell>
                     <TableCell className="text-right text-text-dark">
                       {formatNumber(Number(tx.amount), 0)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {tx.status === "EXECUTED" && (
-                        <Download className="w-4 h-4 text-ekush-orange mx-auto cursor-pointer hover:text-ekush-orange-dark" />
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
