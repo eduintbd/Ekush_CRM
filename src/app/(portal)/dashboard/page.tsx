@@ -36,13 +36,6 @@ export default async function DashboardPage() {
           iconBg="#E8F8FA"
         />
         <ActionCard
-          href="/sip"
-          label="Invest in SIP"
-          icon={Calendar}
-          iconColor="#E85D5D"
-          iconBg="#FDE8E8"
-        />
-        <ActionCard
           href="/transactions/sell"
           label="Sell Units"
           icon={Coins}
@@ -50,8 +43,15 @@ export default async function DashboardPage() {
           iconBg="#FFF0E6"
         />
         <ActionCard
+          href="/sip"
+          label="Invest in SIP"
+          icon={Calendar}
+          iconColor="#E85D5D"
+          iconBg="#FDE8E8"
+        />
+        <ActionCard
           href="/statements"
-          label="Wealth Statement"
+          label="Your Statement"
           icon={PieChart}
           iconColor="#2DAAB8"
           iconBg="#E8F8FA"

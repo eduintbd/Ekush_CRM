@@ -22,7 +22,7 @@ const navItems = [
   { href: "/transactions/buy", label: "Buy Units", icon: TrendingUp },
   { href: "/sip", label: "Invest in SIP", icon: Calendar },
   { href: "/transactions/sell", label: "Sell Units", icon: Coins },
-  { href: "/statements", label: "Wealth Statement", icon: PieChart },
+  { href: "/statements", label: "Your Statement", icon: PieChart },
   { href: "/transactions", label: "Transactions", icon: FileText },
   { href: "/profile", label: "Edit Profile", icon: UserPen },
   { href: "/profile/bank", label: "Bank & BO", icon: Landmark },
