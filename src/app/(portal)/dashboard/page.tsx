@@ -76,7 +76,7 @@ export default async function DashboardPage() {
         />
         <ActionCard
           href="/profile"
-          label="Beneficiary Management"
+          label="Profile Management"
           icon={UserPen}
           iconColor="#0EA5E9"
           iconBg="#E0F2FE"
