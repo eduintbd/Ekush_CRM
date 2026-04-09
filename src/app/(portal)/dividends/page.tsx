@@ -1,5 +1,6 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
+
+
 import { prisma } from "@/lib/prisma";
 import { formatBDT, formatNumber } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,7 @@ async function getDividends(investorId: string) {
 }
 
 export default async function DividendsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const investorId = (session?.user as any)?.investorId;
 
   if (!investorId) {
