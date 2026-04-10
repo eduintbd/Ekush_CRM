@@ -795,10 +795,15 @@ function matchFreeText(text: string): string {
 export function EkushChatbot() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [step, setStep] = useState<"name" | "mobile" | "chat">("name");
+  const [userName, setUserName] = useState("");
+  const [userMobile, setUserMobile] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const mobileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -806,9 +811,40 @@ export function EkushChatbot() {
 
   const handleOpen = () => {
     setIsOpen(true);
-    if (messages.length === 0) {
-      setMessages([getBotResponse("greeting")]);
+    if (step === "name") {
+      setTimeout(() => nameRef.current?.focus(), 100);
+    } else {
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
+  };
+
+  const handleNameSubmit = () => {
+    const name = userName.trim();
+    if (!name) return;
+    setStep("mobile");
+    setTimeout(() => mobileRef.current?.focus(), 100);
+  };
+
+  const handleMobileSubmit = () => {
+    const mobile = userMobile.trim();
+    if (!mobile) return;
+    setStep("chat");
+    const greetingMsg: Message = {
+      id: Date.now().toString(),
+      from: "bot",
+      text: `Hi ${userName.trim()}! Welcome to Ekush! I am Ahona from Ekush. I will assist you with your journey with Ekush.\n\nNow, kindly tell me — how can I assist you?`,
+      options: [
+        { label: "Buy Units", action: "nav_buy" },
+        { label: "Sell Units", action: "nav_sell" },
+        { label: "Invest in SIP", action: "nav_sip" },
+        { label: "Learn About Funds", action: "funds_menu" },
+        { label: "Basics of Mutual Funds", action: "basics_menu" },
+        { label: "FAQ", action: "faq_menu" },
+        { label: "Myth Busters", action: "myths_menu" },
+        { label: "Help & Support", action: "help" },
+      ],
+    };
+    setMessages([greetingMsg]);
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
@@ -847,7 +883,22 @@ export function EkushChatbot() {
   };
 
   const handleReset = () => {
-    setMessages([getBotResponse("greeting")]);
+    const greetingMsg: Message = {
+      id: Date.now().toString(),
+      from: "bot",
+      text: `Hi ${userName.trim()}! How can I assist you?`,
+      options: [
+        { label: "Buy Units", action: "nav_buy" },
+        { label: "Sell Units", action: "nav_sell" },
+        { label: "Invest in SIP", action: "nav_sip" },
+        { label: "Learn About Funds", action: "funds_menu" },
+        { label: "Basics of Mutual Funds", action: "basics_menu" },
+        { label: "FAQ", action: "faq_menu" },
+        { label: "Myth Busters", action: "myths_menu" },
+        { label: "Help & Support", action: "help" },
+      ],
+    };
+    setMessages([greetingMsg]);
   };
 
   return (
@@ -873,8 +924,8 @@ export function EkushChatbot() {
                 <Bot className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-semibold text-sm leading-tight">Ekush Assistant</p>
-                <p className="text-[11px] text-white/70">Always here to help</p>
+                <p className="font-semibold text-sm leading-tight">Ahona</p>
+                <p className="text-[11px] text-white/70">Ekush Assistant</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -887,61 +938,138 @@ export function EkushChatbot() {
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50">
-            {messages.map((msg) => (
-              <div key={msg.id}>
-                <div className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[85%] px-3 py-2 rounded-xl text-[13px] leading-relaxed whitespace-pre-line ${
-                      msg.from === "user"
-                        ? "bg-[#1e3a5f] text-white rounded-br-sm"
-                        : "bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-sm"
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
+          {/* Intro form — collect name & mobile before chat */}
+          {step !== "chat" ? (
+            <div className="flex-1 flex flex-col bg-gray-50">
+              <div className="flex-1 flex flex-col items-center justify-center px-6">
+                <div className="w-16 h-16 rounded-full bg-[#1e3a5f]/10 flex items-center justify-center mb-4">
+                  <Bot className="w-8 h-8 text-[#1e3a5f]" />
                 </div>
+                <p className="text-center text-[14px] text-gray-700 mb-1 font-medium">
+                  Assalamualaikum!
+                </p>
+                <p className="text-center text-[13px] text-gray-500 mb-6">
+                  I am <span className="font-semibold text-[#1e3a5f]">Ahona</span> from Ekush. Before we start, may I know a little about you?
+                </p>
 
-                {msg.from === "bot" && msg.options && (
-                  <div className="flex flex-wrap gap-1.5 mt-2 ml-1">
-                    {msg.options.map((opt, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleOptionClick(opt)}
-                        className="px-3 py-1.5 text-[12px] font-medium text-[#1e3a5f] bg-white border border-[#1e3a5f]/20 rounded-full hover:bg-[#1e3a5f] hover:text-white transition-colors"
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                <div className="w-full space-y-3">
+                  <div>
+                    <label className="text-[12px] font-medium text-gray-600 mb-1 block">Your Name</label>
+                    <input
+                      ref={nameRef}
+                      type="text"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && userName.trim()) {
+                          if (step === "name") { handleNameSubmit(); }
+                          else if (userMobile.trim()) { handleMobileSubmit(); }
+                        }
+                      }}
+                      placeholder="e.g., Rahim Uddin"
+                      disabled={step === "mobile"}
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-[#1e3a5f] bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                    />
                   </div>
+
+                  {step === "mobile" && (
+                    <div>
+                      <label className="text-[12px] font-medium text-gray-600 mb-1 block">Mobile Number</label>
+                      <input
+                        ref={mobileRef}
+                        type="tel"
+                        value={userMobile}
+                        onChange={(e) => setUserMobile(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && userMobile.trim()) handleMobileSubmit();
+                        }}
+                        placeholder="e.g., 01712345678"
+                        className="w-full text-sm px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-[#1e3a5f] bg-white"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 pb-5">
+                {step === "name" ? (
+                  <button
+                    onClick={handleNameSubmit}
+                    disabled={!userName.trim()}
+                    className="w-full py-2.5 rounded-lg bg-[#1e3a5f] text-white text-sm font-medium hover:bg-[#2d5a8f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleMobileSubmit}
+                    disabled={!userMobile.trim()}
+                    className="w-full py-2.5 rounded-lg bg-[#1e3a5f] text-white text-sm font-medium hover:bg-[#2d5a8f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Start Chat
+                  </button>
                 )}
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input */}
-          <div className="border-t bg-white px-3 py-3 shrink-0">
-            <div className="flex items-center gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Ask me anything..."
-                className="flex-1 text-sm px-3 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-[#1e3a5f] bg-gray-50"
-              />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim()}
-                className="w-9 h-9 rounded-full bg-[#1e3a5f] text-white flex items-center justify-center hover:bg-[#2d5a8f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-              >
-                <Send className="w-4 h-4" />
-              </button>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50">
+                {messages.map((msg) => (
+                  <div key={msg.id}>
+                    <div className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[85%] px-3 py-2 rounded-xl text-[13px] leading-relaxed whitespace-pre-line ${
+                          msg.from === "user"
+                            ? "bg-[#1e3a5f] text-white rounded-br-sm"
+                            : "bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-sm"
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+
+                    {msg.from === "bot" && msg.options && (
+                      <div className="flex flex-wrap gap-1.5 mt-2 ml-1">
+                        {msg.options.map((opt, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleOptionClick(opt)}
+                            className="px-3 py-1.5 text-[12px] font-medium text-[#1e3a5f] bg-white border border-[#1e3a5f]/20 rounded-full hover:bg-[#1e3a5f] hover:text-white transition-colors"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input */}
+              <div className="border-t bg-white px-3 py-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    placeholder="Ask me anything..."
+                    className="flex-1 text-sm px-3 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-[#1e3a5f] bg-gray-50"
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim()}
+                    className="w-9 h-9 rounded-full bg-[#1e3a5f] text-white flex items-center justify-center hover:bg-[#2d5a8f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </>
