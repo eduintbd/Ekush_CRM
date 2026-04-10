@@ -34,7 +34,14 @@ async function getNavHistoryByFund() {
 export default async function DashboardPage() {
   const session = await getSession();
 
-  const [funds, navByFund] = await Promise.all([getFunds(), getNavHistoryByFund()]);
+  let funds: Awaited<ReturnType<typeof getFunds>> = [];
+  let navByFund = new Map<string, { date: string; nav: number }[]>();
+
+  try {
+    [funds, navByFund] = await Promise.all([getFunds(), getNavHistoryByFund()]);
+  } catch (err) {
+    console.error("Dashboard data fetch error:", err);
+  }
 
   return (
     <div className="space-y-8">
