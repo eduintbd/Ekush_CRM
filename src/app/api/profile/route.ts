@@ -1,7 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-
-
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(req: NextRequest) {
@@ -18,13 +17,22 @@ export async function PATCH(req: NextRequest) {
 
   if (action === "update_contact") {
     const { email, phone } = body;
-    await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: userId },
       data: {
         ...(email !== undefined ? { email: email || null } : {}),
         ...(phone !== undefined ? { phone: phone || null } : {}),
       },
     });
+
+    // Sync email with Supabase Auth so login doesn't break
+    if (email !== undefined && user.supabaseId) {
+      const authEmail = email || `${user.phone ?? user.id}@ekush.internal`;
+      await supabaseAdmin.auth.admin.updateUserById(user.supabaseId, {
+        email: authEmail,
+      });
+    }
+
     return NextResponse.json({ success: true });
   }
 
