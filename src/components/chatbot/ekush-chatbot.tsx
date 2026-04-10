@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, X, Send, ArrowLeft, Bot } from "lucide-react";
+import { MessageCircle, X, Send, ArrowLeft } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -920,9 +920,7 @@ export function EkushChatbot() {
           {/* Header */}
           <div className="bg-[#1e3a5f] text-white px-4 py-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-                <Bot className="w-5 h-5" />
-              </div>
+              <img src="/ahona.png" alt="Ahona" className="w-9 h-9 rounded-full object-cover" />
               <div>
                 <p className="font-semibold text-sm leading-tight">Ahona</p>
                 <p className="text-[11px] text-white/70">Ekush Assistant</p>
@@ -942,9 +940,7 @@ export function EkushChatbot() {
           {step !== "chat" ? (
             <div className="flex-1 flex flex-col bg-gray-50">
               <div className="flex-1 flex flex-col items-center justify-center px-6">
-                <div className="w-16 h-16 rounded-full bg-[#1e3a5f]/10 flex items-center justify-center mb-4">
-                  <Bot className="w-8 h-8 text-[#1e3a5f]" />
-                </div>
+                <img src="/ahona.png" alt="Ahona" className="w-16 h-16 rounded-full object-cover mb-4 shadow-md" />
                 <p className="text-center text-[14px] text-gray-700 mb-1 font-medium">
                   Assalamualaikum!
                 </p>
