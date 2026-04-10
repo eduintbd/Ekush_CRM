@@ -933,7 +933,7 @@ export function EkushChatbot() {
                   <X className="w-4 h-4 text-gray-400" />
                 </button>
               </div>
-              <div className="flex-1 flex flex-col items-center justify-center px-6 pt-2">
+              <div className="flex-1 flex flex-col items-center px-6 pt-14">
                 <p className="text-center text-[14px] text-gray-700 mb-1 font-medium">
                   Assalamualaikum!
                 </p>
