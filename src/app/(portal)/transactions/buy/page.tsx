@@ -29,13 +29,31 @@ export default function BuyPage() {
     setTimeout(() => setCopiedField(null), 1500);
   };
 
-  const BANK_DETAILS = {
-    accountName: "Ekush Stable Return Fund",
-    accountNo: "2055604070001",
-    bankName: "BRAC Bank Limited",
-    branchName: "R K Mission Road",
-    routingNo: "060272531",
+  const FUND_BANK_DETAILS: Record<string, { accountName: string; accountNo: string; bankName: string; branchName: string; routingNo: string }> = {
+    EFUF: {
+      accountName: "Ekush First Unit Fund",
+      accountNo: "1513205101231001",
+      bankName: "BRAC Bank Limited",
+      branchName: "R K Mission Road",
+      routingNo: "060272531",
+    },
+    EGF: {
+      accountName: "Ekush Growth Fund",
+      accountNo: "1513205101212001",
+      bankName: "BRAC Bank Limited",
+      branchName: "R K Mission Road",
+      routingNo: "060272531",
+    },
+    ESRF: {
+      accountName: "Ekush Stable Return Fund",
+      accountNo: "2055604070001",
+      bankName: "BRAC Bank Limited",
+      branchName: "R K Mission Road",
+      routingNo: "060272531",
+    },
   };
+
+  const BANK_DETAILS = FUND_BANK_DETAILS[selectedFund] || FUND_BANK_DETAILS.ESRF;
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
 
