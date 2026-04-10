@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, FileDown } from "lucide-react";
 
 interface SipPlan {
   id: string;
@@ -26,6 +26,7 @@ export default function SipPage() {
   const [form, setForm] = useState({ fundCode: "", amount: "", frequency: "MONTHLY", debitDay: "5", tenure: "5" });
   const [loading, setLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showDDI, setShowDDI] = useState(false);
 
   const fetchPlans = () => fetch("/api/sip").then(r => r.json()).then(setPlans).catch(() => {});
   const fetchFunds = () => fetch("/api/funds").then(r => r.json()).then(setFunds).catch(() => {});
@@ -37,8 +38,13 @@ export default function SipPage() {
     setShowTerms(true);
   };
 
-  const handleConfirmCreate = async () => {
+  const handleAcceptTerms = () => {
     setShowTerms(false);
+    setShowDDI(true);
+  };
+
+  const handleConfirmCreate = async () => {
+    setShowDDI(false);
     setLoading(true);
     try {
       const res = await fetch("/api/sip", {
@@ -190,10 +196,77 @@ export default function SipPage() {
                 Cancel
               </Button>
               <Button
-                onClick={handleConfirmCreate}
+                onClick={handleAcceptTerms}
                 className="rounded-[5px] text-[13px] bg-[#2DAAB8] border-[#2DAAB8] hover:bg-[#259BA8] text-white"
               >
                 OK
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* DDI Preview Popup */}
+      {showDDI && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowDDI(false)} />
+          <div className="fixed inset-10 md:inset-20 lg:inset-x-40 lg:inset-y-16 z-50 bg-white rounded-[10px] shadow-lg flex flex-col overflow-hidden">
+            <div className="bg-navy px-6 py-4">
+              <h2 className="text-white text-[16px] font-bold">Confirmation</h2>
+              <p className="text-white/70 text-[13px]">Please confirm to complete the transaction</p>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {/* DDI Form Preview Link */}
+              <div className="text-center mb-6">
+                <a
+                  href={`/api/forms/ddi?fundCode=${encodeURIComponent(form.fundCode)}&amount=${encodeURIComponent(form.amount)}&debitDay=${encodeURIComponent(form.debitDay)}&tenure=${encodeURIComponent(form.tenure)}&frequency=${encodeURIComponent(form.frequency)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-[#2DAAB8] text-[#2DAAB8] rounded-[5px] text-[14px] font-medium hover:bg-[#2DAAB8] hover:text-white transition-colors"
+                >
+                  Your form preview <FileDown className="w-4 h-4" />
+                </a>
+              </div>
+
+              {/* SIP Summary */}
+              <div className="bg-page-bg rounded-[10px] p-6 space-y-3">
+                <div className="flex justify-between text-[14px]">
+                  <span className="text-text-body">Fund</span>
+                  <span className="text-text-dark font-medium">{funds.find(f => f.code === form.fundCode)?.name || form.fundCode}</span>
+                </div>
+                <div className="flex justify-between text-[14px]">
+                  <span className="text-text-body">Monthly Amount</span>
+                  <span className="text-text-dark font-medium">BDT {Number(form.amount).toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-[14px]">
+                  <span className="text-text-body">Frequency</span>
+                  <span className="text-text-dark font-medium">{form.frequency === "MONTHLY" ? "Monthly" : "Quarterly"}</span>
+                </div>
+                <div className="flex justify-between text-[14px]">
+                  <span className="text-text-body">Debit Day</span>
+                  <span className="text-text-dark font-medium">{form.debitDay}th of each month</span>
+                </div>
+                <div className="flex justify-between text-[14px]">
+                  <span className="text-text-body">Tenure</span>
+                  <span className="text-text-dark font-medium">{form.tenure} Year{parseInt(form.tenure) > 1 ? "s" : ""}</span>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-input-border flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowDDI(false)}
+                className="rounded-[5px] text-[13px] bg-red-500 text-white border-red-500 hover:bg-red-600"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmCreate}
+                disabled={loading}
+                className="rounded-[5px] text-[13px] bg-ekush-orange border-ekush-orange hover:bg-ekush-orange/90 text-white"
+              >
+                {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Confirm
               </Button>
             </div>
           </div>
