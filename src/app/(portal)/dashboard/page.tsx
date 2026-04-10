@@ -37,6 +37,24 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* NAV trend charts — one per fund */}
+      <div>
+        <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-4">
+          NAV per Unit — Market Trend
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {funds.map((fund) => (
+            <NavTrendChart
+              key={fund.id}
+              fundCode={fund.code}
+              fundName={fund.name}
+              currentNav={Number(fund.currentNav)}
+              data={navByFund.get(fund.id) ?? []}
+            />
+          ))}
+        </div>
+      </div>
+
       {/* Quick Action Cards — 4x2 Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <ActionCard
@@ -62,7 +80,7 @@ export default async function DashboardPage() {
         />
         <ActionCard
           href="/statements"
-          label="Portfolio Management"
+          label="Investment Summary"
           icon={PieChart}
           iconColor="#2DAAB8"
           iconBg="#E8F8FA"
@@ -95,24 +113,6 @@ export default async function DashboardPage() {
           iconColor="#DB2777"
           iconBg="#FCE7F3"
         />
-      </div>
-
-      {/* NAV trend charts — one per fund */}
-      <div>
-        <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-4">
-          NAV per Unit — Market Trend
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {funds.map((fund) => (
-            <NavTrendChart
-              key={fund.id}
-              fundCode={fund.code}
-              fundName={fund.name}
-              currentNav={Number(fund.currentNav)}
-              data={navByFund.get(fund.id) ?? []}
-            />
-          ))}
-        </div>
       </div>
     </div>
   );
