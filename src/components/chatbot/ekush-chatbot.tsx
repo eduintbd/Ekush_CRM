@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, X, Send, ArrowLeft } from "lucide-react";
+import { X, Send, ArrowLeft } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -794,7 +794,7 @@ function matchFreeText(text: string): string {
 
 export function EkushChatbot() {
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [step, setStep] = useState<"name" | "mobile" | "chat">("name");
   const [userName, setUserName] = useState("");
   const [userMobile, setUserMobile] = useState("");
@@ -903,35 +903,37 @@ export function EkushChatbot() {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating Ahona avatar button */}
       {!isOpen && (
         <button
           onClick={handleOpen}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#1e3a5f] text-white shadow-lg hover:bg-[#2d5a8f] transition-all hover:scale-105 flex items-center justify-center"
-          aria-label="Open chatbot"
+          className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-lg hover:scale-110 transition-all overflow-hidden border-2 border-white"
+          aria-label="Chat with Ahona"
         >
-          <MessageCircle className="w-6 h-6" />
+          <img src="/ahona.png" alt="Ahona" className="w-full h-full object-cover" />
         </button>
       )}
 
       {/* Chat window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[560px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+        <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[560px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-visible border border-gray-200">
           {/* Intro form — collect name & mobile before chat */}
           {step !== "chat" ? (
-            <div className="flex-1 flex flex-col bg-gray-50">
-              <div className="flex-1 flex flex-col items-center justify-center px-6">
-                <div className="relative w-full flex justify-center mb-4">
-                  <img src="/ahona.png" alt="Ahona" className="w-16 h-16 rounded-full object-cover shadow-md" />
-                  <div className="absolute top-0 right-0 flex items-center gap-1">
-                    <button onClick={handleReset} className="p-1.5 hover:bg-gray-200 rounded-full transition-colors" title="Start over">
-                      <ArrowLeft className="w-4 h-4 text-gray-400" />
-                    </button>
-                    <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-gray-200 rounded-full transition-colors">
-                      <X className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </div>
-                </div>
+            <div className="flex-1 flex flex-col bg-gray-50 rounded-2xl relative">
+              {/* Ahona avatar at top edge */}
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-10">
+                <img src="/ahona.png" alt="Ahona" className="w-20 h-20 rounded-full object-cover shadow-lg border-3 border-white" />
+              </div>
+              {/* Close button */}
+              <div className="absolute top-2 right-3 flex items-center gap-1 z-10">
+                <button onClick={handleReset} className="p-1.5 hover:bg-gray-200 rounded-full transition-colors" title="Start over">
+                  <ArrowLeft className="w-4 h-4 text-gray-400" />
+                </button>
+                <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-gray-200 rounded-full transition-colors">
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-center px-6 pt-8">
                 <p className="text-center text-[14px] text-gray-700 mb-1 font-medium">
                   Assalamualaikum!
                 </p>
