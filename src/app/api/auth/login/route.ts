@@ -106,24 +106,50 @@ export async function POST(req: NextRequest) {
       });
 
     if (createErr) {
-      console.error("Supabase createUser error:", createErr.message);
-      return NextResponse.json(
-        { error: "Authentication failed. Please try again." },
-        { status: 500 }
-      );
+      // If user already exists in Supabase, try to find and link them
+      if (createErr.message?.includes("already been registered")) {
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const existing = existingUsers?.users?.find((u) => u.email === authEmail);
+        if (existing) {
+          supabaseUserId = existing.id;
+          await supabaseAdmin.auth.admin.updateUserById(supabaseUserId, {
+            password,
+            user_metadata: userMeta,
+          });
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { supabaseId: supabaseUserId },
+          });
+        } else {
+          console.error("Supabase createUser error:", createErr.message);
+          return NextResponse.json(
+            { error: "Authentication failed. Please try again." },
+            { status: 500 }
+          );
+        }
+      } else {
+        console.error("Supabase createUser error:", createErr.message);
+        return NextResponse.json(
+          { error: "Authentication failed. Please try again." },
+          { status: 500 }
+        );
+      }
+    } else {
+      supabaseUserId = created.user.id;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { supabaseId: supabaseUserId },
+      });
     }
-
-    supabaseUserId = created.user.id;
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { supabaseId: supabaseUserId },
-    });
   } else {
     // Keep Supabase password in sync and refresh metadata
-    await supabaseAdmin.auth.admin.updateUserById(supabaseUserId, {
+    const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(supabaseUserId, {
       password,
       user_metadata: userMeta,
     });
+    if (updateErr) {
+      console.error("Supabase updateUser error:", updateErr.message);
+    }
   }
 
   // 7. Sign in via Supabase to get a session (sets auth cookies)
