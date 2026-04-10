@@ -20,6 +20,8 @@ interface SearchParams {
   fund?: string;
   type?: string;
   year?: string;
+  from?: string;
+  to?: string;
 }
 
 function buildDateRange(year?: string): { gte?: Date; lt?: Date } | undefined {
@@ -59,9 +61,21 @@ export default async function TransactionsPage({
   if (searchParams.type === "BUY" || searchParams.type === "SELL") {
     where.direction = searchParams.type;
   }
-  const dateRange = buildDateRange(searchParams.year);
-  if (dateRange) {
-    where.orderDate = dateRange;
+  // Date filtering: explicit from/to takes priority over fiscal year
+  if (searchParams.from || searchParams.to) {
+    const dateFilter: { gte?: Date; lte?: Date } = {};
+    if (searchParams.from) dateFilter.gte = new Date(searchParams.from);
+    if (searchParams.to) {
+      const toDate = new Date(searchParams.to);
+      toDate.setHours(23, 59, 59, 999);
+      dateFilter.lte = toDate;
+    }
+    where.orderDate = dateFilter;
+  } else {
+    const dateRange = buildDateRange(searchParams.year);
+    if (dateRange) {
+      where.orderDate = dateRange;
+    }
   }
 
   const transactions = await prisma.transaction.findMany({

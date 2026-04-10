@@ -24,7 +24,6 @@ export function TransactionFilters({ funds, years }: Props) {
       const next = new URLSearchParams(params.toString());
       if (value) next.set(key, value);
       else next.delete(key);
-      // Reset pagination when filters change
       next.delete("page");
       router.push(`${pathname}?${next.toString()}`);
     },
@@ -34,49 +33,79 @@ export function TransactionFilters({ funds, years }: Props) {
   const baseClass =
     "h-[42px] px-4 bg-input-bg border border-input-border rounded-[5px] text-[13px] text-text-body min-w-[180px] focus:outline-none focus:border-ekush-orange";
 
+  const dateClass =
+    "h-[42px] px-4 bg-input-bg border border-input-border rounded-[5px] text-[13px] text-text-body w-[180px] focus:outline-none focus:border-ekush-orange";
+
   return (
-    <div className="flex flex-wrap gap-4">
-      <select
-        className={baseClass}
-        value={params.get("fund") ?? ""}
-        onChange={(e) => setParam("fund", e.target.value)}
-      >
-        <option value="">Select a fund</option>
-        {funds.map((f) => (
-          <option key={f.code} value={f.code}>
-            {f.code} — {f.name}
-          </option>
-        ))}
-      </select>
+    <div className="space-y-4">
+      {/* Date range row */}
+      <div className="flex flex-wrap gap-4">
+        <div>
+          <label className="text-[13px] font-medium text-text-label block mb-1">From Date</label>
+          <input
+            type="date"
+            className={dateClass}
+            value={params.get("from") ?? ""}
+            onChange={(e) => setParam("from", e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="text-[13px] font-medium text-text-label block mb-1">To Date</label>
+          <input
+            type="date"
+            className={dateClass}
+            value={params.get("to") ?? ""}
+            onChange={(e) => setParam("to", e.target.value)}
+          />
+        </div>
+      </div>
 
-      <select
-        className={baseClass}
-        value={params.get("year") ?? ""}
-        onChange={(e) => setParam("year", e.target.value)}
-      >
-        <option value="">Select a year</option>
-        {years.map((y) => (
-          <option key={y} value={y}>
-            {y}
-          </option>
-        ))}
-      </select>
+      {/* Filter dropdowns + download */}
+      <div className="flex flex-wrap gap-4">
+        <select
+          className={baseClass}
+          value={params.get("fund") ?? ""}
+          onChange={(e) => setParam("fund", e.target.value)}
+        >
+          <option value="">Select a fund</option>
+          {funds.map((f) => (
+            <option key={f.code} value={f.code}>
+              {f.code} — {f.name}
+            </option>
+          ))}
+        </select>
 
-      <select
-        className={baseClass}
-        value={params.get("type") ?? ""}
-        onChange={(e) => setParam("type", e.target.value)}
-      >
-        <option value="">Select txn type</option>
-        <option value="BUY">Buy</option>
-        <option value="SELL">Sell</option>
-      </select>
+        <select
+          className={baseClass}
+          value={params.get("year") ?? ""}
+          onChange={(e) => setParam("year", e.target.value)}
+        >
+          <option value="">Select a year</option>
+          {years.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
 
-      <DownloadTransactionReport
-        fund={params.get("fund") ?? undefined}
-        year={params.get("year") ?? undefined}
-        type={params.get("type") ?? undefined}
-      />
+        <select
+          className={baseClass}
+          value={params.get("type") ?? ""}
+          onChange={(e) => setParam("type", e.target.value)}
+        >
+          <option value="">Select txn type</option>
+          <option value="BUY">Buy</option>
+          <option value="SELL">Sell</option>
+        </select>
+
+        <DownloadTransactionReport
+          fund={params.get("fund") ?? undefined}
+          year={params.get("year") ?? undefined}
+          type={params.get("type") ?? undefined}
+          from={params.get("from") ?? undefined}
+          to={params.get("to") ?? undefined}
+        />
+      </div>
     </div>
   );
 }

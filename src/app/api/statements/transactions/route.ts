@@ -53,8 +53,22 @@ export async function GET(req: NextRequest) {
     where.direction = direction;
   }
 
-  const dateRange = buildDateRange(year);
-  if (dateRange) where.orderDate = dateRange;
+  const fromDate = url.searchParams.get("from");
+  const toDate = url.searchParams.get("to");
+
+  if (fromDate || toDate) {
+    const dateFilter: { gte?: Date; lte?: Date } = {};
+    if (fromDate) dateFilter.gte = new Date(fromDate);
+    if (toDate) {
+      const td = new Date(toDate);
+      td.setHours(23, 59, 59, 999);
+      dateFilter.lte = td;
+    }
+    where.orderDate = dateFilter;
+  } else {
+    const dateRange = buildDateRange(year);
+    if (dateRange) where.orderDate = dateRange;
+  }
 
   const transactions = await prisma.transaction.findMany({
     where,

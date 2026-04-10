@@ -39,10 +39,14 @@ export function DownloadTransactionReport({
   fund,
   year,
   type,
+  from,
+  to,
 }: {
   fund?: string;
   year?: string;
   type?: string;
+  from?: string;
+  to?: string;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -53,6 +57,8 @@ export function DownloadTransactionReport({
       if (fund) params.set("fund", fund);
       if (year) params.set("year", year);
       if (type) params.set("type", type);
+      if (from) params.set("from", from);
+      if (to) params.set("to", to);
 
       const res = await fetch(`/api/statements/transactions?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch data");
