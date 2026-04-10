@@ -192,16 +192,18 @@ export default function GoalsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Inputs */}
             <div className="space-y-4">
-              <div>
-                <label className={labelClass}>Goal Name</label>
-                <input
-                  type="text"
-                  value={goalName}
-                  onChange={(e) => setGoalName(e.target.value)}
-                  placeholder="e.g., Retirement, Education, Hajj"
-                  className={inputClass}
-                />
-              </div>
+              {mode === "goal" && (
+                <div>
+                  <label className={labelClass}>Goal Name</label>
+                  <input
+                    type="text"
+                    value={goalName}
+                    onChange={(e) => setGoalName(e.target.value)}
+                    placeholder="e.g., Retirement, Education, Hajj"
+                    className={inputClass}
+                  />
+                </div>
+              )}
 
               {mode === "goal" ? (
                 <div>
