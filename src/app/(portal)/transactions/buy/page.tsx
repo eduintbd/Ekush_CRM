@@ -164,7 +164,7 @@ export default function BuyPage() {
                 <label className="text-[14px] font-medium text-text-label">No of units *</label>
                 <input
                   type="text"
-                  value={estimatedUnits > 0 ? formatBD(estimatedUnits, 4) : ""}
+                  value={estimatedUnits > 0 ? Math.round(estimatedUnits).toLocaleString("en-IN") : ""}
                   readOnly
                   className="w-full h-[50px] rounded-[5px] border border-input-border bg-gray-50 px-5 text-[14px] text-text-body"
                 />
@@ -280,7 +280,7 @@ export default function BuyPage() {
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Estimated Units</span>
-                <span className="text-text-dark font-medium">{formatBD(estimatedUnits, 4)}</span>
+                <span className="text-text-dark font-medium">{Math.round(estimatedUnits).toLocaleString("en-IN")}</span>
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Dividend Option</span>
@@ -312,7 +312,7 @@ export default function BuyPage() {
             <div className="inline-block bg-page-bg rounded-[10px] p-6 space-y-2 text-left mb-6">
               <p className="text-[14px] text-text-body">Fund: <strong className="text-text-dark">{result.fund}</strong></p>
               <p className="text-[14px] text-text-body">Amount: <strong className="text-text-dark">৳{formatBD(Number(result.amount) || 0)}</strong></p>
-              <p className="text-[14px] text-text-body">Est. Units: <strong className="text-text-dark">{formatBD(Number(result.estimatedUnits) || 0, 4)}</strong></p>
+              <p className="text-[14px] text-text-body">Est. Units: <strong className="text-text-dark">{Math.round(Number(result.estimatedUnits) || 0).toLocaleString("en-IN")}</strong></p>
               <Badge variant="pending" className="mt-2">Pending Approval</Badge>
             </div>
             <div className="flex gap-3 justify-center">
