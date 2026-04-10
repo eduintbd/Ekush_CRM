@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { TopBar } from "@/components/layout/topbar";
 import { AuthProvider } from "@/components/layout/session-provider";
+import { EkushChatbot } from "@/components/chatbot/ekush-chatbot";
 
 export default async function PortalLayout({
   children,
@@ -21,6 +22,8 @@ export default async function PortalLayout({
       <div className="min-h-screen bg-page-bg">
         <TopBar userName={user?.name} investorCode={user?.investorCode} />
         <main className="max-w-7xl mx-auto px-8 pb-8">{children}</main>
+
+        <EkushChatbot />
 
         {/* Footer */}
         <footer className="max-w-7xl mx-auto px-8 pb-6">

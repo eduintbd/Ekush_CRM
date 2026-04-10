@@ -383,6 +383,7 @@ model BankAccount {
   branchName    String?
   accountNumber String
   routingNumber String?
+  chequeLeafUrl String?
   isPrimary     Boolean @default(false)
 
   investor Investor  @relation(fields: [investorId], references: [id], onDelete: Cascade)

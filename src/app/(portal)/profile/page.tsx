@@ -136,10 +136,27 @@ export default async function ProfilePage() {
             <div className="space-y-3">
               {investor.bankAccounts.map((ba) => (
                 <div key={ba.id} className="flex items-center justify-between p-4 bg-page-bg rounded-[10px]">
-                  <div>
-                    <p className="font-medium text-[14px] text-text-dark">{ba.bankName}</p>
-                    <p className="text-[12px] text-text-body">{ba.branchName} - A/C: {ba.accountNumber}</p>
-                    {ba.routingNumber && <p className="text-[12px] text-text-muted">Routing: {ba.routingNumber}</p>}
+                  <div className="flex items-center gap-3">
+                    {ba.chequeLeafUrl && (
+                      <a href={ba.chequeLeafUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                        <img src={ba.chequeLeafUrl} alt="Cheque leaf" className="w-16 h-10 object-cover rounded border border-gray-200 hover:opacity-80 transition-opacity" />
+                      </a>
+                    )}
+                    <div>
+                      <p className="font-medium text-[14px] text-text-dark">
+                        {ba.bankName}
+                        {ba.bankName === "Pending Review" && (
+                          <span className="ml-2 text-[11px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending verification</span>
+                        )}
+                      </p>
+                      {ba.bankName !== "Pending Review" && (
+                        <p className="text-[12px] text-text-body">{ba.branchName} - A/C: {ba.accountNumber}</p>
+                      )}
+                      {ba.routingNumber && <p className="text-[12px] text-text-muted">Routing: {ba.routingNumber}</p>}
+                      {ba.chequeLeafUrl && ba.bankName === "Pending Review" && (
+                        <p className="text-[11px] text-text-muted mt-1">Cheque leaf uploaded - details will be verified by admin</p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {ba.isPrimary && <Badge variant="active">Primary</Badge>}
