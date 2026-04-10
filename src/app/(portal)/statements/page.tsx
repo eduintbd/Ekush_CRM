@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth";
 
 
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import { TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AllocationChart } from "@/components/dashboard/allocation-chart";
 import { DownloadPortfolioStatement } from "@/components/statements/pdf-buttons";
@@ -17,6 +19,13 @@ async function getHoldings(investorId: string) {
   });
 }
 
+async function getGoals(investorId: string) {
+  return prisma.investmentGoal.findMany({
+    where: { investorId, status: "ACTIVE" },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export default async function StatementsPage() {
   const session = await getSession();
   const investorId = (session?.user as any)?.investorId;
@@ -25,13 +34,18 @@ export default async function StatementsPage() {
     return <p className="text-text-body text-center py-20">Investor profile not found.</p>;
   }
 
-  const holdings = await getHoldings(investorId);
+  const [holdings, goals] = await Promise.all([
+    getHoldings(investorId),
+    getGoals(investorId),
+  ]);
 
   // Build chart data
   let totalMarketValue = 0;
+  let totalCostValue = 0;
   const fundsForChart = holdings.map((h) => {
     const mv = Number(h.totalMarketValue);
     totalMarketValue += mv;
+    totalCostValue += Number(h.totalCostValueCurrent);
     return {
       fundCode: h.fund.code,
       fundName: h.fund.name,
@@ -104,7 +118,7 @@ export default async function StatementsPage() {
         </CardContent>
       </Card>
 
-      {/* Fund Weight chart */}
+      {/* Fund Allocation chart */}
       <Card>
         <CardHeader>
           <CardTitle className="text-[16px]">Fund Allocation</CardTitle>
@@ -113,6 +127,92 @@ export default async function StatementsPage() {
           <AllocationChart funds={fundsForChart} />
         </CardContent>
       </Card>
+
+      {/* Goals Progress Tracker */}
+      {goals.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[16px] flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-green-600" /> My Goals — Progress Tracker
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-page-bg rounded-[10px] p-4 mb-6">
+              <p className="text-[13px] text-text-body">
+                Your current portfolio value:{" "}
+                <span className="font-bold text-text-dark">
+                  BDT {Math.round(totalMarketValue).toLocaleString("en-IN")}
+                </span>
+                <span className="text-text-muted ml-2">
+                  (Cost: BDT {Math.round(totalCostValue).toLocaleString("en-IN")})
+                </span>
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {goals.map((goal) => {
+                const progress = goal.targetAmount > 0
+                  ? Math.min(100, (totalMarketValue / goal.targetAmount) * 100)
+                  : 0;
+                const remaining = Math.max(0, goal.targetAmount - totalMarketValue);
+                const deadlineDate = new Date(goal.deadline);
+                const nowDate = new Date();
+                const monthsLeft = Math.max(0, (deadlineDate.getFullYear() - nowDate.getFullYear()) * 12 + (deadlineDate.getMonth() - nowDate.getMonth()));
+                const onTrack = remaining <= 0 || (goal.monthlySip * monthsLeft >= remaining * 0.5);
+
+                return (
+                  <div key={goal.id} className="bg-page-bg rounded-[10px] p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="text-[15px] font-semibold text-text-dark">{goal.name}</h3>
+                        <p className="text-[12px] text-text-body mt-0.5">
+                          Target: BDT {Math.round(goal.targetAmount).toLocaleString("en-IN")} | SIP: BDT {Math.round(goal.monthlySip).toLocaleString("en-IN")}/mo |{" "}
+                          {goal.timePeriodYears}yr @ {goal.expectedReturn}% | Deadline: {deadlineDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                        </p>
+                      </div>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                        remaining <= 0
+                          ? "bg-green-100 text-green-700"
+                          : onTrack
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {remaining <= 0 ? "Achieved" : onTrack ? "On Track" : "Needs Attention"}
+                      </span>
+                    </div>
+
+                    <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-2">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          remaining <= 0 ? "bg-green-500" : onTrack ? "bg-ekush-orange" : "bg-amber-500"
+                        }`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+
+                    <div className="flex justify-between text-[12px] text-text-body">
+                      <span>
+                        Current: BDT {Math.round(totalMarketValue).toLocaleString("en-IN")} ({progress.toFixed(1)}%)
+                      </span>
+                      <span>
+                        {remaining > 0
+                          ? `Remaining: BDT ${Math.round(remaining).toLocaleString("en-IN")} | ${monthsLeft} months left`
+                          : "Goal achieved!"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 text-center">
+              <Link href="/goals" className="text-[13px] text-ekush-orange hover:underline font-medium">
+                Manage Goals
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
