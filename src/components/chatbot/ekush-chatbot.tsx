@@ -916,7 +916,7 @@ export function EkushChatbot() {
 
       {/* Chat window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[560px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-visible border border-gray-200">
+        <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[392px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-visible border border-gray-200">
           {/* Intro form — collect name & mobile before chat */}
           {step !== "chat" ? (
             <div className="flex-1 flex flex-col bg-gray-50 rounded-2xl relative">
