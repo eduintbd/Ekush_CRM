@@ -26,9 +26,7 @@ export function TopBar({ userName, investorCode, userImage }: TopBarProps) {
       <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
         {/* Brand + Investor Info */}
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-ekush-orange rounded-lg flex items-center justify-center font-bold text-white text-lg shrink-0">
-            E
-          </div>
+          <img src="/logo.png" alt="Ekush" className="h-10 shrink-0" />
           <div>
             <h1 className="font-bold text-[14px] text-navy font-rajdhani leading-tight">
               Welcome to Ekush Wealth Management Limited
