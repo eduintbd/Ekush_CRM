@@ -142,8 +142,9 @@ export async function POST(req: NextRequest) {
       });
     }
   } else {
-    // Keep Supabase password in sync and refresh metadata
+    // Keep Supabase email, password, and metadata in sync
     const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(supabaseUserId, {
+      email: authEmail,
       password,
       user_metadata: userMeta,
     });
