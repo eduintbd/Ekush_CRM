@@ -59,6 +59,13 @@ export default async function DashboardPage() {
       {/* Quick Action Cards — 4x2 Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <ActionCard
+          href="/goals"
+          label="Set My Goals"
+          icon={Target}
+          iconColor="#EA580C"
+          iconBg="#FFF7ED"
+        />
+        <ActionCard
           href="/transactions/buy"
           label="Buy Units"
           icon={TrendingUp}
@@ -113,13 +120,6 @@ export default async function DashboardPage() {
           icon={Gift}
           iconColor="#DB2777"
           iconBg="#FCE7F3"
-        />
-        <ActionCard
-          href="/goals"
-          label="Set My Goals"
-          icon={Target}
-          iconColor="#EA580C"
-          iconBg="#FFF7ED"
         />
       </div>
     </div>
