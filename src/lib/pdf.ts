@@ -402,6 +402,124 @@ export function generateTransactionReportPDF(data: TransactionReportData): jsPDF
   return doc;
 }
 
+interface DividendReportData {
+  investorName: string;
+  investorCode: string;
+  investorType: string;
+  generatedDate: string;
+  dateRange: { from: string; to: string };
+  dividends: {
+    year: string;
+    fundCode: string;
+    paymentDate: string;
+    totalUnits: number;
+    dividendPerUnit: number;
+    grossDividend: number;
+    taxAmount: number;
+    netDividend: number;
+    option: string;
+  }[];
+}
+
+export function generateDividendReportPDF(data: DividendReportData): jsPDF {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, pageWidth, 35, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Ekush Wealth Management Ltd", 14, 15);
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.text("Dividend Report", 14, 25);
+
+  doc.setFontSize(8);
+  doc.text("Licensed by BSEC", pageWidth - 14, 15, { align: "right" });
+  doc.text(`Generated: ${data.generatedDate}`, pageWidth - 14, 22, { align: "right" });
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Investor Details", 14, 45);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Name: ${data.investorName}`, 14, 53);
+  doc.text(`Code: ${data.investorCode}`, 14, 59);
+  doc.text(`Type: ${data.investorType}`, 14, 65);
+  doc.text(`Period: ${data.dateRange.from} to ${data.dateRange.to}`, 14, 71);
+
+  const tableData = data.dividends.map((d) => [
+    d.year,
+    d.fundCode,
+    d.paymentDate,
+    d.totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 2 }),
+    d.dividendPerUnit.toFixed(2),
+    formatAmount(d.grossDividend),
+    formatAmount(d.taxAmount),
+    formatAmount(d.netDividend),
+    d.option,
+  ]);
+
+  const totalGross = data.dividends.reduce((s, d) => s + d.grossDividend, 0);
+  const totalTax = data.dividends.reduce((s, d) => s + d.taxAmount, 0);
+  const totalNet = data.dividends.reduce((s, d) => s + d.netDividend, 0);
+
+  if (data.dividends.length > 0) {
+    tableData.push([
+      "",
+      "",
+      "",
+      "",
+      "TOTAL",
+      formatAmount(totalGross),
+      formatAmount(totalTax),
+      formatAmount(totalNet),
+      "",
+    ]);
+  }
+
+  autoTable(doc, {
+    startY: 78,
+    head: [["Year", "Fund", "Payment Date", "Units", "DPU", "Gross (BDT)", "Tax (BDT)", "Net (BDT)", "Option"]],
+    body: tableData,
+    theme: "grid",
+    headStyles: {
+      fillColor: [30, 58, 95],
+      textColor: [255, 255, 255],
+      fontSize: 8,
+      fontStyle: "bold",
+    },
+    bodyStyles: { fontSize: 8 },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    columnStyles: {
+      3: { halign: "right" },
+      4: { halign: "right" },
+      5: { halign: "right" },
+      6: { halign: "right" },
+      7: { halign: "right" },
+    },
+    didParseCell: (cellData: any) => {
+      if (data.dividends.length > 0 && cellData.row.index === tableData.length - 1) {
+        cellData.cell.styles.fontStyle = "bold";
+        cellData.cell.styles.fillColor = [230, 235, 242];
+      }
+    },
+  });
+
+  const finalY = (doc as any).lastAutoTable?.finalY || 150;
+  doc.setFontSize(7);
+  doc.setTextColor(128, 128, 128);
+  doc.text(`Total ${data.dividends.length} dividend entry(ies).`, 14, finalY + 10);
+  doc.text("Ekush Wealth Management Ltd | www.ekushwml.com", 14, finalY + 16);
+
+  return doc;
+}
+
 function formatAmount(amount: number): string {
   if (amount === 0) return "-";
   const abs = Math.abs(amount);

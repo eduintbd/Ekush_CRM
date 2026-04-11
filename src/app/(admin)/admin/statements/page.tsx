@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBDT, formatDate } from "@/lib/utils";
+import { StatementDownloadBar } from "@/components/admin/statement-download-bar";
 import Link from "next/link";
-import { Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -132,14 +132,11 @@ export default async function AdminStatementsPage({
           {/* Portfolio tab */}
           {tab === "portfolio" && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-[14px]">Portfolio Holdings</CardTitle>
-                <a
-                  href={`/api/admin/statements/download?investorId=${investor.id}&type=portfolio`}
-                  className="flex items-center gap-1 px-3 py-1.5 text-[12px] bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark"
-                >
-                  <Download className="w-3 h-3" /> Download CSV
-                </a>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <CardTitle className="text-[14px]">Portfolio Holdings</CardTitle>
+                  <StatementDownloadBar investorId={investor.id} type="portfolio" showDateFilter={false} />
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -183,14 +180,11 @@ export default async function AdminStatementsPage({
           {/* Transactions tab */}
           {tab === "transactions" && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-[14px]">Transaction History</CardTitle>
-                <a
-                  href={`/api/admin/statements/download?investorId=${investor.id}&type=transactions`}
-                  className="flex items-center gap-1 px-3 py-1.5 text-[12px] bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark"
-                >
-                  <Download className="w-3 h-3" /> Download CSV
-                </a>
+              <CardHeader>
+                <div className="space-y-3">
+                  <CardTitle className="text-[14px]">Transaction History</CardTitle>
+                  <StatementDownloadBar investorId={investor.id} type="transactions" />
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -230,14 +224,11 @@ export default async function AdminStatementsPage({
           {/* Dividends tab */}
           {tab === "dividends" && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-[14px]">Dividend History</CardTitle>
-                <a
-                  href={`/api/admin/statements/download?investorId=${investor.id}&type=dividends`}
-                  className="flex items-center gap-1 px-3 py-1.5 text-[12px] bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark"
-                >
-                  <Download className="w-3 h-3" /> Download CSV
-                </a>
+              <CardHeader>
+                <div className="space-y-3">
+                  <CardTitle className="text-[14px]">Dividend History</CardTitle>
+                  <StatementDownloadBar investorId={investor.id} type="dividends" />
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -281,14 +272,11 @@ export default async function AdminStatementsPage({
           {/* Tax tab */}
           {tab === "tax" && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-[14px]">Tax Certificates</CardTitle>
-                <a
-                  href={`/api/admin/statements/download?investorId=${investor.id}&type=tax`}
-                  className="flex items-center gap-1 px-3 py-1.5 text-[12px] bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark"
-                >
-                  <Download className="w-3 h-3" /> Download CSV
-                </a>
+              <CardHeader>
+                <div className="space-y-3">
+                  <CardTitle className="text-[14px]">Tax Certificates</CardTitle>
+                  <StatementDownloadBar investorId={investor.id} type="tax" />
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
