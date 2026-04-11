@@ -231,10 +231,12 @@ model Transaction {
 // ─── NAV Record ──────────────────────────────────────────────────
 
 model NavRecord {
-  id     String   @id @default(cuid())
-  fundId String
-  date   DateTime
-  nav    Float
+  id       String   @id @default(cuid())
+  fundId   String
+  date     DateTime
+  nav      Float
+  buyUnit  Float?
+  sellUnit Float?
 
   fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
 
