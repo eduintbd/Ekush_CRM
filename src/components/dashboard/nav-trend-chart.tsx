@@ -13,6 +13,8 @@ interface Props {
   fundName: string;
   currentNav: number;
   data: NavPoint[];
+  color?: string;
+  height?: number;
 }
 
 const RechartsArea = dynamic(
@@ -28,19 +30,28 @@ const RechartsArea = dynamic(
         ResponsiveContainer,
       } = mod;
 
-      return function ChartInner({ data }: { data: NavPoint[] }) {
-        // Compute Y-axis domain with a little padding
+      return function ChartInner({
+        data,
+        color,
+        gradientId,
+        height,
+      }: {
+        data: NavPoint[];
+        color: string;
+        gradientId: string;
+        height: number;
+      }) {
         const navs = data.map((d) => d.nav);
         const minNav = Math.floor(Math.min(...navs) * 0.98);
         const maxNav = Math.ceil(Math.max(...navs) * 1.02);
 
         return (
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={height}>
             <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
               <defs>
-                <linearGradient id="navFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#F27023" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#F27023" stopOpacity={0.02} />
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#EFF1F7" vertical={false} />
@@ -77,9 +88,9 @@ const RechartsArea = dynamic(
               <Area
                 type="monotone"
                 dataKey="nav"
-                stroke="#F27023"
+                stroke={color}
                 strokeWidth={2}
-                fill="url(#navFill)"
+                fill={`url(#${gradientId})`}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -92,7 +103,14 @@ const RechartsArea = dynamic(
   }
 );
 
-export function NavTrendChart({ fundCode, fundName, currentNav, data }: Props) {
+export function NavTrendChart({
+  fundCode,
+  fundName,
+  currentNav,
+  data,
+  color = "#F27023",
+  height = 220,
+}: Props) {
   const sorted = useMemo(
     () =>
       [...data].sort(
@@ -102,26 +120,28 @@ export function NavTrendChart({ fundCode, fundName, currentNav, data }: Props) {
   );
 
   return (
-    <div className="bg-white rounded-[10px] shadow-card p-6">
+    <div className="bg-white rounded-[10px] shadow-card p-6 h-full flex flex-col">
       <div className="flex items-baseline justify-between mb-4">
         <div>
-          <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">
+          <h3 className="text-[16px] font-semibold font-rajdhani" style={{ color }}>
             {fundCode}
           </h3>
           <p className="text-[11px] text-text-body uppercase tracking-wider">{fundName}</p>
         </div>
         <div className="text-right">
           <p className="text-[11px] text-text-body">Current NAV</p>
-          <p className="text-[18px] font-semibold text-ekush-orange font-rajdhani">
+          <p className="text-[18px] font-semibold font-rajdhani" style={{ color }}>
             {currentNav.toFixed(4)}
           </p>
         </div>
       </div>
-      {sorted.length === 0 ? (
-        <p className="text-text-muted text-sm text-center py-16">No NAV history available.</p>
-      ) : (
-        <RechartsArea data={sorted} />
-      )}
+      <div className="flex-1">
+        {sorted.length === 0 ? (
+          <p className="text-text-muted text-sm text-center py-16">No NAV history available.</p>
+        ) : (
+          <RechartsArea data={sorted} color={color} gradientId={`navFill-${fundCode}`} height={height} />
+        )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ActionCard } from "@/components/dashboard/action-card";
-import { NavTrendChart } from "@/components/dashboard/nav-trend-chart";
+import { NavCarousel } from "@/components/dashboard/nav-carousel";
+import { PeerComparisonChart } from "@/components/dashboard/peer-comparison-chart";
 import {
   TrendingUp,
   Calendar,
@@ -45,21 +46,22 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* NAV trend charts — one per fund */}
+      {/* Performance charts — NAV carousel + peer comparison */}
       <div>
         <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-4">
           Performance of Ekush Managed Funds
         </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {funds.map((fund) => (
-            <NavTrendChart
-              key={fund.id}
-              fundCode={fund.code}
-              fundName={fund.name}
-              currentNav={Number(fund.currentNav)}
-              data={navByFund.get(fund.id) ?? []}
-            />
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <NavCarousel
+            funds={funds.map((f) => ({
+              id: f.id,
+              code: f.code,
+              name: f.name,
+              currentNav: Number(f.currentNav),
+              data: navByFund.get(f.id) ?? [],
+            }))}
+          />
+          <PeerComparisonChart />
         </div>
       </div>
 
