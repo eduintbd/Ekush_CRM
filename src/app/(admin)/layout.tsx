@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { AuthProvider } from "@/components/layout/session-provider";
 import Link from "next/link";
+import { AdminLogoutButton } from "@/components/admin/logout-button";
 
 export default async function AdminLayout({
   children,
@@ -47,6 +48,7 @@ export default async function AdminLayout({
             <Link href="/admin/content" className="text-text-dark hover:text-ekush-orange transition-colors">Content</Link>
             <Link href="/admin/audit-log" className="text-text-dark hover:text-ekush-orange transition-colors">Audit Log</Link>
             <Link href="/dashboard" className="text-ekush-orange hover:text-ekush-orange-dark transition-colors">Portal</Link>
+            <AdminLogoutButton userName={session.user.name || session.user.email || undefined} />
           </div>
         </nav>
         <main className="p-6 max-w-7xl mx-auto">{children}</main>

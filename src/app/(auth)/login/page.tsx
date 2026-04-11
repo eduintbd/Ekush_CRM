@@ -28,7 +28,9 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.error ?? "Login failed");
       } else {
-        router.push("/dashboard");
+        const adminRoles = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPPORT", "SUPER_ADMIN"];
+        const dest = adminRoles.includes(data.role) ? "/admin/dashboard" : "/dashboard";
+        router.push(dest);
         router.refresh();
       }
     } catch {
