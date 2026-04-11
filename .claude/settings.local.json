@@ -4,7 +4,8 @@
       "Bash(netstat -ano)",
       "Read(//c/Users/USER/Ekush_CRM/**)",
       "Bash(taskkill //PID 7452 //F)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "WebFetch(domain:ekushwml.com)"
     ]
   }
 }
