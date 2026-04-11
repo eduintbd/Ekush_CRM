@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState, useRef, useEffect } from "react";
-import { Plus, X, Search } from "lucide-react";
+import { Plus, X, Search, ChevronDown } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Fund data from UCB Weekly Mutual Fund Review (April 9, 2026)       */
@@ -221,6 +221,8 @@ export function PeerComparisonChart() {
   const [selectedNames, setSelectedNames] = useState<string[]>(defaultSelected);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [ekushOpen, setEkushOpen] = useState(false);
+  const [peersOpen, setPeersOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   // Close picker when clicking outside
@@ -290,48 +292,125 @@ export function PeerComparisonChart() {
         </div>
       </div>
 
-      {/* Color legend */}
-      <div className="flex items-center gap-4 mb-2 text-[11px]">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: EKUSH_COLOR }} />
-          <span className="text-gray-600 font-medium">Ekush Funds</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: PEER_COLOR }} />
-          <span className="text-gray-600">Market Peers</span>
-        </div>
-      </div>
-
-      {/* Interactive fund legend — selected funds as removable chips + add button */}
+      {/* Grouped collapsible legend — click a group to see its funds */}
       <div className="relative mb-3">
-        <div className="flex flex-wrap gap-1.5 items-center">
-          {chartData.map((f) => (
-            <span
-              key={f.name}
-              className={`inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-[10px] font-medium border ${
-                f.isEkush
-                  ? "bg-[#2ecc71]/10 border-[#2ecc71]/30 text-[#1e8449]"
-                  : "bg-[#34495e]/10 border-[#34495e]/30 text-[#2c3e50]"
-              }`}
-            >
-              {f.short}
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Ekush Funds group */}
+          {(() => {
+            const ekushSelected = chartData.filter((f) => f.isEkush);
+            return (
               <button
-                onClick={() => removeFund(f.name)}
-                className="hover:bg-white/50 rounded-full p-0.5 transition-colors"
-                title={`Remove ${f.short}`}
+                onClick={() => {
+                  setEkushOpen((o) => !o);
+                  setPeersOpen(false);
+                }}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                  ekushOpen
+                    ? "bg-[#2ecc71]/10 border-[#2ecc71] text-[#1e8449]"
+                    : "bg-white border-gray-200 text-gray-700 hover:border-[#2ecc71]"
+                }`}
               >
-                <X className="w-2.5 h-2.5" />
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: EKUSH_COLOR }} />
+                <span>Ekush Funds</span>
+                <span className="text-[10px] opacity-70">({ekushSelected.length})</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${ekushOpen ? "rotate-180" : ""}`} />
               </button>
-            </span>
-          ))}
+            );
+          })()}
+
+          {/* Market Peers group */}
+          {(() => {
+            const peerSelected = chartData.filter((f) => !f.isEkush);
+            return (
+              <button
+                onClick={() => {
+                  setPeersOpen((o) => !o);
+                  setEkushOpen(false);
+                }}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                  peersOpen
+                    ? "bg-[#34495e]/10 border-[#34495e] text-[#2c3e50]"
+                    : "bg-white border-gray-200 text-gray-700 hover:border-[#34495e]"
+                }`}
+              >
+                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: PEER_COLOR }} />
+                <span>Market Peers</span>
+                <span className="text-[10px] opacity-70">({peerSelected.length})</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${peersOpen ? "rotate-180" : ""}`} />
+              </button>
+            );
+          })()}
+
           <button
-            onClick={() => setPickerOpen((p) => !p)}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border border-dashed border-gray-300 text-gray-500 hover:border-[#2ecc71] hover:text-[#2ecc71] transition-colors"
+            onClick={() => {
+              setPickerOpen((p) => !p);
+              setEkushOpen(false);
+              setPeersOpen(false);
+            }}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border border-dashed border-gray-300 text-gray-500 hover:border-[#2ecc71] hover:text-[#2ecc71] transition-colors"
           >
-            <Plus className="w-2.5 h-2.5" />
+            <Plus className="w-3 h-3" />
             Add fund
           </button>
         </div>
+
+        {/* Expanded Ekush funds chips */}
+        {ekushOpen && (
+          <div className="mt-2 p-2 bg-[#2ecc71]/5 rounded-lg border border-[#2ecc71]/20">
+            <div className="flex flex-wrap gap-1.5">
+              {chartData.filter((f) => f.isEkush).length === 0 ? (
+                <span className="text-[10px] text-gray-400">No Ekush funds selected</span>
+              ) : (
+                chartData
+                  .filter((f) => f.isEkush)
+                  .map((f) => (
+                    <span
+                      key={f.name}
+                      className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-[10px] font-medium bg-white border border-[#2ecc71]/30 text-[#1e8449]"
+                    >
+                      {f.short}
+                      <button
+                        onClick={() => removeFund(f.name)}
+                        className="hover:bg-[#2ecc71]/10 rounded-full p-0.5 transition-colors"
+                        title={`Remove ${f.short}`}
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </span>
+                  ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Expanded Market Peers chips */}
+        {peersOpen && (
+          <div className="mt-2 p-2 bg-[#34495e]/5 rounded-lg border border-[#34495e]/20">
+            <div className="flex flex-wrap gap-1.5">
+              {chartData.filter((f) => !f.isEkush).length === 0 ? (
+                <span className="text-[10px] text-gray-400">No market peers selected</span>
+              ) : (
+                chartData
+                  .filter((f) => !f.isEkush)
+                  .map((f) => (
+                    <span
+                      key={f.name}
+                      className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-[10px] font-medium bg-white border border-[#34495e]/30 text-[#2c3e50]"
+                    >
+                      {f.short}
+                      <button
+                        onClick={() => removeFund(f.name)}
+                        className="hover:bg-[#34495e]/10 rounded-full p-0.5 transition-colors"
+                        title={`Remove ${f.short}`}
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </span>
+                  ))
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Fund picker dropdown */}
         {pickerOpen && (
