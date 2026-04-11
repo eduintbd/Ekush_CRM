@@ -86,7 +86,7 @@ export default async function AdminDashboard() {
                   <td className="py-3 text-right font-mono text-text-dark">{Number(f.currentNav).toFixed(4)}</td>
                   <td className="py-3 text-right text-text-dark">{formatBDT(Number(f.totalAum))}</td>
                   <td className="py-3 text-right text-text-dark">{Number(f.totalUnits).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
-                  <td className="py-3 text-right text-text-dark">৳{Number(f.faceValue).toFixed(2)}</td>
+                  <td className="py-3 text-right text-text-dark">{Number(f.faceValue).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

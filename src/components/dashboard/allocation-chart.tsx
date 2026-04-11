@@ -35,7 +35,7 @@ const RechartsChart = dynamic(
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: any) => `৳${Number(value).toLocaleString("en-IN")}`}
+                formatter={(value: any) => `${Number(value).toLocaleString("en-IN")}`}
                 contentStyle={{ borderRadius: "10px", border: "1px solid #e8ecef", boxShadow: "0 4px 15px rgba(0,0,0,0.08)" }}
               />
             </PieChart>

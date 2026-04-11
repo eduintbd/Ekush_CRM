@@ -88,7 +88,7 @@ export default function SipPage() {
         <Card className="rounded-[10px] shadow-card">
           <CardContent className="p-4">
             <p className="text-xs text-text-body">Monthly Investment</p>
-            <p className="text-2xl font-bold text-text-dark font-rajdhani">৳{totalMonthly.toLocaleString("en-IN")}</p>
+            <p className="text-2xl font-bold text-text-dark font-rajdhani">{totalMonthly.toLocaleString("en-IN")}</p>
           </CardContent>
         </Card>
         <Card className="rounded-[10px] shadow-card">

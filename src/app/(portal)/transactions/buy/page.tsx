@@ -285,7 +285,7 @@ export default function BuyPage() {
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Amount</span>
-                <span className="text-text-dark font-medium">৳{formatBD(actualAmount)}</span>
+                <span className="text-text-dark font-medium">{formatBD(actualAmount)}</span>
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">NAV</span>
@@ -324,7 +324,7 @@ export default function BuyPage() {
             <p className="text-[14px] text-text-body mb-4">{result.message}</p>
             <div className="inline-block bg-page-bg rounded-[10px] p-6 space-y-2 text-left mb-6">
               <p className="text-[14px] text-text-body">Fund: <strong className="text-text-dark">{result.fund}</strong></p>
-              <p className="text-[14px] text-text-body">Amount: <strong className="text-text-dark">৳{formatBD(Number(result.amount) || 0)}</strong></p>
+              <p className="text-[14px] text-text-body">Amount: <strong className="text-text-dark">{formatBD(Number(result.amount) || 0)}</strong></p>
               <p className="text-[14px] text-text-body">Est. Units: <strong className="text-text-dark">{Math.round(Number(result.estimatedUnits) || 0).toLocaleString("en-IN")}</strong></p>
               <Badge variant="pending" className="mt-2">Pending Approval</Badge>
             </div>

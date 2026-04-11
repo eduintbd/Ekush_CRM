@@ -31,7 +31,7 @@ export default function CalculatorPage() {
   const lumpFuture = lumpPrincipal * Math.pow(1 + lumpR, lumpY);
   const lumpGain = lumpFuture - lumpPrincipal;
 
-  const fmt = (n: number) => `৳${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  const fmt = (n: number) => `${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
   return (
     <div className="space-y-6">

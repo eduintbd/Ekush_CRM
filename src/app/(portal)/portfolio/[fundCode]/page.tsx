@@ -64,7 +64,7 @@ export default async function FundDetailPage({ params }: { params: { fundCode: s
             <div className="text-right">
               <p className="text-sm text-gray-500">Current NAV</p>
               <p className="text-3xl font-bold text-gray-800">{Number(fund.currentNav).toFixed(4)}</p>
-              <p className="text-xs text-gray-400">Face Value: ৳{Number(fund.faceValue).toFixed(2)}</p>
+              <p className="text-xs text-gray-400">Face Value: {Number(fund.faceValue).toFixed(2)}</p>
             </div>
           </div>
         </CardContent>

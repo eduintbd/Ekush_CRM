@@ -29,7 +29,7 @@ const RechartsBarChart = dynamic(
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#828BB2" }} />
               <YAxis tickFormatter={formatValue} tick={{ fontSize: 11, fill: "#828BB2" }} />
               <Tooltip
-                formatter={(value: any) => `৳${Number(value).toLocaleString("en-IN")}`}
+                formatter={(value: any) => `${Number(value).toLocaleString("en-IN")}`}
                 contentStyle={{ borderRadius: "10px", border: "1px solid #e8ecef", boxShadow: "0 4px 15px rgba(0,0,0,0.08)" }}
               />
               <Legend />

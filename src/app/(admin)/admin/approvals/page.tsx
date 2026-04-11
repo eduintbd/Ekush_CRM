@@ -96,7 +96,7 @@ export default function ApprovalsPage() {
                       {a.details && (
                         <div className="mt-2 text-xs text-text-body space-y-0.5">
                           <p>Investor: {a.details.investor?.name} ({a.details.investor?.investorCode})</p>
-                          <p>Fund: {a.details.fund?.code} | Direction: {a.details.direction} | Amount: ৳{Number(a.details.amount).toLocaleString("en-IN")}</p>
+                          <p>Fund: {a.details.fund?.code} | Direction: {a.details.direction} | Amount: {Number(a.details.amount).toLocaleString("en-IN")}</p>
                           <p>Units: {Number(a.details.units).toFixed(4)} @ NAV {Number(a.details.nav).toFixed(4)}</p>
                           {a.details.paymentRef && (
                             <a

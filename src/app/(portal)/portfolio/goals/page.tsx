@@ -125,19 +125,19 @@ export default function GoalsPage() {
                     <div className="h-full rounded-full bg-gradient-to-r from-ekush-orange to-green-500 transition-all" style={{ width: `${Math.min(100, progress)}%` }} />
                   </div>
                   <div className="flex justify-between text-xs text-text-body mt-1">
-                    <span>৳{goal.currentAmount.toLocaleString("en-IN")}</span>
-                    <span>৳{goal.targetAmount.toLocaleString("en-IN")}</span>
+                    <span>{goal.currentAmount.toLocaleString("en-IN")}</span>
+                    <span>{goal.targetAmount.toLocaleString("en-IN")}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div className="bg-page-bg rounded-[10px] p-3">
                     <p className="text-xs text-text-body">Remaining</p>
-                    <p className="font-semibold text-text-dark font-rajdhani">৳{remaining.toLocaleString("en-IN")}</p>
+                    <p className="font-semibold text-text-dark font-rajdhani">{remaining.toLocaleString("en-IN")}</p>
                   </div>
                   <div className="bg-ekush-orange/10 rounded-[10px] p-3">
                     <p className="text-xs text-text-body flex items-center gap-1"><PiggyBank className="w-3 h-3" /> Monthly SIP Needed</p>
-                    <p className="font-semibold text-ekush-orange font-rajdhani">৳{goal.monthlySipNeeded.toLocaleString("en-IN")}</p>
+                    <p className="font-semibold text-ekush-orange font-rajdhani">{goal.monthlySipNeeded.toLocaleString("en-IN")}</p>
                   </div>
                   <div className="bg-green-50 rounded-[10px] p-3">
                     <p className="text-xs text-text-body flex items-center gap-1"><TrendingUp className="w-3 h-3" /> On Track?</p>

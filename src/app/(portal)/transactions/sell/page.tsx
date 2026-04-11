@@ -141,12 +141,12 @@ export default function SellPage() {
                 <div className="bg-page-bg rounded-[10px] p-5 space-y-2">
                   <div className="flex justify-between text-[14px]">
                     <span className="text-text-body">Estimated Amount</span>
-                    <span className="text-text-dark font-medium">৳{estimatedAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
+                    <span className="text-text-dark font-medium">{estimatedAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between text-[14px]">
                     <span className="text-text-body">Estimated Gain/Loss</span>
                     <span className={`font-medium ${estimatedGain >= 0 ? "text-green-500" : "text-red-500"}`}>
-                      ৳{estimatedGain.toFixed(2)}
+                      {estimatedGain.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -186,12 +186,12 @@ export default function SellPage() {
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Estimated Amount</span>
-                <span className="text-text-dark font-medium">৳{estimatedAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
+                <span className="text-text-dark font-medium">{estimatedAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Estimated Gain/Loss</span>
                 <span className={`font-medium ${estimatedGain >= 0 ? "text-green-500" : "text-red-500"}`}>
-                  ৳{estimatedGain.toFixed(2)}
+                  {estimatedGain.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -216,7 +216,7 @@ export default function SellPage() {
             <div className="inline-block bg-page-bg rounded-[10px] p-6 space-y-2 text-left mb-6">
               <p className="text-[14px] text-text-body">Fund: <strong className="text-text-dark">{result.fund}</strong></p>
               <p className="text-[14px] text-text-body">Units: <strong className="text-text-dark">{Math.round(Number(result.units) || 0).toLocaleString("en-IN")}</strong></p>
-              <p className="text-[14px] text-text-body">Est. Amount: <strong className="text-text-dark">৳{result.estimatedAmount?.toFixed(2)}</strong></p>
+              <p className="text-[14px] text-text-body">Est. Amount: <strong className="text-text-dark">{result.estimatedAmount?.toFixed(2)}</strong></p>
               <Badge variant="pending" className="mt-2">Pending Approval</Badge>
             </div>
             <div className="flex gap-3 justify-center">
