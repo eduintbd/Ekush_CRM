@@ -34,11 +34,15 @@ export default async function AdminLayout({
               Ekush WML <span className="text-ekush-orange">Admin</span>
             </span>
           </div>
-          <div className="flex items-center gap-6 text-[13px] font-medium">
+          <div className="flex items-center gap-5 text-[13px] font-medium flex-wrap">
             <Link href="/admin/dashboard" className="text-text-dark hover:text-ekush-orange transition-colors">Dashboard</Link>
             <Link href="/admin/investors" className="text-text-dark hover:text-ekush-orange transition-colors">Investors</Link>
+            <Link href="/admin/requests" className="text-text-dark hover:text-ekush-orange transition-colors">Requests</Link>
             <Link href="/admin/approvals" className="text-text-dark hover:text-ekush-orange transition-colors">Approvals</Link>
+            <Link href="/admin/statements" className="text-text-dark hover:text-ekush-orange transition-colors">Statements</Link>
             <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">NAV Entry</Link>
+            <Link href="/admin/fund-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Fund Reports</Link>
+            <Link href="/admin/comparisons" className="text-text-dark hover:text-ekush-orange transition-colors">Comparisons</Link>
             <Link href="/admin/tickets" className="text-text-dark hover:text-ekush-orange transition-colors">Tickets</Link>
             <Link href="/admin/content" className="text-text-dark hover:text-ekush-orange transition-colors">Content</Link>
             <Link href="/admin/audit-log" className="text-text-dark hover:text-ekush-orange transition-colors">Audit Log</Link>

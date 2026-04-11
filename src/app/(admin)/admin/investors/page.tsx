@@ -10,12 +10,23 @@ const PAGE_SIZE = 50;
 export default async function AdminInvestorsPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: { page?: string; q?: string };
 }) {
   const page = Math.max(1, parseInt(searchParams.page || "1"));
+  const query = (searchParams.q || "").trim();
+
+  const where = query
+    ? {
+        OR: [
+          { investorCode: { contains: query, mode: "insensitive" as const } },
+          { name: { contains: query, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
 
   const [investors, total] = await Promise.all([
     prisma.investor.findMany({
+      where,
       include: {
         user: { select: { status: true, email: true, phone: true } },
         holdings: {
@@ -29,18 +40,33 @@ export default async function AdminInvestorsPage({
       take: PAGE_SIZE,
       skip: (page - 1) * PAGE_SIZE,
     }),
-    prisma.investor.count(),
+    prisma.investor.count({ where }),
   ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-[20px] font-semibold text-text-dark font-rajdhani">Investors</h1>
-          <p className="text-[13px] text-text-body">{total} total investors</p>
+          <p className="text-[13px] text-text-body">{total} {query ? "matching" : "total"} investors</p>
         </div>
+        <form method="GET" className="flex items-center gap-2">
+          <input
+            type="text"
+            name="q"
+            defaultValue={query}
+            placeholder="Search by code or name..."
+            className="px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-ekush-orange w-64"
+          />
+          <button type="submit" className="px-3 py-2 text-sm bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark transition-colors">
+            Search
+          </button>
+          {query && (
+            <Link href="/admin/investors" className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50">Clear</Link>
+          )}
+        </form>
       </div>
 
       <Card>

@@ -117,6 +117,7 @@ model Fund {
   financialStatements FinancialStatement[]
   fundExpenses        FundExpense[]
   sipPlans            SipPlan[]
+  fundReports         FundReport[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -566,6 +567,45 @@ model Document {
 
   @@index([investorId])
   @@map("documents")
+}
+
+// ─── Fund Report (admin-uploaded Excel reports per fund) ─────────
+
+model FundReport {
+  id         String   @id @default(cuid())
+  fundId     String
+  reportType String   // FIN_STATS, INVESTORS, PORTFOLIO, NAV_HISTORY, EXPENSES, HOLDINGS
+  title      String
+  fileName   String
+  filePath   String
+  mimeType   String?
+  reportDate DateTime?
+  uploadedBy String?
+
+  fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([fundId])
+  @@index([reportType])
+  @@map("fund_reports")
+}
+
+// ─── Comparison Report (PDFs like UCB Weekly MF Review) ──────────
+
+model ComparisonReport {
+  id         String   @id @default(cuid())
+  title      String
+  source     String?  // e.g., "UCB Stock Brokerage"
+  reportDate DateTime?
+  fileName   String
+  filePath   String
+  mimeType   String?
+  uploadedBy String?
+
+  createdAt DateTime @default(now())
+
+  @@map("comparison_reports")
 }
 
 // ─── Market Commentary (CMS) ─────────────────────────────────────
