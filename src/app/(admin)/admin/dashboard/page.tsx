@@ -1,25 +1,34 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatBDT } from "@/lib/utils";
-import { Users, Briefcase, ArrowLeftRight, AlertCircle, TrendingUp, FileText, Bell, Clock } from "lucide-react";
+import { Users, ArrowLeftRight, AlertCircle, TrendingUp, FileText, Bell, Clock } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const [
-    investorCount, fundCount, txCount, pendingApprovals,
-    funds, recentUsers, openTickets, notificationCount,
-    pendingKyc, activeInvestors
-  ] = await Promise.all([
-    prisma.investor.count(),
-    prisma.fund.count(),
-    prisma.transaction.count(),
-    prisma.approvalQueue.count({ where: { status: "PENDING" } }),
-    prisma.fund.findMany(),
-    prisma.user.count({ where: { lastLoginAt: { not: null } } }),
-    prisma.serviceRequest.count({ where: { status: { in: ["OPEN", "IN_PROGRESS"] } } }),
-    prisma.notification.count(),
-    prisma.kycRecord.count({ where: { status: "PENDING" } }),
-    prisma.user.count({ where: { status: "ACTIVE" } }),
-  ]);
+  // Defaults in case of Prisma connection errors
+  let investorCount = 0;
+  let txCount = 0;
+  let pendingApprovals = 0;
+  let funds: Awaited<ReturnType<typeof prisma.fund.findMany>> = [];
+  let recentUsers = 0;
+  let openTickets = 0;
+  let pendingKyc = 0;
+  let activeInvestors = 0;
+
+  try {
+    // Run queries sequentially (more stable with Supabase pooler than 10 in parallel)
+    investorCount = await prisma.investor.count();
+    txCount = await prisma.transaction.count();
+    pendingApprovals = await prisma.approvalQueue.count({ where: { status: "PENDING" } });
+    funds = await prisma.fund.findMany();
+    recentUsers = await prisma.user.count({ where: { lastLoginAt: { not: null } } });
+    openTickets = await prisma.serviceRequest.count({ where: { status: { in: ["OPEN", "IN_PROGRESS"] } } });
+    pendingKyc = await prisma.kycRecord.count({ where: { status: "PENDING" } });
+    activeInvestors = await prisma.user.count({ where: { status: "ACTIVE" } });
+  } catch (err) {
+    console.error("Admin dashboard query error:", err);
+  }
 
   const totalAum = funds.reduce((s, f) => s + Number(f.totalAum), 0);
 
