@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/utils";
 import { FUND_CODES } from "@/lib/constants";
 import { FileText, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { DeleteFundReportButton } from "@/components/admin/delete-fund-report-button";
+import { DeleteDailyUploadButton } from "@/components/admin/delete-daily-upload-button";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +98,7 @@ export default async function AdminFundReportsPage() {
                     {fund.dailyUploads.map((u) => (
                       <div
                         key={u.id}
-                        className="flex items-center gap-2 text-[11px] text-text-body"
+                        className="flex items-center gap-2 text-[11px] text-text-body group"
                       >
                         {u.status === "PROCESSED" ? (
                           <CheckCircle2 className="w-3 h-3 text-green-600 shrink-0" />
@@ -108,7 +109,14 @@ export default async function AdminFundReportsPage() {
                         )}
                         <span className="font-medium text-text-dark">{u.uploadType}</span>
                         <span className="text-text-muted">·</span>
-                        <span className="truncate">{u.fileName}</span>
+                        <a
+                          href={u.filePath}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="truncate hover:text-ekush-orange hover:underline"
+                        >
+                          {u.fileName}
+                        </a>
                         <span className="text-text-muted">·</span>
                         <span>{formatDate(u.createdAt)}</span>
                         {u.status === "PROCESSED" && u.rowsProcessed != null && (
@@ -117,6 +125,9 @@ export default async function AdminFundReportsPage() {
                         {u.status === "FAILED" && u.error && (
                           <span className="text-red-500 truncate">— {u.error}</span>
                         )}
+                        <div className="ml-auto">
+                          <DeleteDailyUploadButton id={u.id} />
+                        </div>
                       </div>
                     ))}
                   </div>
