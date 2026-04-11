@@ -118,6 +118,7 @@ model Fund {
   fundExpenses        FundExpense[]
   sipPlans            SipPlan[]
   fundReports         FundReport[]
+  dailyUploads        DailyFundUpload[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -589,6 +590,31 @@ model FundReport {
   @@index([fundId])
   @@index([reportType])
   @@map("fund_reports")
+}
+
+// ─── Daily Fund Upload (FIN STATS / INVESTORS Excel, drives ingestion) ──
+
+model DailyFundUpload {
+  id             String   @id @default(cuid())
+  fundId         String
+  uploadType     String   // FIN_STATS | INVESTORS
+  reportDate     DateTime // the "as of" date encoded in the file
+  fileName       String
+  filePath       String
+  mimeType       String?
+  uploadedBy     String?
+  status         String   @default("PENDING") // PENDING | PROCESSING | PROCESSED | FAILED
+  processedAt    DateTime?
+  error          String?
+  rowsProcessed  Int?
+
+  fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([fundId, uploadType])
+  @@index([reportDate])
+  @@map("daily_fund_uploads")
 }
 
 // ─── Comparison Report (PDFs like UCB Weekly MF Review) ──────────

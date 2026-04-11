@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FundReportUpload } from "@/components/admin/fund-report-upload";
+import { DailyFundUpload } from "@/components/admin/daily-fund-upload";
 import { formatDate } from "@/lib/utils";
 import { FUND_CODES } from "@/lib/constants";
-import { FileText } from "lucide-react";
+import { FileText, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { DeleteFundReportButton } from "@/components/admin/delete-fund-report-button";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,10 @@ export default async function AdminFundReportsPage() {
     include: {
       fundReports: {
         orderBy: [{ reportDate: "desc" }, { createdAt: "desc" }],
+      },
+      dailyUploads: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
       },
     },
   });
@@ -60,6 +65,65 @@ export default async function AdminFundReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* ── Daily ingestion uploads ─────────────────────── */}
+              <div className="bg-orange-50/50 border border-ekush-orange/20 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[13px] font-semibold text-text-dark">Daily Data Upload</p>
+                    <p className="text-[11px] text-text-body">
+                      Upload these files daily — they drive portfolio statements, holdings & transaction history
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <DailyFundUpload
+                    fundId={fund.id}
+                    fundCode={fund.code}
+                    uploadType="FIN_STATS"
+                    label="FIN STATS"
+                    hint="e.g., 2026.03.25 FIN STATS.xlsx — updates NAV, AUM, total units"
+                  />
+                  <DailyFundUpload
+                    fundId={fund.id}
+                    fundCode={fund.code}
+                    uploadType="INVESTORS"
+                    label="INVESTORS"
+                    hint="e.g., 2026.03.25 INVESTORS.xlsx — updates holdings & transactions"
+                  />
+                </div>
+                {fund.dailyUploads.length > 0 && (
+                  <div className="space-y-1 pt-2 border-t border-ekush-orange/10">
+                    <p className="text-[10px] font-semibold text-text-body uppercase">Recent ingestions</p>
+                    {fund.dailyUploads.map((u) => (
+                      <div
+                        key={u.id}
+                        className="flex items-center gap-2 text-[11px] text-text-body"
+                      >
+                        {u.status === "PROCESSED" ? (
+                          <CheckCircle2 className="w-3 h-3 text-green-600 shrink-0" />
+                        ) : u.status === "FAILED" ? (
+                          <XCircle className="w-3 h-3 text-red-500 shrink-0" />
+                        ) : (
+                          <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+                        )}
+                        <span className="font-medium text-text-dark">{u.uploadType}</span>
+                        <span className="text-text-muted">·</span>
+                        <span className="truncate">{u.fileName}</span>
+                        <span className="text-text-muted">·</span>
+                        <span>{formatDate(u.createdAt)}</span>
+                        {u.status === "PROCESSED" && u.rowsProcessed != null && (
+                          <span className="text-green-600">({u.rowsProcessed} rows)</span>
+                        )}
+                        {u.status === "FAILED" && u.error && (
+                          <span className="text-red-500 truncate">— {u.error}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Report categories ──────────────────────────── */}
               {REPORT_TYPES.map((rt) => {
                 const docs = byType.get(rt.key) || [];
                 return (
