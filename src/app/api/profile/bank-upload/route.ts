@@ -42,9 +42,10 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Auto-create a support ticket for admin review
+  // Existing investor (has investor code) = create a verification ticket.
+  // New sign-ups (no code yet) = no ticket.
   const investor = await prisma.investor.findUnique({ where: { id: investorId }, select: { investorCode: true, name: true } });
-  if (investor) {
+  if (investor?.investorCode) {
     const trackingNumber = `BNK-${Date.now().toString(36).toUpperCase()}`;
     await prisma.serviceRequest.create({
       data: {

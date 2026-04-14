@@ -69,22 +69,22 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
-    // For existing investors (not first bank), create a verification ticket
-    if (existingCount > 0) {
-      const investor = await prisma.investor.findUnique({ where: { id: investorId }, select: { investorCode: true, name: true } });
-      if (investor) {
-        const trackingNumber = `BNK-${Date.now().toString(36).toUpperCase()}`;
-        await prisma.serviceRequest.create({
-          data: {
-            investorId,
-            type: "BANK_VERIFICATION",
-            status: "OPEN",
-            description: `New bank account added by ${investor.name} (${investor.investorCode}): ${bankName} - A/C: ${accountNumber}. Bank Account ID: ${newBank.id}`,
-            trackingNumber,
-            slaDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-          },
-        });
-      }
+    // Existing investor = has an investor code (imported from INVESTORS.xlsx).
+    // All bank account changes by existing investors create a verification ticket.
+    // New sign-ups (no investor code yet) do NOT create tickets.
+    const investor = await prisma.investor.findUnique({ where: { id: investorId }, select: { investorCode: true, name: true } });
+    if (investor?.investorCode) {
+      const trackingNumber = `BNK-${Date.now().toString(36).toUpperCase()}`;
+      await prisma.serviceRequest.create({
+        data: {
+          investorId,
+          type: "BANK_VERIFICATION",
+          status: "OPEN",
+          description: `Bank account added/changed by ${investor.name} (${investor.investorCode}): ${bankName} - A/C: ${accountNumber}. Bank Account ID: ${newBank.id}`,
+          trackingNumber,
+          slaDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        },
+      });
     }
 
     return NextResponse.json({ success: true });
