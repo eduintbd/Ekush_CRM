@@ -22,7 +22,16 @@ async function getInvestorProfile(investorId: string) {
 
 export default async function ProfilePage() {
   const session = await getSession();
-  const investorId = (session?.user as any)?.investorId;
+  let investorId = (session?.user as any)?.investorId;
+
+  // Fallback: if investorId missing from session metadata, look it up from DB
+  if (!investorId && session?.user?.id) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { investor: { select: { id: true } } },
+    });
+    investorId = user?.investor?.id;
+  }
 
   if (!investorId) {
     return <p className="text-text-body text-center py-20">Investor profile not found.</p>;
