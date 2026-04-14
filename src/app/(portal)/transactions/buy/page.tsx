@@ -29,31 +29,60 @@ export default function BuyPage() {
     setTimeout(() => setCopiedField(null), 1500);
   };
 
-  const FUND_BANK_DETAILS: Record<string, { accountName: string; accountNo: string; bankName: string; branchName: string; routingNo: string }> = {
-    EFUF: {
-      accountName: "Ekush First Unit Fund",
-      accountNo: "1513205101231001",
-      bankName: "BRAC Bank Limited",
-      branchName: "R K Mission Road",
-      routingNo: "060272531",
-    },
-    EGF: {
-      accountName: "Ekush Growth Fund",
-      accountNo: "1513205101212001",
-      bankName: "BRAC Bank Limited",
-      branchName: "R K Mission Road",
-      routingNo: "060272531",
-    },
-    ESRF: {
-      accountName: "Ekush Stable Return Fund",
-      accountNo: "2055604070001",
-      bankName: "BRAC Bank Limited",
-      branchName: "R K Mission Road",
-      routingNo: "060272531",
-    },
+  type BankDetail = { accountName: string; accountNo: string; bankName: string; branchName: string; routingNo: string };
+
+  const FUND_BANK_ACCOUNTS: Record<string, BankDetail[]> = {
+    EFUF: [
+      {
+        accountName: "Ekush First Unit Fund",
+        accountNo: "1513205101231001",
+        bankName: "BRAC Bank Limited",
+        branchName: "R K Mission Road",
+        routingNo: "060272531",
+      },
+      {
+        accountName: "Ekush First Unit Fund",
+        accountNo: "0001-1090000732",
+        bankName: "Midland Bank Limited",
+        branchName: "Dilkusha",
+        routingNo: "285271933",
+      },
+    ],
+    EGF: [
+      {
+        accountName: "Ekush Growth Fund",
+        accountNo: "1513205101212001",
+        bankName: "BRAC Bank Limited",
+        branchName: "R K Mission Road",
+        routingNo: "060272531",
+      },
+      {
+        accountName: "Ekush Growth Fund",
+        accountNo: "0001-1060000119",
+        bankName: "Midland Bank Limited",
+        branchName: "Dilkusha",
+        routingNo: "285271933",
+      },
+    ],
+    ESRF: [
+      {
+        accountName: "Ekush Stable Return Fund",
+        accountNo: "2055604070001",
+        bankName: "BRAC Bank Limited",
+        branchName: "R K Mission Road",
+        routingNo: "060272531",
+      },
+      {
+        accountName: "Ekush Stable Return Fund",
+        accountNo: "0001-1090001017",
+        bankName: "Midland Bank Limited",
+        branchName: "Dilkusha",
+        routingNo: "285271933",
+      },
+    ],
   };
 
-  const BANK_DETAILS = FUND_BANK_DETAILS[selectedFund] || FUND_BANK_DETAILS.ESRF;
+  const bankAccounts = FUND_BANK_ACCOUNTS[selectedFund] || FUND_BANK_ACCOUNTS.ESRF;
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
 
@@ -205,30 +234,37 @@ export default function BuyPage() {
               Deposit your investment amount to the following bank account of {fund?.name || "the fund"}.
             </p>
 
-            {/* Bank details box */}
-            <div className="border border-input-border rounded-[10px] p-5 space-y-3 mb-6">
-              {[
-                { label: "Bank Account Name", value: BANK_DETAILS.accountName, key: "name" },
-                { label: "Account No", value: BANK_DETAILS.accountNo, key: "acc" },
-                { label: "Bank Name", value: BANK_DETAILS.bankName, key: "bank" },
-                { label: "Branch Name", value: BANK_DETAILS.branchName, key: "branch" },
-                { label: "Routing No", value: BANK_DETAILS.routingNo, key: "routing" },
-              ].map((row) => (
-                <div key={row.key} className="flex items-center gap-2 text-[14px]">
-                  <span className="text-text-body">{row.label}:</span>
-                  <span className="text-text-dark font-semibold">{row.value}</span>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(row.value, row.key)}
-                    className="ml-1 p-1 rounded hover:bg-page-bg transition-colors"
-                    aria-label={`Copy ${row.label}`}
-                  >
-                    {copiedField === row.key ? (
-                      <Check className="w-3.5 h-3.5 text-green-500" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5 text-text-body" />
-                    )}
-                  </button>
+            {/* Bank details boxes — side by side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {bankAccounts.map((bank, idx) => (
+                <div key={idx} className="border border-input-border rounded-[10px] p-5 space-y-3">
+                  <p className="text-[12px] font-semibold text-ekush-orange uppercase tracking-wide mb-1">
+                    {bank.bankName}
+                  </p>
+                  {[
+                    { label: "Account Name", value: bank.accountName, key: `name-${idx}` },
+                    { label: "Account No", value: bank.accountNo, key: `acc-${idx}` },
+                    { label: "Bank Name", value: bank.bankName, key: `bank-${idx}` },
+                    { label: "Branch", value: bank.branchName, key: `branch-${idx}` },
+                    { label: "Routing No", value: bank.routingNo, key: `routing-${idx}` },
+                  ].map((row) => (
+                    <div key={row.key} className="flex items-center gap-2 text-[13px]">
+                      <span className="text-text-body whitespace-nowrap">{row.label}:</span>
+                      <span className="text-text-dark font-semibold">{row.value}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(row.value, row.key)}
+                        className="ml-1 p-1 rounded hover:bg-page-bg transition-colors shrink-0"
+                        aria-label={`Copy ${row.label}`}
+                      >
+                        {copiedField === row.key ? (
+                          <Check className="w-3.5 h-3.5 text-green-500" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5 text-text-body" />
+                        )}
+                      </button>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
