@@ -42,7 +42,7 @@ export default function SipPage() {
   const [selectedBankId, setSelectedBankId] = useState<string>("");
   const [showBankChange, setShowBankChange] = useState(false);
   const [bankMode, setBankMode] = useState<"existing" | "cheque" | "manual">("existing");
-  const [newBank, setNewBank] = useState({ bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
+  const [newBank, setNewBank] = useState({ holderName: "", bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
   const [chequeFile, setChequeFile] = useState<File | null>(null);
   const [savingBank, setSavingBank] = useState(false);
 
@@ -87,7 +87,7 @@ export default function SipPage() {
           await fetchBanks();
           setShowBankChange(false);
           setBankMode("existing");
-          setNewBank({ bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
+          setNewBank({ holderName: "", bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
         }
       } finally { setSavingBank(false); }
     }
@@ -95,8 +95,15 @@ export default function SipPage() {
 
   useEffect(() => { fetchPlans(); fetchFunds(); fetchBanks(); }, []);
 
+  const [bankWarning, setBankWarning] = useState("");
+
   const handleCreateClick = (e: React.FormEvent) => {
     e.preventDefault();
+    setBankWarning("");
+    if (!selectedBank) {
+      setBankWarning("Bank account is mandatory to create a SIP. Please add your bank account details above.");
+      return;
+    }
     setShowTerms(true);
   };
 
@@ -257,10 +264,18 @@ export default function SipPage() {
                     </div>
                     <p className="text-[13px] text-text-body mb-2">Do you want to change this account for SIP?</p>
                     <div className="flex gap-2">
-                      <Button type="button" size="sm" variant="outline" className="rounded-[5px] text-[12px] border-green-500 text-green-600 hover:bg-green-50" onClick={() => setShowBankChange(false)}>
-                        No, use this account
+                      <Button
+                        type="button" size="sm" variant="outline"
+                        className={`rounded-[5px] text-[12px] transition-colors ${!showBankChange ? "bg-green-500 text-white border-green-500" : "border-green-500 text-green-600 hover:bg-green-50"}`}
+                        onClick={() => setShowBankChange(false)}
+                      >
+                        {!showBankChange ? "✓ " : ""}No, use this account
                       </Button>
-                      <Button type="button" size="sm" variant="outline" className="rounded-[5px] text-[12px] border-ekush-orange text-ekush-orange hover:bg-orange-50" onClick={() => setShowBankChange(true)}>
+                      <Button
+                        type="button" size="sm" variant="outline"
+                        className={`rounded-[5px] text-[12px] transition-colors ${showBankChange ? "bg-ekush-orange text-white border-ekush-orange" : "border-ekush-orange text-ekush-orange hover:bg-orange-50"}`}
+                        onClick={() => setShowBankChange(true)}
+                      >
                         Yes, change account
                       </Button>
                     </div>
@@ -300,6 +315,7 @@ export default function SipPage() {
                           </div>
                         ) : (
                           <div className="space-y-2">
+                            <Input label="A/C Holder's Name" value={newBank.holderName || ""} onChange={(e) => setNewBank({ ...newBank, holderName: e.target.value })} placeholder="Account holder name" />
                             <Input label="Bank Name" value={newBank.bankName} onChange={(e) => setNewBank({ ...newBank, bankName: e.target.value })} placeholder="e.g., Dutch Bangla Bank" />
                             <Input label="A/C Number" value={newBank.accountNumber} onChange={(e) => setNewBank({ ...newBank, accountNumber: e.target.value })} placeholder="Account number" />
                             <Input label="Branch Name" value={newBank.branchName} onChange={(e) => setNewBank({ ...newBank, branchName: e.target.value })} placeholder="Branch name" />
@@ -323,12 +339,19 @@ export default function SipPage() {
                 )}
               </div>
 
-              <div className="md:col-span-2 flex gap-2">
-                <Button type="submit" disabled={loading || !selectedBank} className="bg-ekush-orange hover:bg-ekush-orange/90 text-white rounded-[5px] text-[13px]">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
-                  Create SIP
-                </Button>
-                <Button type="button" onClick={() => setShowCreate(false)} variant="outline" className="rounded-[5px] text-[13px]">Cancel</Button>
+              <div className="md:col-span-2">
+                {bankWarning && (
+                  <p className="text-red-500 text-[13px] mb-2 bg-red-50 border border-red-200 rounded-[5px] p-2">
+                    {bankWarning}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={loading} className="bg-ekush-orange hover:bg-ekush-orange/90 text-white rounded-[5px] text-[13px]">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
+                    Create SIP
+                  </Button>
+                  <Button type="button" onClick={() => setShowCreate(false)} variant="outline" className="rounded-[5px] text-[13px]">Cancel</Button>
+                </div>
               </div>
             </form>
           </CardContent>
