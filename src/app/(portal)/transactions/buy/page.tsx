@@ -303,15 +303,15 @@ export default function BuyPage() {
             <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-2">Confirmation</h2>
             <p className="text-[14px] text-text-body mb-4">Please confirm to complete the transaction</p>
 
-            {/* Form Preview Button */}
+            {/* Purchase Form Preview */}
             <div className="mb-6 text-center">
               <a
-                href={`/api/forms/registration?fundCode=${encodeURIComponent(selectedFund)}&fundName=${encodeURIComponent(fund?.name || "")}&amount=${actualAmount}&units=${Math.round(estimatedUnits)}&nav=${nav.toFixed(4)}&dividend=${dividendOption}`}
+                href={`/api/forms/purchase?fundName=${encodeURIComponent(fund?.name || "")}&amount=${actualAmount}&units=${Math.round(estimatedUnits)}&nav=${nav.toFixed(4)}&payment=${encodeURIComponent(paymentMethod)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-[#2DAAB8] text-[#2DAAB8] rounded-[5px] text-[14px] font-medium hover:bg-[#2DAAB8] hover:text-white transition-colors"
               >
-                Your form preview <FileDown className="w-4 h-4" />
+                Purchase Form Preview <FileDown className="w-4 h-4" />
               </a>
             </div>
             <div className="bg-page-bg rounded-[10px] p-6 space-y-3">
