@@ -5,8 +5,17 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(req: NextRequest) {
   const session = await getSession();
-  const investorId = (session?.user as any)?.investorId;
+  let investorId = (session?.user as any)?.investorId;
   const userId = (session?.user as any)?.id;
+
+  // Fallback: if investorId missing from session metadata, look it up from DB
+  if (!investorId && userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { investor: { select: { id: true } } },
+    });
+    investorId = user?.investor?.id;
+  }
 
   if (!investorId || !userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

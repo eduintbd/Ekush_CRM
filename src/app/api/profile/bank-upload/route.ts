@@ -5,7 +5,16 @@ import { uploadFile } from "@/lib/upload";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
-  const investorId = (session?.user as any)?.investorId;
+  let investorId = (session?.user as any)?.investorId;
+
+  // Fallback: look up from DB if not in session metadata
+  if (!investorId && (session?.user as any)?.id) {
+    const user = await prisma.user.findUnique({
+      where: { id: (session!.user as any).id },
+      select: { investor: { select: { id: true } } },
+    });
+    investorId = user?.investor?.id;
+  }
 
   if (!investorId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
