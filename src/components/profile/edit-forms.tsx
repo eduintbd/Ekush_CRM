@@ -91,7 +91,7 @@ export function AddBankForm({ investorName }: { investorName?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"cheque" | "manual">("cheque");
-  const [form, setForm] = useState({ bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
+  const [form, setForm] = useState({ holderName: "", bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
   const [chequeFile, setChequeFile] = useState<File | null>(null);
   const [chequePreview, setChequePreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -136,7 +136,7 @@ export function AddBankForm({ investorName }: { investorName?: string }) {
           body: JSON.stringify({ action: "add_bank", ...form }),
         });
         if (res.ok) {
-          setForm({ bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
+          setForm({ holderName: "", bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
           setOpen(false);
           router.refresh();
         }
@@ -149,7 +149,7 @@ export function AddBankForm({ investorName }: { investorName?: string }) {
   const resetAndClose = () => {
     setOpen(false);
     setMode("cheque");
-    setForm({ bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
+    setForm({ holderName: "", bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
     setChequeFile(null);
     setChequePreview(null);
   };
@@ -221,12 +221,7 @@ export function AddBankForm({ investorName }: { investorName?: string }) {
         </div>
       ) : (
         <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">A/C Holder&apos;s Name</label>
-            <div className="h-[50px] rounded-[5px] border border-input-border bg-gray-50 px-3 flex items-center text-sm font-medium text-gray-700">
-              {investorName || "—"}
-            </div>
-          </div>
+          <Input label="A/C Holder's Name" value={form.holderName || investorName || ""} onChange={(e) => setForm({ ...form, holderName: e.target.value })} placeholder="Account holder name" />
           <Input label="Bank Name" value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} placeholder="e.g., Dutch Bangla Bank" required />
           <Input label="Branch" value={form.branchName} onChange={(e) => setForm({ ...form, branchName: e.target.value })} placeholder="Branch name" />
           <Input label="Account Number" value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} placeholder="Account number" required />
@@ -308,11 +303,15 @@ export function DeleteButton({ id, action }: { id: string; action: string }) {
     if (!confirm("Are you sure you want to delete this?")) return;
     setLoading(true);
     try {
-      await fetch("/api/profile", {
+      const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, id }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Delete failed. Please log out and log back in, then try again.");
+      }
       router.refresh();
     } finally {
       setLoading(false);
