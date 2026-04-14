@@ -5,7 +5,8 @@
       "Read(//c/Users/USER/Ekush_CRM/**)",
       "Bash(taskkill //PID 7452 //F)",
       "Bash(npm run:*)",
-      "WebFetch(domain:ekushwml.com)"
+      "WebFetch(domain:ekushwml.com)",
+      "Bash(npx vercel:*)"
     ]
   }
 }

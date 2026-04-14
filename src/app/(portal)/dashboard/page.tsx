@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ActionCard } from "@/components/dashboard/action-card";
 import { NavCarousel } from "@/components/dashboard/nav-carousel";
 import { PeerComparisonChart } from "@/components/dashboard/peer-comparison-chart";
+import { ErrorBoundary } from "@/components/error-boundary";
 import {
   TrendingUp,
   Calendar,
@@ -52,16 +53,20 @@ export default async function DashboardPage() {
           Performance of Ekush Managed Funds
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <NavCarousel
-            funds={funds.map((f) => ({
-              id: f.id,
-              code: f.code,
-              name: f.name,
-              currentNav: Number(f.currentNav),
-              data: navByFund.get(f.id) ?? [],
-            }))}
-          />
-          <PeerComparisonChart />
+          <ErrorBoundary fallback={<div className="bg-white rounded-[10px] shadow-card p-6 text-center text-text-muted text-sm">Chart unavailable</div>}>
+            <NavCarousel
+              funds={funds.map((f) => ({
+                id: f.id,
+                code: f.code,
+                name: f.name,
+                currentNav: Number(f.currentNav),
+                data: navByFund.get(f.id) ?? [],
+              }))}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<div className="bg-white rounded-[10px] shadow-card p-6 text-center text-text-muted text-sm">Chart unavailable</div>}>
+            <PeerComparisonChart />
+          </ErrorBoundary>
         </div>
       </div>
 
