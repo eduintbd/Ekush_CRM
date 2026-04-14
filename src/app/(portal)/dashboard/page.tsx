@@ -90,7 +90,7 @@ export default async function DashboardPage() {
         />
         <ActionCard
           href="/sip"
-          label="Invest in SIP"
+          label="Start SIP"
           icon={Calendar}
           iconColor="#E85D5D"
           iconBg="#FDE8E8"

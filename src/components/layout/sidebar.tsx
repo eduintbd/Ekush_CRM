@@ -20,7 +20,7 @@ import {
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions/buy", label: "Buy Units", icon: TrendingUp },
-  { href: "/sip", label: "Invest in SIP", icon: Calendar },
+  { href: "/sip", label: "Start SIP", icon: Calendar },
   { href: "/transactions/sell", label: "Sell Units", icon: Coins },
   { href: "/statements", label: "Your Statement", icon: PieChart },
   { href: "/transactions", label: "Transactions", icon: FileText },

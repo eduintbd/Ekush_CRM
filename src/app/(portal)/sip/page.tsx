@@ -116,13 +116,6 @@ export default function SipPage() {
               </div>
               <Input label="Amount (BDT)" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="5000" min="500" required />
               <div>
-                <label className="text-sm font-medium text-text-label block mb-1">Frequency</label>
-                <select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })} className="w-full h-[50px] rounded-[5px] border border-input-border bg-input-bg px-3 text-sm">
-                  <option value="MONTHLY">Monthly</option>
-                  <option value="QUARTERLY">Quarterly</option>
-                </select>
-              </div>
-              <div>
                 <label className="text-sm font-medium text-text-label block mb-1">Debit Day</label>
                 <select
                   value={form.debitDay}
@@ -135,18 +128,38 @@ export default function SipPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-text-label block mb-1">Tenure</label>
-                <select
-                  value={form.tenure}
-                  onChange={(e) => setForm({ ...form, tenure: e.target.value })}
-                  className="w-full h-[50px] rounded-[5px] border border-input-border bg-input-bg px-3 text-sm"
-                >
-                  <option value="3">3 Year</option>
-                  <option value="5">5 Year</option>
-                  <option value="7">7 Year</option>
-                  <option value="10">10 Year</option>
-                  <option value="12">12 Year</option>
-                </select>
+                <label className="text-sm font-medium text-text-label block mb-1">Tenure (Years)</label>
+                <div className="flex gap-2">
+                  <select
+                    value={["3","5","7","10","12"].includes(form.tenure) ? form.tenure : "custom"}
+                    onChange={(e) => {
+                      if (e.target.value === "custom") {
+                        setForm({ ...form, tenure: "" });
+                      } else {
+                        setForm({ ...form, tenure: e.target.value });
+                      }
+                    }}
+                    className="flex-1 h-[50px] rounded-[5px] border border-input-border bg-input-bg px-3 text-sm"
+                  >
+                    <option value="3">3 Year</option>
+                    <option value="5">5 Year</option>
+                    <option value="7">7 Year</option>
+                    <option value="10">10 Year</option>
+                    <option value="12">12 Year</option>
+                    <option value="custom">Custom...</option>
+                  </select>
+                  {!["3","5","7","10","12"].includes(form.tenure) && (
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      placeholder="Years"
+                      value={form.tenure}
+                      onChange={(e) => setForm({ ...form, tenure: e.target.value })}
+                      className="w-24 h-[50px] rounded-[5px] border border-input-border bg-input-bg px-3 text-sm text-center"
+                    />
+                  )}
+                </div>
               </div>
               <div className="md:col-span-2 flex gap-2">
                 <Button type="submit" disabled={loading} className="bg-ekush-orange hover:bg-ekush-orange/90 text-white rounded-[5px] text-[13px]">
@@ -237,10 +250,6 @@ export default function SipPage() {
                 <div className="flex justify-between text-[14px]">
                   <span className="text-text-body">Monthly Amount</span>
                   <span className="text-text-dark font-medium">BDT {Number(form.amount).toLocaleString("en-IN")}</span>
-                </div>
-                <div className="flex justify-between text-[14px]">
-                  <span className="text-text-body">Frequency</span>
-                  <span className="text-text-dark font-medium">{form.frequency === "MONTHLY" ? "Monthly" : "Quarterly"}</span>
                 </div>
                 <div className="flex justify-between text-[14px]">
                   <span className="text-text-body">Debit Day</span>
