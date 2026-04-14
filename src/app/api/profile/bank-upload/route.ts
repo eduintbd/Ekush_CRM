@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const existingCount = await prisma.bankAccount.count({ where: { investorId } });
 
   // Create bank account with cheque leaf — bank details will be filled by admin after review
-  await prisma.bankAccount.create({
+  const bankAccount = await prisma.bankAccount.create({
     data: {
       investorId,
       bankName: "Pending Review",
@@ -41,6 +41,22 @@ export async function POST(req: NextRequest) {
       isPrimary: existingCount === 0,
     },
   });
+
+  // Auto-create a support ticket for admin review
+  const investor = await prisma.investor.findUnique({ where: { id: investorId }, select: { investorCode: true, name: true } });
+  if (investor) {
+    const trackingNumber = `BNK-${Date.now().toString(36).toUpperCase()}`;
+    await prisma.serviceRequest.create({
+      data: {
+        investorId,
+        type: "BANK_VERIFICATION",
+        status: "OPEN",
+        description: `Bank account change request from ${investor.name} (${investor.investorCode}). Cheque leaf uploaded for verification. Bank Account ID: ${bankAccount.id}`,
+        trackingNumber,
+        slaDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      },
+    });
+  }
 
   return NextResponse.json({ success: true });
 }

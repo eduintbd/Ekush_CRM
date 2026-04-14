@@ -58,7 +58,7 @@ export async function PATCH(req: NextRequest) {
     // If first bank account, make it primary
     const existingCount = await prisma.bankAccount.count({ where: { investorId } });
 
-    await prisma.bankAccount.create({
+    const newBank = await prisma.bankAccount.create({
       data: {
         investorId,
         bankName,
@@ -68,6 +68,25 @@ export async function PATCH(req: NextRequest) {
         isPrimary: existingCount === 0,
       },
     });
+
+    // For existing investors (not first bank), create a verification ticket
+    if (existingCount > 0) {
+      const investor = await prisma.investor.findUnique({ where: { id: investorId }, select: { investorCode: true, name: true } });
+      if (investor) {
+        const trackingNumber = `BNK-${Date.now().toString(36).toUpperCase()}`;
+        await prisma.serviceRequest.create({
+          data: {
+            investorId,
+            type: "BANK_VERIFICATION",
+            status: "OPEN",
+            description: `New bank account added by ${investor.name} (${investor.investorCode}): ${bankName} - A/C: ${accountNumber}. Bank Account ID: ${newBank.id}`,
+            trackingNumber,
+            slaDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+    }
+
     return NextResponse.json({ success: true });
   }
 
