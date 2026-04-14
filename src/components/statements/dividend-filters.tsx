@@ -12,8 +12,8 @@ interface Props {
   investorId: string;
 }
 
-export function DividendFilters({ fundCodes, years, currentFund, currentYear, investorId }: Props) {
-  const pdfParams = new URLSearchParams({ investorId, type: "dividends", format: "pdf" });
+export function DividendFilters({ fundCodes, years, currentFund, currentYear }: Props) {
+  const pdfParams = new URLSearchParams();
   if (currentFund) pdfParams.set("fund", currentFund);
   if (currentYear) pdfParams.set("year", currentYear);
 
@@ -59,7 +59,7 @@ export function DividendFilters({ fundCodes, years, currentFund, currentYear, in
             </Link>
           )}
           <a
-            href={`/api/admin/statements/download?${pdfParams.toString()}`}
+            href={`/api/statements/dividend-pdf?${pdfParams.toString()}`}
             className="ml-auto flex items-center gap-1.5 px-4 py-2 text-sm bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark"
           >
             <Download className="w-4 h-4" /> Download PDF
