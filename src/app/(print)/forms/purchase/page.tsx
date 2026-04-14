@@ -23,9 +23,7 @@ export default async function PurchaseFormPage({
 
   const investor = await prisma.investor.findUnique({
     where: { id: investorId },
-    include: {
-      bankAccounts: { where: { isPrimary: true }, take: 1 },
-    },
+    include: { bankAccounts: { where: { isPrimary: true }, take: 1 } },
   });
 
   if (!investor) redirect("/dashboard");
@@ -47,338 +45,238 @@ export default async function PurchaseFormPage({
   const isCheque = /cheque|pay.?order/i.test(paymentMethod);
   const isCash = /cash/i.test(paymentMethod);
 
+  // ── Shared style tokens ───────────────────────────────────────
+  const FONT = "Bahnschrift, 'Segoe UI', Calibri, sans-serif";
+  const VALUE_COLOR = "#355900";
+  const GREEN_BG = "#d8edbb";
+  const GREEN_BORDER = "#b8d4a0";
+  const BOX_H = "28px";
+
   return (
     <>
-      {/* Print-only styles */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @media print {
-              body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              .no-print { display: none !important; }
-              .print-page { width: 210mm; min-height: 297mm; padding: 14mm 18mm; margin: 0; box-shadow: none !important; }
-            }
-            @page { size: A4 portrait; margin: 0; }
-          `,
-        }}
-      />
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body{margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+          .no-print{display:none!important;}
+          .a4{box-shadow:none!important;}
+        }
+        @page{size:A4 portrait;margin:0;}
+        *{box-sizing:border-box;}
+      `}} />
 
-      {/* Print button */}
-      <div className="no-print fixed top-4 right-4 z-50 flex gap-2">
-        <button
-          onClick={() => {}}
-          className="px-4 py-2 bg-ekush-orange text-white rounded-md text-sm font-medium shadow-lg hover:bg-ekush-orange-dark"
-          id="print-btn"
-        >
+      {/* Floating buttons (hidden on print) */}
+      <div className="no-print" style={{position:"fixed",top:16,right:16,zIndex:50,display:"flex",gap:8}}>
+        <button id="pb" style={{padding:"8px 16px",background:"#F27023",color:"#fff",border:"none",borderRadius:6,fontSize:13,fontWeight:600,cursor:"pointer"}}>
           Save as PDF / Print
         </button>
-        <a
-          href="/transactions/buy"
-          className="px-4 py-2 bg-white text-text-dark rounded-md text-sm font-medium shadow-lg border hover:bg-gray-50"
-        >
+        <a href="/transactions/buy" style={{padding:"8px 16px",background:"#fff",color:"#333",border:"1px solid #ccc",borderRadius:6,fontSize:13,fontWeight:600,textDecoration:"none"}}>
           Back
         </a>
       </div>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `document.getElementById('print-btn').onclick = function() { window.print(); };`,
-        }}
-      />
+      <script dangerouslySetInnerHTML={{__html:`document.getElementById('pb').onclick=function(){window.print()};`}} />
 
-      {/* ─── A4 Page ───────────────────────────────────────────────── */}
-      <div className="print-page mx-auto bg-white shadow-2xl" style={{ width: "210mm", minHeight: "297mm", padding: "14mm 18mm", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+      {/* ═══ A4 PAGE ═══════════════════════════════════════════ */}
+      <div className="a4" style={{
+        width:"210mm", minHeight:"297mm", margin:"0 auto", background:"#fff",
+        boxShadow:"0 4px 40px rgba(0,0,0,0.12)", padding:"15mm 20mm 12mm 20mm",
+        fontFamily: FONT,
+      }}>
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-1">
-          <div className="flex-1">
-            <h1 style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.3px", color: "#000", lineHeight: 1.1 }}>
+        {/* ── HEADER ──────────────────────────────────────────── */}
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+          <div style={{flex:1,paddingTop:"8px"}}>
+            <h1 style={{
+              fontFamily:FONT, fontSize:"18pt", fontWeight:700, color:"#000",
+              margin:0, lineHeight:1.15,
+            }}>
               INVESTOR&apos;S PURCHASE FORM
             </h1>
-            <p style={{ fontSize: "11px", color: "#666", marginTop: "4px", fontWeight: 500, letterSpacing: "0.5px" }}>
+            <p style={{
+              fontFamily:FONT, fontSize:"11pt", fontWeight:400, color:"#000",
+              margin:"5px 0 0 0", textDecoration:"underline", textTransform:"uppercase",
+            }}>
               ASSET MANAGER: EKUSH WEALTH MANAGEMENT LIMITED
             </p>
           </div>
-          <div className="shrink-0" style={{ marginTop: "-4px" }}>
-            <img src="/logo.png" alt="Ekush" style={{ height: "52px" }} />
-          </div>
+          <img src="/logo.png" alt="Ekush" style={{height:"58px",marginTop:"-2px"}} />
         </div>
 
-        {/* Divider */}
-        <div style={{ borderBottom: "1.5px solid #ccc", marginBottom: "12px" }} />
+        <div style={{height:"18px"}} />
 
-        {/* Fund Name + Date */}
-        <div className="flex gap-3" style={{ marginBottom: "10px" }}>
-          <div className="flex-1" style={{ background: "#d8edbb", border: "1px solid #b8d4a0", padding: "6px 10px", minHeight: "44px" }}>
-            <div style={{ fontSize: "8px", color: "#777", marginBottom: "3px" }}>Name of the Fund</div>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: "#000" }}>{fundName}</div>
+        {/* ── FUND NAME + DATE ────────────────────────────────── */}
+        <div style={{display:"flex",gap:"14px",alignItems:"flex-end",marginBottom:"12px"}}>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",marginBottom:"2px"}}>
+              Name of the Fund
+            </div>
+            <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
+              <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:600,color:VALUE_COLOR}}>{fundName}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span style={{ fontSize: "10px", color: "#777", fontWeight: 500 }}>Date</span>
-            <div className="flex gap-0.5">
-              {dateDigits.map((d, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: "22px",
-                    height: "28px",
-                    border: "1px solid #bbb",
-                    background: "#f7f7f7",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: "#000",
-                  }}
-                >
-                  {d}
-                </div>
+          <div style={{display:"flex",alignItems:"flex-end",gap:"8px"}}>
+            <span style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",paddingBottom:"6px"}}>Date</span>
+            <div style={{display:"flex",gap:"2px"}}>
+              {dateDigits.map((d,i)=>(
+                <div key={i} style={{
+                  width:"22px",height:BOX_H,border:`1px solid ${GREEN_BORDER}`,background:GREEN_BG,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  fontFamily:FONT,fontSize:"13px",fontWeight:700,color:VALUE_COLOR,
+                }}>{d}</div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Investor Code */}
-        <div style={{ background: "#d8edbb", border: "1px solid #b8d4a0", padding: "6px 10px", minHeight: "40px", marginBottom: "8px" }}>
-          <div style={{ fontSize: "8px", color: "#777", marginBottom: "2px" }}>Investor Code</div>
-          <div style={{ fontSize: "13px", fontWeight: 700, color: "#000" }}>{investor.investorCode}</div>
-        </div>
+        <div style={{height:"4px"}} />
 
-        {/* Investor Name */}
-        <div style={{ background: "#d8edbb", border: "1px solid #b8d4a0", padding: "6px 10px", minHeight: "40px", marginBottom: "20px" }}>
-          <div style={{ fontSize: "8px", color: "#777", marginBottom: "2px" }}>Investor Name</div>
-          <div style={{ fontSize: "13px", fontWeight: 700, color: "#000" }}>{investor.name}</div>
-        </div>
-
-        {/* CONFIRMATION OF UNIT ALLOCATION */}
-        <div style={{ textAlign: "center", marginBottom: "10px" }}>
-          <div style={{ display: "inline-block", borderBottom: "1.5px solid #000", paddingBottom: "2px" }}>
-            <span style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.5px" }}>
-              CONFIRMATION OF UNIT ALLOCATION
-            </span>
+        {/* ── INVESTOR CODE ───────────────────────────────────── */}
+        <div style={{marginBottom:"6px"}}>
+          <div style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",marginBottom:"2px"}}>Investor Code</div>
+          <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
+            <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:600,color:VALUE_COLOR}}>{investor.investorCode}</span>
           </div>
         </div>
 
-        {/* Allocation Table */}
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
+        {/* ── INVESTOR NAME ───────────────────────────────────── */}
+        <div style={{marginBottom:"18px"}}>
+          <div style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",marginBottom:"2px"}}>Investor Name</div>
+          <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
+            <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:600,color:VALUE_COLOR}}>{investor.name}</span>
+          </div>
+        </div>
+
+        {/* ── CONFIRMATION OF UNIT ALLOCATION ──────────────────── */}
+        <div style={{textAlign:"center",marginBottom:"8px"}}>
+          <span style={{fontFamily:FONT,fontSize:"11px",fontWeight:700,textDecoration:"underline",textTransform:"uppercase",letterSpacing:"0.5px"}}>
+            Confirmation of Unit Allocation
+          </span>
+        </div>
+
+        <table style={{width:"100%",borderCollapse:"collapse",marginBottom:"14px"}}>
           <tbody>
             {[
-              {
-                label: "Investment Amount",
-                value: amountNum.toLocaleString("en-IN", { maximumFractionDigits: 2 }),
-                words: numberToWords(amountNum),
-              },
-              {
-                label: "Cost Price Per Unit",
-                value: navNum.toFixed(4),
-                words: numberToWords(Math.round(navNum)) + " (per unit)",
-              },
-              {
-                label: "Number of Allotted Units",
-                value: unitsNum.toLocaleString("en-IN"),
-                words: numberToWords(unitsNum),
-              },
-            ].map((row, i) => (
+              { label:"Investment Amount", value:amountNum.toLocaleString("en-IN",{maximumFractionDigits:2}), words:numberToWords(amountNum) },
+              { label:"Cost Price Per Unit", value:navNum.toFixed(4), words:numberToWords(Math.round(navNum))+" (per unit)" },
+              { label:"Number of Allotted Units", value:unitsNum.toLocaleString("en-IN"), words:numberToWords(unitsNum) },
+            ].map((row,i)=>(
               <tr key={i}>
-                <td
-                  style={{
-                    background: "#d8edbb",
-                    border: "1px solid #b8d4a0",
-                    padding: "10px 10px",
-                    fontWeight: 700,
-                    fontSize: "11px",
-                    width: "155px",
-                    verticalAlign: "middle",
-                  }}
-                >
+                <td style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",padding:"3px 8px 3px 0",width:"148px",verticalAlign:"bottom",paddingBottom:"4px"}}>
                   {row.label}
                 </td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "10px 10px",
-                    textAlign: "right",
-                    fontWeight: 700,
-                    fontSize: "12px",
-                    width: "100px",
-                    verticalAlign: "middle",
-                  }}
-                >
-                  {row.value}
+                <td style={{padding:"3px 0",width:"100px"}}>
+                  <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",justifyContent:"flex-end",padding:"0 10px"}}>
+                    <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:VALUE_COLOR}}>{row.value}</span>
+                  </div>
                 </td>
-                <td
-                  style={{
-                    background: "#d8edbb",
-                    border: "1px solid #b8d4a0",
-                    padding: "10px 6px",
-                    fontSize: "9px",
-                    color: "#666",
-                    width: "50px",
-                    verticalAlign: "middle",
-                    textAlign: "center",
-                  }}
-                >
+                <td style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",padding:"0 6px",width:"55px",textAlign:"center",verticalAlign:"bottom",paddingBottom:"4px"}}>
                   In Words
                 </td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "10px 10px",
-                    fontSize: "11px",
-                    fontStyle: "italic",
-                    verticalAlign: "middle",
-                  }}
-                >
-                  {row.words}
+                <td style={{padding:"3px 0"}}>
+                  <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
+                    <span style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,fontStyle:"italic",color:VALUE_COLOR}}>{row.words}</span>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* Mode of Transaction */}
-        <div style={{ textAlign: "center", marginBottom: "10px" }}>
-          <div style={{ display: "inline-block", borderBottom: "1.5px solid #000", paddingBottom: "2px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700 }}>Mode of Transaction</span>
-          </div>
+        {/* ── MODE OF TRANSACTION ──────────────────────────────── */}
+        <div style={{textAlign:"center",marginBottom:"8px"}}>
+          <span style={{fontFamily:FONT,fontSize:"11px",fontWeight:700,textDecoration:"underline"}}>Mode of Transaction</span>
         </div>
 
-        <div className="flex justify-between" style={{ marginBottom: "12px", padding: "0 20px" }}>
+        <div style={{display:"flex",justifyContent:"space-between",padding:"0 16px",marginBottom:"12px"}}>
           {[
-            { label: "Online Transfer", checked: isOnline },
-            { label: "Cheque/Pay Order", checked: isCheque },
-            { label: "Cash", checked: isCash },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div
-                style={{
-                  width: "16px",
-                  height: "16px",
-                  border: "1.5px solid #999",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: item.checked ? "#0a8a0a" : "transparent",
-                  background: item.checked ? "#e8f5e9" : "#fff",
-                }}
-              >
-                X
-              </div>
-              <span style={{ fontSize: "11px" }}>{item.label}</span>
+            {label:"Online Transfer",checked:isOnline},
+            {label:"Cheque/Pay Order",checked:isCheque},
+            {label:"Cash",checked:isCash},
+          ].map((item,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:"6px"}}>
+              <div style={{
+                width:"14px",height:"14px",border:"1.5px solid #999",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:"11px",fontWeight:700,
+                color:item.checked?VALUE_COLOR:"transparent",
+                background:item.checked?GREEN_BG:"#fff",
+              }}>X</div>
+              <span style={{fontFamily:FONT,fontSize:"11px"}}>{item.label}</span>
             </div>
           ))}
         </div>
 
-        {/* Bank fields */}
+        {/* ── BANK FIELDS ──────────────────────────────────────── */}
         {[
-          { label: "Bank Name", value: bank?.bankName || "" },
-          { label: "Branch Name", value: bank?.branchName || "" },
-          { label: "Routing Number", value: bank?.routingNumber || "" },
-          { label: "Cheque Number/Pay Order Number (if any)", value: "" },
-          { label: "Remarks (if any)", value: "" },
-        ].map((field, i) => (
-          <div
-            key={i}
-            style={{
-              background: "#d8edbb",
-              border: "1px solid #b8d4a0",
-              padding: "5px 10px",
-              minHeight: "36px",
-              marginBottom: "6px",
-            }}
-          >
-            <div style={{ fontSize: "8px", color: "#777", marginBottom: "1px" }}>{field.label}</div>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "#000", minHeight: "14px" }}>{field.value}</div>
+          {label:"Bank Name",value:bank?.bankName||""},
+          {label:"Branch Name",value:bank?.branchName||""},
+          {label:"Routing Number",value:bank?.routingNumber||""},
+          {label:"Cheque Number/Pay Order Number (if any)",value:""},
+          {label:"Remarks (if any)",value:""},
+        ].map((f,i)=>(
+          <div key={i} style={{marginBottom:"4px"}}>
+            <div style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",marginBottom:"2px"}}>{f.label}</div>
+            <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
+              <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:600,color:VALUE_COLOR}}>{f.value}</span>
+            </div>
           </div>
         ))}
 
-        {/* Spacer for signatures */}
-        <div style={{ height: "40px" }} />
+        {/* ── SPACER ───────────────────────────────────────────── */}
+        <div style={{height:"32px"}} />
 
-        {/* Signatures */}
-        <div className="flex justify-between" style={{ padding: "0 4px" }}>
-          {["Principal Signatory", "Secondary Signatory", "Additional Signatory (if any)"].map(
-            (label, i) => (
-              <div key={i} style={{ width: "30%", textAlign: "center" }}>
-                <div style={{ borderTop: "1.5px solid #000", paddingTop: "4px" }}>
-                  <span style={{ fontSize: "9px", color: "#777" }}>{label}</span>
-                </div>
-              </div>
-            )
-          )}
-        </div>
-
-        {/* Verifier box */}
-        <div
-          style={{
-            border: "1px solid #000",
-            marginTop: "14px",
-            padding: "0",
-          }}
-        >
-          <div className="flex">
-            <div className="flex-1" style={{ padding: "6px 10px", borderRight: "1px solid #000" }}>
-              <div style={{ fontSize: "8px", color: "#777", marginBottom: "10px" }}>Verifier Name</div>
-              <div style={{ borderTop: "1px solid #ccc", paddingTop: "6px" }}>
-                <span style={{ fontSize: "8px", color: "#777" }}>Designation</span>
+        {/* ── SIGNATURES ───────────────────────────────────────── */}
+        <div style={{display:"flex",justifyContent:"space-between",padding:"0 2px"}}>
+          {["Principal Signatory","Secondary Signatory","Additional Signatory (if any)"].map((lbl,i)=>(
+            <div key={i} style={{width:"30%",textAlign:"center"}}>
+              <div style={{borderTop:"1.5px solid #000",paddingTop:"4px"}}>
+                <span style={{fontFamily:FONT,fontSize:"9px",color:"#777"}}>{lbl}</span>
               </div>
             </div>
-            <div style={{ width: "100px", padding: "6px 10px" }}>
-              <div style={{ fontSize: "8px", color: "#777", textAlign: "right" }}>Signature</div>
+          ))}
+        </div>
+
+        {/* ── VERIFIER BOX ─────────────────────────────────────── */}
+        <div style={{border:"1px solid #000",marginTop:"14px"}}>
+          <div style={{display:"flex"}}>
+            <div style={{flex:1,padding:"6px 10px",borderRight:"1px solid #000"}}>
+              <div style={{fontFamily:FONT,fontSize:"9px",color:"#777",marginBottom:"12px"}}>Verifier Name</div>
+              <div style={{borderTop:"1px solid #ccc",paddingTop:"6px"}}>
+                <span style={{fontFamily:FONT,fontSize:"9px",color:"#777"}}>Designation</span>
+              </div>
+            </div>
+            <div style={{width:"100px",padding:"6px 10px"}}>
+              <div style={{fontFamily:FONT,fontSize:"9px",color:"#777",textAlign:"right"}}>Signature</div>
             </div>
           </div>
         </div>
+
       </div>
     </>
   );
 }
 
-// ──────────────────────────────────────────────────────────────────
 function numberToWords(n: number): string {
   if (n === 0) return "Zero";
-  const ones = [
-    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
-    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
-    "Seventeen", "Eighteen", "Nineteen",
-  ];
-  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-
+  const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine",
+    "Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
   const intPart = Math.floor(Math.abs(n));
   if (intPart === 0) return "Zero";
-
   let remaining = intPart;
   const groups: number[] = [];
   groups.push(remaining % 1000);
   remaining = Math.floor(remaining / 1000);
-  while (remaining > 0) {
-    groups.push(remaining % 100);
-    remaining = Math.floor(remaining / 100);
-  }
-
-  const scales = ["", "Thousand", "Lakh", "Crore"];
+  while (remaining > 0) { groups.push(remaining % 100); remaining = Math.floor(remaining / 100); }
+  const scales = ["","Thousand","Lakh","Crore"];
   const parts: string[] = [];
-
   for (let i = groups.length - 1; i >= 0; i--) {
     const g = groups[i];
     if (g === 0) continue;
     let part = "";
-    if (g >= 100) {
-      part += ones[Math.floor(g / 100)] + " Hundred ";
-      const rem = g % 100;
-      if (rem >= 20) {
-        part += tens[Math.floor(rem / 10)] + " " + ones[rem % 10];
-      } else if (rem > 0) {
-        part += ones[rem];
-      }
-    } else if (g >= 20) {
-      part += tens[Math.floor(g / 10)] + " " + ones[g % 10];
-    } else {
-      part += ones[g];
-    }
+    if (g >= 100) { part += ones[Math.floor(g / 100)] + " Hundred "; const rem = g % 100; if (rem >= 20) { part += tens[Math.floor(rem / 10)] + " " + ones[rem % 10]; } else if (rem > 0) { part += ones[rem]; } }
+    else if (g >= 20) { part += tens[Math.floor(g / 10)] + " " + ones[g % 10]; }
+    else { part += ones[g]; }
     parts.push(part.trim() + (scales[i] ? " " + scales[i] : ""));
   }
-
   return parts.join(" ").replace(/\s+/g, " ").trim() + " Only";
 }
