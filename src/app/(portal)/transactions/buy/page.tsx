@@ -306,7 +306,7 @@ export default function BuyPage() {
             {/* Purchase Form Preview */}
             <div className="mb-6 text-center">
               <a
-                href={`/api/forms/purchase?fundName=${encodeURIComponent(fund?.name || "")}&amount=${actualAmount}&units=${Math.round(estimatedUnits)}&nav=${nav.toFixed(4)}&payment=Bank+Transfer`}
+                href={`/forms/purchase?fundName=${encodeURIComponent(fund?.name || "")}&amount=${actualAmount}&units=${Math.round(estimatedUnits)}&nav=${nav.toFixed(4)}&payment=Bank+Transfer`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-[#2DAAB8] text-[#2DAAB8] rounded-[5px] text-[14px] font-medium hover:bg-[#2DAAB8] hover:text-white transition-colors"
