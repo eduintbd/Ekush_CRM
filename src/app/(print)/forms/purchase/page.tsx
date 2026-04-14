@@ -110,7 +110,7 @@ export default async function PurchaseFormPage({
               Name of the Fund
             </div>
             <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
-              <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:600,color:VALUE_COLOR}}>{fundName}</span>
+              <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:"#000"}}>{fundName}</span>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"flex-end",gap:"8px"}}>
@@ -120,7 +120,7 @@ export default async function PurchaseFormPage({
                 <div key={i} style={{
                   width:"22px",height:BOX_H,border:`1px solid ${GREEN_BORDER}`,background:GREEN_BG,
                   display:"flex",alignItems:"center",justifyContent:"center",
-                  fontFamily:FONT,fontSize:"13px",fontWeight:700,color:VALUE_COLOR,
+                  fontFamily:FONT,fontSize:"13px",fontWeight:700,color:"#000",
                 }}>{d}</div>
               ))}
             </div>
@@ -133,7 +133,7 @@ export default async function PurchaseFormPage({
         <div style={{marginBottom:"6px"}}>
           <div style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",marginBottom:"2px"}}>Investor Code</div>
           <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
-            <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:600,color:VALUE_COLOR}}>{investor.investorCode}</span>
+            <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:"#000"}}>{investor.investorCode}</span>
           </div>
         </div>
 
@@ -141,7 +141,7 @@ export default async function PurchaseFormPage({
         <div style={{marginBottom:"18px"}}>
           <div style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",marginBottom:"2px"}}>Investor Name</div>
           <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
-            <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:600,color:VALUE_COLOR}}>{investor.name}</span>
+            <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:"#000"}}>{investor.name}</span>
           </div>
         </div>
 
@@ -161,18 +161,18 @@ export default async function PurchaseFormPage({
           <div key={i} style={{marginBottom:"6px"}}>
             {/* Labels row */}
             <div style={{display:"flex",marginBottom:"2px"}}>
-              <div style={{width:"45%",fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000"}}>{row.label}</div>
+              <div style={{width:"45%",fontFamily:FONT,fontSize:"11px",fontWeight:700,color:"#000"}}>{row.label}</div>
               <div style={{width:"10%"}} />
               <div style={{width:"45%",fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",textAlign:"right"}}>In Words</div>
             </div>
             {/* Green boxes row with divider line */}
             <div style={{display:"flex",border:`1px solid ${GREEN_BORDER}`,overflow:"hidden"}}>
               <div style={{width:"45%",background:GREEN_BG,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
-                <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:VALUE_COLOR}}>{row.value}</span>
+                <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:"#000"}}>{row.value}</span>
               </div>
               <div style={{width:"1px",background:GREEN_BORDER}} />
               <div style={{flex:1,background:GREEN_BG,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
-                <span style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,fontStyle:"italic",color:VALUE_COLOR}}>{row.words}</span>
+                <span style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,fontStyle:"italic",color:"#000"}}>{row.words}</span>
               </div>
             </div>
           </div>
@@ -215,7 +215,7 @@ export default async function PurchaseFormPage({
           <div key={i} style={{marginBottom:"4px"}}>
             <div style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",marginBottom:"2px"}}>{f.label}</div>
             <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
-              <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:600,color:VALUE_COLOR}}>{f.value}</span>
+              <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:"#000"}}>{f.value}</span>
             </div>
           </div>
         ))}
