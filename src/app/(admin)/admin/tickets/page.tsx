@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Clock, MessageSquare } from "lucide-react";
+import { Loader2, Clock, MessageSquare, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface Ticket {
   id: string;
@@ -22,6 +23,9 @@ export default function AdminTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  // Bank verification resolve form
+  const [resolvingTicketId, setResolvingTicketId] = useState<string | null>(null);
+  const [bankForm, setBankForm] = useState({ bankName: "", accountNumber: "", branchName: "", routingNumber: "" });
 
   const fetchTickets = () => {
     setLoading(true);
@@ -109,9 +113,15 @@ export default function AdminTicketsPage() {
                         </Button>
                       )}
                       {(t.status === "OPEN" || t.status === "IN_PROGRESS") && (
-                        <Button size="sm" onClick={() => updateStatus(t.id, "RESOLVED")} disabled={actionLoading === t.id} className="bg-green-600 hover:bg-green-700 text-white">
-                          Resolve
-                        </Button>
+                        t.type === "BANK_VERIFICATION" ? (
+                          <Button size="sm" onClick={() => { setResolvingTicketId(t.id); setBankForm({ bankName: "", accountNumber: "", branchName: "", routingNumber: "" }); }} disabled={actionLoading === t.id} className="bg-green-600 hover:bg-green-700 text-white">
+                            Verify & Resolve
+                          </Button>
+                        ) : (
+                          <Button size="sm" onClick={() => updateStatus(t.id, "RESOLVED")} disabled={actionLoading === t.id} className="bg-green-600 hover:bg-green-700 text-white">
+                            Resolve
+                          </Button>
+                        )
                       )}
                       {t.status === "RESOLVED" && (
                         <Button size="sm" variant="outline" onClick={() => updateStatus(t.id, "CLOSED")} disabled={actionLoading === t.id}>
@@ -126,6 +136,94 @@ export default function AdminTicketsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Bank Verification Resolve Modal */}
+      {resolvingTicketId && (() => {
+        const ticket = tickets.find((t) => t.id === resolvingTicketId);
+        if (!ticket) return null;
+        // Extract cheque leaf URL from description (if the bank account has one)
+        const bankIdMatch = ticket.description?.match(/Bank Account ID:\s*(\S+)/);
+
+        const handleResolveWithBank = async () => {
+          if (!bankForm.bankName || !bankForm.accountNumber) {
+            alert("Bank Name and Account Number are required");
+            return;
+          }
+          setActionLoading(resolvingTicketId);
+          try {
+            // First resolve the ticket (which triggers bank status update)
+            await fetch(`/api/support/tickets/${resolvingTicketId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "RESOLVED" }),
+            });
+            // Then update bank account with the actual details
+            if (bankIdMatch) {
+              await fetch(`/api/admin/bank-accounts/${bankIdMatch[1]}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(bankForm),
+              });
+            }
+            setResolvingTicketId(null);
+            fetchTickets();
+          } finally {
+            setActionLoading(null);
+          }
+        };
+
+        return (
+          <>
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setResolvingTicketId(null)} />
+            <div className="fixed inset-x-4 top-[10%] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[600px] z-50 bg-white rounded-[10px] shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
+              <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-[16px] font-semibold">Verify Bank Account</h2>
+                  <p className="text-[12px] text-green-100">{ticket.investor.name} ({ticket.investor.investorCode})</p>
+                </div>
+                <button onClick={() => setResolvingTicketId(null)} className="p-1 hover:bg-white/20 rounded">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="overflow-y-auto p-6 space-y-4">
+                {/* Cheque leaf preview */}
+                {ticket.description?.includes("Cheque leaf") && (
+                  <div className="bg-page-bg rounded-[10px] p-3">
+                    <p className="text-[11px] text-text-body mb-2 font-medium">Cheque Leaf (uploaded by investor):</p>
+                    <p className="text-[11px] text-text-muted mb-2">Review the cheque image and enter the bank details below</p>
+                    {bankIdMatch && (
+                      <a
+                        href={`/admin/investors/${ticket.investor.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[12px] text-ekush-orange hover:underline"
+                      >
+                        View cheque image in investor profile →
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Bank details form */}
+                <div className="space-y-3">
+                  <p className="text-[13px] font-semibold text-text-dark">Enter bank details from cheque:</p>
+                  <Input label="Bank Name *" value={bankForm.bankName} onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })} placeholder="e.g., Dutch Bangla Bank" />
+                  <Input label="Account Number *" value={bankForm.accountNumber} onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })} placeholder="Account number" />
+                  <Input label="Branch Name" value={bankForm.branchName} onChange={(e) => setBankForm({ ...bankForm, branchName: e.target.value })} placeholder="Branch name" />
+                  <Input label="Routing Number" value={bankForm.routingNumber} onChange={(e) => setBankForm({ ...bankForm, routingNumber: e.target.value })} placeholder="Routing number" />
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setResolvingTicketId(null)}>Cancel</Button>
+                <Button onClick={handleResolveWithBank} disabled={actionLoading === resolvingTicketId} className="bg-green-600 hover:bg-green-700 text-white">
+                  {actionLoading === resolvingTicketId ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                  Save Details & Resolve
+                </Button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }

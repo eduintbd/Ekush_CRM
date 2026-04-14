@@ -59,15 +59,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       data: { status: body.status },
     });
 
-    // When a BANK_VERIFICATION ticket is resolved, mark the bank account as verified
+    // When a BANK_VERIFICATION ticket is resolved, mark the bank as verified
+    // (only if still "Pending Review" — the admin bank-details form may have
+    //  already updated it with real details via /api/admin/bank-accounts/[id])
     if (ticket && ticket.type === "BANK_VERIFICATION" && (body.status === "RESOLVED" || body.status === "CLOSED")) {
-      // Extract Bank Account ID from description
       const bankIdMatch = ticket.description?.match(/Bank Account ID:\s*(\S+)/);
       if (bankIdMatch) {
         const bankAccountId = bankIdMatch[1];
         const bankAccount = await prisma.bankAccount.findUnique({ where: { id: bankAccountId } });
         if (bankAccount && bankAccount.bankName === "Pending Review") {
-          // Mark as verified — admin can later update the actual bank name from investor profile
           await prisma.bankAccount.update({
             where: { id: bankAccountId },
             data: { bankName: "Verified (update details)", accountNumber: "Verified (update details)" },
