@@ -14,7 +14,7 @@ interface Ticket {
   trackingNumber: string;
   slaDeadline: string | null;
   createdAt: string;
-  investor: { name: string; investorCode: string };
+  investor: { id: string; name: string; investorCode: string };
   comments: { id: string; content: string; createdAt: string }[];
 }
 
@@ -97,6 +97,12 @@ export default function AdminTicketsPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
+                      <a
+                        href={`/admin/investors/${t.investor.id}`}
+                        className="px-3 py-1.5 text-[12px] bg-ekush-orange text-white rounded-[5px] hover:bg-ekush-orange-dark"
+                      >
+                        View Investor
+                      </a>
                       {t.status === "OPEN" && (
                         <Button size="sm" variant="outline" onClick={() => updateStatus(t.id, "IN_PROGRESS")} disabled={actionLoading === t.id}>
                           {actionLoading === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Start"}

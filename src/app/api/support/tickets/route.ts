@@ -27,7 +27,7 @@ export async function GET() {
   const tickets = await prisma.serviceRequest.findMany({
     where,
     include: {
-      investor: { select: { name: true, investorCode: true } },
+      investor: { select: { id: true, name: true, investorCode: true } },
       comments: { orderBy: { createdAt: "asc" } },
     },
     orderBy: { createdAt: "desc" },
