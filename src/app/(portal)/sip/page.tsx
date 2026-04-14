@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2, FileDown } from "lucide-react";
+import { Plus, Loader2, FileDown, Upload, Image } from "lucide-react";
 
 interface SipPlan {
   id: string;
@@ -19,6 +19,15 @@ interface SipPlan {
 
 interface Fund { code: string; name: string; currentNav: number; }
 
+interface BankAccount {
+  id: string;
+  bankName: string;
+  branchName: string | null;
+  accountNumber: string;
+  routingNumber: string | null;
+  isPrimary: boolean;
+}
+
 export default function SipPage() {
   const [plans, setPlans] = useState<SipPlan[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
@@ -28,10 +37,63 @@ export default function SipPage() {
   const [showTerms, setShowTerms] = useState(false);
   const [showDDI, setShowDDI] = useState(false);
 
+  // Bank account state
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
+  const [showBankChange, setShowBankChange] = useState(false);
+  const [bankMode, setBankMode] = useState<"existing" | "cheque" | "manual">("existing");
+  const [newBank, setNewBank] = useState({ bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
+  const [chequeFile, setChequeFile] = useState<File | null>(null);
+  const [savingBank, setSavingBank] = useState(false);
+
   const fetchPlans = () => fetch("/api/sip").then(r => r.json()).then(setPlans).catch(() => {});
   const fetchFunds = () => fetch("/api/funds").then(r => r.json()).then(setFunds).catch(() => {});
+  const fetchBanks = () =>
+    fetch("/api/profile/banks")
+      .then((r) => r.json())
+      .then((data: BankAccount[]) => {
+        setBankAccounts(data);
+        const primary = data.find((b) => b.isPrimary) || data[0];
+        if (primary) setSelectedBankId(primary.id);
+      })
+      .catch(() => {});
 
-  useEffect(() => { fetchPlans(); fetchFunds(); }, []);
+  const selectedBank = bankAccounts.find((b) => b.id === selectedBankId);
+
+  const handleSaveNewBank = async () => {
+    if (bankMode === "cheque" && chequeFile) {
+      setSavingBank(true);
+      try {
+        const formData = new FormData();
+        formData.append("action", "add_bank_cheque");
+        formData.append("chequeLeaf", chequeFile);
+        const res = await fetch("/api/profile/bank-upload", { method: "POST", body: formData });
+        if (res.ok) {
+          await fetchBanks();
+          setShowBankChange(false);
+          setBankMode("existing");
+          setChequeFile(null);
+        }
+      } finally { setSavingBank(false); }
+    } else if (bankMode === "manual" && newBank.bankName && newBank.accountNumber) {
+      setSavingBank(true);
+      try {
+        const res = await fetch("/api/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "add_bank", ...newBank }),
+        });
+        if (res.ok) {
+          await fetchBanks();
+          setShowBankChange(false);
+          setBankMode("existing");
+          setNewBank({ bankName: "", branchName: "", accountNumber: "", routingNumber: "" });
+        }
+      } finally { setSavingBank(false); }
+    }
+  };
+
+  useEffect(() => { fetchPlans(); fetchFunds(); fetchBanks(); }, []);
 
   const handleCreateClick = (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,8 +223,108 @@ export default function SipPage() {
                   )}
                 </div>
               </div>
+              {/* ── Bank Account ────────────────────────────── */}
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-text-label block mb-2">Bank Account</label>
+                {selectedBank ? (
+                  <div className="bg-page-bg rounded-[10px] p-4">
+                    <p className="text-[13px] text-text-body mb-2">Your bank account details for SIP debit:</p>
+                    <div className="bg-white rounded-[5px] border border-input-border p-3 space-y-1 mb-3">
+                      <div className="flex justify-between text-[13px]">
+                        <span className="text-text-body">A/C Name</span>
+                        <span className="text-text-dark font-medium">{selectedBank.bankName}</span>
+                      </div>
+                      <div className="flex justify-between text-[13px]">
+                        <span className="text-text-body">A/C Number</span>
+                        <span className="text-text-dark font-medium">{selectedBank.accountNumber}</span>
+                      </div>
+                      <div className="flex justify-between text-[13px]">
+                        <span className="text-text-body">Bank Name</span>
+                        <span className="text-text-dark font-medium">{selectedBank.bankName}</span>
+                      </div>
+                      {selectedBank.branchName && (
+                        <div className="flex justify-between text-[13px]">
+                          <span className="text-text-body">Branch</span>
+                          <span className="text-text-dark font-medium">{selectedBank.branchName}</span>
+                        </div>
+                      )}
+                      {selectedBank.routingNumber && (
+                        <div className="flex justify-between text-[13px]">
+                          <span className="text-text-body">Routing Number</span>
+                          <span className="text-text-dark font-medium">{selectedBank.routingNumber}</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[13px] text-text-body mb-2">Do you want to change this account for SIP?</p>
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" variant="outline" className="rounded-[5px] text-[12px] border-green-500 text-green-600 hover:bg-green-50" onClick={() => setShowBankChange(false)}>
+                        No, use this account
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" className="rounded-[5px] text-[12px] border-ekush-orange text-ekush-orange hover:bg-orange-50" onClick={() => setShowBankChange(true)}>
+                        Yes, change account
+                      </Button>
+                    </div>
+
+                    {/* Change bank dialog */}
+                    {showBankChange && (
+                      <div className="mt-4 border-t border-input-border pt-4 space-y-3">
+                        <div className="flex rounded-lg border overflow-hidden">
+                          <button type="button" onClick={() => setBankMode("cheque")}
+                            className={`flex-1 py-2 text-[12px] font-medium transition-colors ${bankMode === "cheque" ? "bg-[#1e3a5f] text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
+                            <Upload className="w-3 h-3 inline mr-1" /> Upload Cheque Leaf
+                          </button>
+                          <button type="button" onClick={() => setBankMode("manual")}
+                            className={`flex-1 py-2 text-[12px] font-medium transition-colors ${bankMode === "manual" ? "bg-[#1e3a5f] text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}>
+                            Enter Manually
+                          </button>
+                        </div>
+
+                        {bankMode === "cheque" ? (
+                          <div>
+                            <label className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-[#1e3a5f] transition-colors">
+                              {chequeFile ? (
+                                <div>
+                                  <Image className="w-6 h-6 mx-auto mb-1 text-green-600" />
+                                  <p className="text-[12px] font-medium">{chequeFile.name}</p>
+                                  <p className="text-[10px] text-gray-500">Click to change</p>
+                                </div>
+                              ) : (
+                                <div>
+                                  <Upload className="w-6 h-6 mx-auto mb-1 text-gray-400" />
+                                  <p className="text-[12px] text-gray-600">Click to upload cheque leaf</p>
+                                  <p className="text-[10px] text-gray-400">JPG, PNG or PDF</p>
+                                </div>
+                              )}
+                              <input type="file" accept=".jpg,.jpeg,.png,.pdf" className="hidden" onChange={(e) => setChequeFile(e.target.files?.[0] || null)} />
+                            </label>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Input label="Bank Name" value={newBank.bankName} onChange={(e) => setNewBank({ ...newBank, bankName: e.target.value })} placeholder="e.g., Dutch Bangla Bank" />
+                            <Input label="A/C Number" value={newBank.accountNumber} onChange={(e) => setNewBank({ ...newBank, accountNumber: e.target.value })} placeholder="Account number" />
+                            <Input label="Branch Name" value={newBank.branchName} onChange={(e) => setNewBank({ ...newBank, branchName: e.target.value })} placeholder="Branch name" />
+                            <Input label="Routing Number" value={newBank.routingNumber} onChange={(e) => setNewBank({ ...newBank, routingNumber: e.target.value })} placeholder="Routing number" />
+                          </div>
+                        )}
+
+                        <Button type="button" size="sm" onClick={handleSaveNewBank} disabled={savingBank}
+                          className="bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white rounded-[5px] text-[12px]">
+                          {savingBank ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                          Save & Use This Account
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-text-muted bg-page-bg rounded-[10px] p-4">
+                    No bank account found. Please add one in your{" "}
+                    <a href="/profile" className="text-ekush-orange hover:underline">Profile</a> first.
+                  </p>
+                )}
+              </div>
+
               <div className="md:col-span-2 flex gap-2">
-                <Button type="submit" disabled={loading} className="bg-ekush-orange hover:bg-ekush-orange/90 text-white rounded-[5px] text-[13px]">
+                <Button type="submit" disabled={loading || !selectedBank} className="bg-ekush-orange hover:bg-ekush-orange/90 text-white rounded-[5px] text-[13px]">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
                   Create SIP
                 </Button>
