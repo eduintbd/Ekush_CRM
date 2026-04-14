@@ -136,7 +136,7 @@ export default async function ProfilePage() {
           <CardTitle className="text-[16px] flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-icon-muted" /> Bank Accounts
           </CardTitle>
-          <AddBankForm />
+          <AddBankForm investorName={investor.name} />
         </CardHeader>
         <CardContent>
           {investor.bankAccounts.length === 0 ? (

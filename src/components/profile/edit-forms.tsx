@@ -87,7 +87,7 @@ export function EditPersonalForm({ address, nidNumber, tinNumber }: { address?: 
   );
 }
 
-export function AddBankForm() {
+export function AddBankForm({ investorName }: { investorName?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"cheque" | "manual">("cheque");
@@ -221,6 +221,12 @@ export function AddBankForm() {
         </div>
       ) : (
         <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">A/C Holder&apos;s Name</label>
+            <div className="h-[50px] rounded-[5px] border border-input-border bg-gray-50 px-3 flex items-center text-sm font-medium text-gray-700">
+              {investorName || "—"}
+            </div>
+          </div>
           <Input label="Bank Name" value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} placeholder="e.g., Dutch Bangla Bank" required />
           <Input label="Branch" value={form.branchName} onChange={(e) => setForm({ ...form, branchName: e.target.value })} placeholder="Branch name" />
           <Input label="Account Number" value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} placeholder="Account number" required />
