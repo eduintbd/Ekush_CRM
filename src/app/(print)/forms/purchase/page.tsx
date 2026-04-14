@@ -152,34 +152,33 @@ export default async function PurchaseFormPage({
           </span>
         </div>
 
-        <table style={{width:"100%",borderCollapse:"collapse",marginBottom:"14px"}}>
-          <tbody>
-            {[
-              { label:"Investment Amount", value:amountNum.toLocaleString("en-IN",{maximumFractionDigits:2}), words:numberToWords(amountNum) },
-              { label:"Cost Price Per Unit", value:navNum.toFixed(4), words:numberToWords(Math.round(navNum))+" (per unit)" },
-              { label:"Number of Allotted Units", value:unitsNum.toLocaleString("en-IN"), words:numberToWords(unitsNum) },
-            ].map((row,i)=>(
-              <tr key={i}>
-                <td style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",padding:"3px 8px 3px 0",width:"148px",verticalAlign:"bottom",paddingBottom:"4px"}}>
-                  {row.label}
-                </td>
-                <td style={{padding:"3px 0",width:"100px"}}>
-                  <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",justifyContent:"flex-end",padding:"0 10px"}}>
-                    <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:VALUE_COLOR}}>{row.value}</span>
-                  </div>
-                </td>
-                <td style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",padding:"0 6px",width:"55px",textAlign:"center",verticalAlign:"bottom",paddingBottom:"4px"}}>
-                  In Words
-                </td>
-                <td style={{padding:"3px 0"}}>
-                  <div style={{background:GREEN_BG,border:`1px solid ${GREEN_BORDER}`,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
-                    <span style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,fontStyle:"italic",color:VALUE_COLOR}}>{row.words}</span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Allocation rows — labels above, two green boxes separated by line */}
+        {[
+          { label:"Investment Amount", value:amountNum.toLocaleString("en-IN",{maximumFractionDigits:2}), words:numberToWords(amountNum) },
+          { label:"Cost Price Per Unit", value:navNum.toFixed(4), words:numberToWords(Math.round(navNum))+" (per unit)" },
+          { label:"Number of Allotted Units", value:unitsNum.toLocaleString("en-IN"), words:numberToWords(unitsNum) },
+        ].map((row,i)=>(
+          <div key={i} style={{marginBottom:"6px"}}>
+            {/* Labels row */}
+            <div style={{display:"flex",marginBottom:"2px"}}>
+              <div style={{width:"45%",fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000"}}>{row.label}</div>
+              <div style={{width:"10%"}} />
+              <div style={{width:"45%",fontFamily:FONT,fontSize:"11px",fontWeight:600,color:"#000",textAlign:"right"}}>In Words</div>
+            </div>
+            {/* Green boxes row with divider line */}
+            <div style={{display:"flex",border:`1px solid ${GREEN_BORDER}`,overflow:"hidden"}}>
+              <div style={{width:"45%",background:GREEN_BG,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
+                <span style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:VALUE_COLOR}}>{row.value}</span>
+              </div>
+              <div style={{width:"1px",background:GREEN_BORDER}} />
+              <div style={{flex:1,background:GREEN_BG,height:BOX_H,display:"flex",alignItems:"center",padding:"0 10px"}}>
+                <span style={{fontFamily:FONT,fontSize:"11px",fontWeight:600,fontStyle:"italic",color:VALUE_COLOR}}>{row.words}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <div style={{height:"6px"}} />
 
         {/* ── MODE OF TRANSACTION ──────────────────────────────── */}
         <div style={{textAlign:"center",marginBottom:"8px"}}>
