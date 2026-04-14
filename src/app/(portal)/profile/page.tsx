@@ -144,15 +144,29 @@ export default async function ProfilePage() {
                     )}
                     <div>
                       <p className="font-medium text-[14px] text-text-dark">
-                        {ba.bankName}
-                        {ba.bankName === "Pending Review" && (
-                          <span className="ml-2 text-[11px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending verification</span>
+                        {ba.bankName === "Pending Review" ? (
+                          <>
+                            Pending Review
+                            <span className="ml-2 text-[11px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending verification</span>
+                          </>
+                        ) : ba.bankName?.startsWith("Verified") ? (
+                          <>
+                            <span className="text-green-600">Verified</span>
+                            <span className="ml-2 text-[11px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Approved by admin</span>
+                          </>
+                        ) : (
+                          ba.bankName
                         )}
                       </p>
-                      {ba.bankName !== "Pending Review" && (
+                      {ba.bankName !== "Pending Review" && !ba.bankName?.startsWith("Verified") && (
                         <p className="text-[12px] text-text-body">{ba.branchName} - A/C: {ba.accountNumber}</p>
                       )}
-                      {ba.routingNumber && <p className="text-[12px] text-text-muted">Routing: {ba.routingNumber}</p>}
+                      {ba.bankName?.startsWith("Verified") && (
+                        <p className="text-[11px] text-green-600 mt-1">Your cheque leaf has been verified. Bank details will be updated by admin shortly.</p>
+                      )}
+                      {ba.routingNumber && !ba.bankName?.startsWith("Verified") && ba.bankName !== "Pending Review" && (
+                        <p className="text-[12px] text-text-muted">Routing: {ba.routingNumber}</p>
+                      )}
                       {ba.chequeLeafUrl && ba.bankName === "Pending Review" && (
                         <p className="text-[11px] text-text-muted mt-1">Cheque leaf uploaded - details will be verified by admin</p>
                       )}

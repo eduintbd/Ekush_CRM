@@ -49,16 +49,34 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    const ticket = await prisma.serviceRequest.findUnique({
+      where: { id: params.id },
+      include: { investor: true },
+    });
+
     await prisma.serviceRequest.update({
       where: { id: params.id },
       data: { status: body.status },
     });
 
+    // When a BANK_VERIFICATION ticket is resolved, mark the bank account as verified
+    if (ticket && ticket.type === "BANK_VERIFICATION" && (body.status === "RESOLVED" || body.status === "CLOSED")) {
+      // Extract Bank Account ID from description
+      const bankIdMatch = ticket.description?.match(/Bank Account ID:\s*(\S+)/);
+      if (bankIdMatch) {
+        const bankAccountId = bankIdMatch[1];
+        const bankAccount = await prisma.bankAccount.findUnique({ where: { id: bankAccountId } });
+        if (bankAccount && bankAccount.bankName === "Pending Review") {
+          // Mark as verified — admin can later update the actual bank name from investor profile
+          await prisma.bankAccount.update({
+            where: { id: bankAccountId },
+            data: { bankName: "Verified (update details)", accountNumber: "Verified (update details)" },
+          });
+        }
+      }
+    }
+
     // Notify investor
-    const ticket = await prisma.serviceRequest.findUnique({
-      where: { id: params.id },
-      include: { investor: true },
-    });
     if (ticket) {
       await prisma.notification.create({
         data: {
