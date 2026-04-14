@@ -34,10 +34,16 @@ export default async function ProfilePage() {
   }
 
   if (!investorId) {
-    return <p className="text-text-body text-center py-20">Investor profile not found.</p>;
+    return <p className="text-text-body text-center py-20">Investor profile not found. Please log out and log back in.</p>;
   }
 
-  const investor = await getInvestorProfile(investorId);
+  let investor;
+  try {
+    investor = await getInvestorProfile(investorId);
+  } catch (err) {
+    console.error("Profile fetch error:", err);
+    return <p className="text-text-body text-center py-20">Could not load profile. Please refresh the page.</p>;
+  }
   if (!investor) return <p className="text-text-body text-center py-20">Profile not found.</p>;
 
   return (
