@@ -59,7 +59,9 @@ export function DividendFilters({ fundCodes, years, currentFund, currentYear }: 
             </Link>
           )}
           <a
-            href={`/api/statements/dividend-pdf?${pdfParams.toString()}`}
+            href={`/forms/dividend-report?${pdfParams.toString()}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="ml-auto flex items-center gap-1.5 px-4 py-2 text-sm bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark"
           >
             <Download className="w-4 h-4" /> Download PDF
