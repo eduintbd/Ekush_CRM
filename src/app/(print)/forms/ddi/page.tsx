@@ -20,18 +20,24 @@ export default async function DDIFormPage({
   try { session = await getSession(); } catch { redirect("/login"); }
   if (!session) redirect("/login");
 
-  const userId = (session.user as any)?.id;
-  let investorId = (session.user as any)?.investorId;
-  if (!investorId && userId) {
-    const u = await prisma.user.findUnique({ where: { id: userId }, select: { investor: { select: { id: true } } } });
-    investorId = u?.investor?.id;
-  }
-  if (!investorId) redirect("/dashboard");
+  let investor: any = null;
+  try {
+    const userId = (session.user as any)?.id;
+    let investorId = (session.user as any)?.investorId;
+    if (!investorId && userId) {
+      const u = await prisma.user.findUnique({ where: { id: userId }, select: { investor: { select: { id: true } } } });
+      investorId = u?.investor?.id;
+    }
+    if (!investorId) redirect("/dashboard");
 
-  const investor = await prisma.investor.findUnique({
-    where: { id: investorId },
-    include: { bankAccounts: { orderBy: { isPrimary: "desc" }, take: 1 } },
-  });
+    investor = await prisma.investor.findUnique({
+      where: { id: investorId },
+      include: { bankAccounts: { orderBy: { isPrimary: "desc" }, take: 1 } },
+    });
+  } catch (err) {
+    console.error("DDI form data error:", err);
+    return <div style={{padding:40,textAlign:"center",color:"#666"}}>Could not load form data. Please refresh the page.</div>;
+  }
   if (!investor) redirect("/dashboard");
 
   const fundCode = searchParams.fundCode || "EFUF";
