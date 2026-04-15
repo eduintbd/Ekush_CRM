@@ -27,17 +27,32 @@ async function getGoals(investorId: string) {
 }
 
 export default async function StatementsPage() {
-  const session = await getSession();
-  const investorId = (session?.user as any)?.investorId;
+  let session;
+  try { session = await getSession(); } catch { return <p className="text-text-body text-center py-20">Could not load. Please refresh.</p>; }
+  let investorId = (session?.user as any)?.investorId;
 
-  if (!investorId) {
-    return <p className="text-text-body text-center py-20">Investor profile not found.</p>;
+  if (!investorId && session?.user?.id) {
+    try {
+      const u = await prisma.user.findUnique({ where: { id: session.user.id }, select: { investor: { select: { id: true } } } });
+      investorId = u?.investor?.id;
+    } catch {}
   }
 
-  const [holdings, goals] = await Promise.all([
-    getHoldings(investorId),
-    getGoals(investorId),
-  ]);
+  if (!investorId) {
+    return <p className="text-text-body text-center py-20">Investor profile not found. Please log out and log back in.</p>;
+  }
+
+  let holdings: Awaited<ReturnType<typeof getHoldings>> = [];
+  let goals: Awaited<ReturnType<typeof getGoals>> = [];
+  try {
+    [holdings, goals] = await Promise.all([
+      getHoldings(investorId),
+      getGoals(investorId),
+    ]);
+  } catch (err) {
+    console.error("Statements fetch error:", err);
+    return <p className="text-text-body text-center py-20">Could not load statements. Please refresh the page.</p>;
+  }
 
   // Build chart data
   let totalMarketValue = 0;
