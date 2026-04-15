@@ -175,6 +175,9 @@ model FundHolding {
   // Gross Dividend (from simpler fund files)
   grossDividend Float @default(0)
 
+  // XIRR-based annualized return (from T. History sheet in INVESTORS.xlsx)
+  annualizedReturn Float @default(0)
+
   // First purchase date (earliest LS/SIP transaction); used for return calculations
   firstPurchaseDate DateTime?
 

@@ -52,7 +52,7 @@ export default async function PortfolioStatementPage() {
     const costValue = Number(h.totalCostValueCurrent);
     const marketValue = units * nav;
     const gain = marketValue - costValue;
-    const returnPct = costValue > 0 ? (gain / costValue) * 100 : 0;
+    const returnPct = Number(h.annualizedReturn) || (costValue > 0 ? (gain / costValue) * 100 : 0);
     totalCost += costValue;
     totalMarket += marketValue;
     totalGain += gain;

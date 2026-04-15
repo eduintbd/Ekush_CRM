@@ -216,6 +216,7 @@ export interface InvestorsWorkbookResult {
   investors: InvestorRow[];
   holdings: HoldingRow[];
   transactions: TransactionRow[];
+  xirrByInvestor: Map<string, number>; // investorCode → annualized return %
 }
 
 function buildHeaderMapFromRow(row: ExcelJS.Row): Record<string, number> {
@@ -437,10 +438,41 @@ export async function parseInvestorsWorkbook(
     }
   }
 
+  // Parse T. History sheet for XIRR / Annualized Return per investor
+  const xirrByInvestor = new Map<string, number>();
+  for (const s of workbook.worksheets) {
+    if (/t\.?\s*history/i.test(s.name)) {
+      let currentCode = "";
+      s.eachRow((row) => {
+        // Look for investor code in the row (pattern: A followed by digits)
+        row.eachCell((cell) => {
+          const v = getCellString(cell.value);
+          if (/^[A-Z]\d{4,6}$/.test(v.trim())) {
+            currentCode = v.trim();
+          }
+        });
+        // Look for "Annualized Return" label with a % value nearby
+        row.eachCell((cell, colNumber) => {
+          const v = getCellString(cell.value).toLowerCase();
+          if (v.includes("annualized return") && currentCode) {
+            // The value is typically in the next cell or same row
+            const nextCell = row.getCell(colNumber + 1);
+            const val = parseExcelNumber(nextCell.value);
+            if (val !== null && val !== 0) {
+              xirrByInvestor.set(currentCode, val);
+            }
+          }
+        });
+      });
+      break;
+    }
+  }
+
   return {
     investors: Array.from(investorMap.values()),
     holdings,
     transactions,
+    xirrByInvestor,
   };
 }
 
@@ -563,10 +595,14 @@ export async function ingestInvestors(
       grossDividend: h.grossDividend,
     };
 
+    // Include XIRR annualized return if available
+    const xirr = parsed.xirrByInvestor.get(h.investorCode);
+    const dataWithXirr = xirr !== undefined ? { ...data, annualizedReturn: xirr } : data;
+
     await prisma.fundHolding.upsert({
       where: { investorId_fundId: { investorId: investor.id, fundId } },
-      update: data,
-      create: { investorId: investor.id, fundId, ...data },
+      update: dataWithXirr,
+      create: { investorId: investor.id, fundId, ...dataWithXirr },
     });
     holdingsUpserted++;
   }

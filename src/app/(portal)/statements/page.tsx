@@ -72,7 +72,6 @@ export default async function StatementsPage() {
   });
 
   // Build expandable row data with computed annualized return
-  const now = Date.now();
   const tableRows: HoldingRow[] = holdings.map((h) => {
     const totalCurrentUnits = Number(h.totalCurrentUnits);
     const costValue = Number(h.totalCostValueCurrent);
@@ -82,22 +81,8 @@ export default async function StatementsPage() {
     const grossDividend = Number(h.grossDividend);
     const nav = Number(h.nav);
 
-    // Annualized total return — computed from the aggregate fields the user
-    // specified: Total Realized Gain, Total Dividend Income, Current NAV,
-    // Total Units Invested. Faithful approximation of the T. History XIRR.
-    const computedMarketValue = totalCurrentUnits * nav;
-    const totalGain =
-      realizedGain + grossDividend + (computedMarketValue - costValue);
-    const totalReturn = costValue > 0 ? totalGain / costValue : 0;
-    const startDate = h.firstPurchaseDate ?? h.createdAt;
-    const yearsHeld = Math.max(
-      0.01,
-      (now - new Date(startDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
-    );
-    const annualized =
-      totalReturn > -1
-        ? (Math.pow(1 + totalReturn, 1 / yearsHeld) - 1) * 100
-        : 0;
+    // Use the XIRR-based annualized return from the INVESTORS.xlsx T. History sheet
+    const annualized = Number(h.annualizedReturn) || 0;
 
     return {
       id: h.id,
