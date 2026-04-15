@@ -156,6 +156,13 @@ export default async function MoneyReceiptPage({
           </div>
         </div>
 
+        {/* Conditions */}
+        <div style={{ padding: "0 24px 8px 24px" }}>
+          <p style={{ fontSize: "7.5pt", color: "#666", fontStyle: "italic", margin: 0, lineHeight: "1.4" }}>
+            Conditions apply: This receipt will be upon encashment of your payment. If any delay due to any unavoidable circumstances which is not in control of Ekush, this receipt will become invalid.
+          </p>
+        </div>
+
         {/* Bottom strip */}
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#F27023", color: "#fff", padding: "4px 20px", display: "flex", justifyContent: "space-between", fontSize: "7pt" }}>
           <span>+8801713-086101</span>
