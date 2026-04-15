@@ -51,6 +51,9 @@ export default async function TaxCertificatePage({
   const fundCodes = [...new Set(taxCerts.map((tc) => tc.fund.code))];
   const years = [...new Set(taxCerts.map((tc) => getAssessmentYear(tc.periodEnd)))];
 
+  // Find the latest assessment year for download eligibility
+  const latestYear = years.sort().reverse()[0] || "";
+
   return (
     <div className="space-y-6">
       <h1 className="text-[20px] font-semibold text-text-dark font-rajdhani">Tax Certificate</h1>
@@ -86,7 +89,9 @@ export default async function TaxCertificatePage({
                     <TableCell className="text-right text-red-500">{formatBDT(Number(tc.totalTax))}</TableCell>
                     <TableCell className="text-right font-medium text-green-600">{formatBDT(Number(tc.totalNetDividend))}</TableCell>
                     <TableCell>
-                      <DownloadTaxCertificate certId={tc.id} fundCode={tc.fund.code} />
+                      {getAssessmentYear(tc.periodEnd) === latestYear ? (
+                        <DownloadTaxCertificate certId={tc.id} fundCode={tc.fund.code} />
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 ))}
