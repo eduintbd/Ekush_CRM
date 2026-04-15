@@ -44,7 +44,6 @@ export default async function InvestmentUpdatePage({
       where: { investorId_fundId: { investorId, fundId: fund.id } },
     });
 
-    // Sum all dividends for this fund
     const divAgg = await prisma.dividend.aggregate({
       where: { investorId, fundId: fund.id },
       _sum: { grossDividend: true },
@@ -74,10 +73,12 @@ export default async function InvestmentUpdatePage({
 
   const fmt = (n: number) => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const GREY_BG = "#f0f0f0";
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
-        @media print { body{margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;} .no-print{display:none!important;} .print-page{width:210mm;min-height:297mm;padding:20mm 22mm;margin:0;box-shadow:none!important;} }
+        @media print { body{margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;} .no-print{display:none!important;} .print-page{width:210mm;min-height:297mm;padding:0;margin:0;box-shadow:none!important;} }
         @page { size: A4 portrait; margin: 0; }
       `}} />
 
@@ -87,107 +88,112 @@ export default async function InvestmentUpdatePage({
       </div>
       <script dangerouslySetInnerHTML={{ __html: `document.getElementById('print-btn').addEventListener('click',function(){window.print()});` }} />
 
-      <div className="print-page" style={{ width: "210mm", minHeight: "297mm", padding: "20mm 22mm", margin: "0 auto", background: "#fff", fontFamily: "Arial, Helvetica, sans-serif", fontSize: "11pt", color: "#000", lineHeight: "1.5", position: "relative" }}>
+      <div className="print-page" style={{ width: "210mm", minHeight: "297mm", margin: "0 auto", background: "#fff", fontFamily: "Arial, Helvetica, sans-serif", fontSize: "11pt", color: "#000", lineHeight: "1.5", position: "relative" }}>
 
-        {/* Orange banner + Logo (top right) */}
-        <div style={{ position: "absolute", top: 0, right: 0 }}>
-          <img src="/logo.png" alt="Ekush" style={{ height: "28mm" }} />
-        </div>
+        {/* Banner image — full width, no separate logo needed */}
+        <img src="/banner_for_portfolio.png" alt="" style={{ width: "100%", display: "block" }} />
 
-        {/* Orange top line */}
-        <div style={{ borderTop: "4px solid #F27023", marginBottom: "15mm", width: "60%" }} />
+        {/* Content area */}
+        <div style={{ padding: "8mm 22mm 20mm 22mm" }}>
 
-        {/* Date */}
-        <p style={{ fontSize: "11pt", marginBottom: "12mm" }}>{dateStr}</p>
+          {/* Date */}
+          <p style={{ fontSize: "11pt", marginBottom: "6mm" }}>{dateStr}</p>
 
-        {/* Investor name */}
-        <p style={{ fontSize: "12pt", fontWeight: 700, margin: "0 0 1mm 0" }}>{investor.name}</p>
-        <p style={{ fontSize: "11pt", marginBottom: "10mm" }}>Investor Code: {investor.investorCode}</p>
+          {/* Investor name + code */}
+          <p style={{ fontSize: "12pt", fontWeight: 700, margin: "0 0 1mm 0" }}>{investor.name}</p>
+          <p style={{ fontSize: "11pt", marginBottom: "5mm" }}>Investor Code: {investor.investorCode}</p>
 
-        {/* Fund box */}
-        <div style={{ border: "1px solid #ccc", padding: "6mm 8mm", marginBottom: "6mm" }}>
-          <h2 style={{ fontSize: "14pt", fontWeight: 700, textAlign: "center", marginBottom: "4mm" }}>{fund.name.toUpperCase()}</h2>
-          <p style={{ fontSize: "10pt", textAlign: "center", color: "#444", marginBottom: "6mm" }}>
-            Registered under the Bangladesh Securities &amp; Exchange Commission<br />(Mutual Fund) Rules, 2001.
-          </p>
-          <table style={{ width: "85%", margin: "0 auto", fontSize: "10pt", borderCollapse: "collapse" }}>
+          {/* Fund info box — compact, light grey background */}
+          <div style={{ border: "1px solid #ccc", padding: "4mm 6mm", marginBottom: "4mm", background: GREY_BG }}>
+            <h2 style={{ fontSize: "13pt", fontWeight: 700, textAlign: "center", marginBottom: "2mm" }}>{fund.name.toUpperCase()}</h2>
+            <p style={{ fontSize: "9pt", textAlign: "center", color: "#444", marginBottom: "3mm" }}>
+              Registered under the Bangladesh Securities &amp; Exchange Commission (Mutual Fund) Rules, 2001.
+            </p>
+            <table style={{ width: "80%", margin: "0 auto", fontSize: "9.5pt", borderCollapse: "collapse" }}>
+              <tbody>
+                {[
+                  ["Registration No", regInfo.regNo],
+                  ["Sponsor", "Ekush Wealth Management Limited"],
+                  ["Asset Manager", "Ekush Wealth Management Limited"],
+                  ["Trustee", "Sandhani Life Insurance Co. Ltd"],
+                  ["Custodian", "BRAC Bank Limited"],
+                ].map(([label, val], i) => (
+                  <tr key={i}>
+                    <td style={{ padding: "1px 0", fontWeight: 600, width: "35%" }}>{label}</td>
+                    <td style={{ padding: "1px 6px", width: "5%" }}>:</td>
+                    <td style={{ padding: "1px 0" }}>{val}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Units + Avg Cost row */}
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "3mm" }}>
             <tbody>
-              {[
-                ["Registration No", regInfo.regNo],
-                ["Sponsor", "Ekush Wealth Management Limited"],
-                ["Asset Manager", "Ekush Wealth Management Limited"],
-                ["Trustee", "Sandhani Life Insurance Co. Ltd"],
-                ["Custodian", "BRAC Bank Limited"],
-              ].map(([label, val], i) => (
-                <tr key={i}>
-                  <td style={{ padding: "2px 0", fontWeight: 600, width: "35%" }}>{label}</td>
-                  <td style={{ padding: "2px 8px", width: "5%" }}>:</td>
-                  <td style={{ padding: "2px 0" }}>{val}</td>
+              <tr>
+                <td style={{ borderTop: "2px solid #000", borderBottom: "1px solid #000", padding: "5px 10px", fontWeight: 700, width: "25%" }}>Number of Units</td>
+                <td style={{ borderTop: "2px solid #000", borderBottom: "1px solid #000", padding: "5px 10px", width: "25%", textAlign: "right" }}>{totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                <td style={{ borderTop: "2px solid #000", borderBottom: "1px solid #000", padding: "5px 10px", fontWeight: 700, width: "25%" }}>Average Cost/Unit</td>
+                <td style={{ borderTop: "2px solid #000", borderBottom: "1px solid #000", padding: "5px 10px", width: "25%", textAlign: "right" }}>{avgCost.toFixed(3)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Investment Results — matching the PDF exactly */}
+          <div style={{ marginBottom: "3mm" }}>
+            <div style={{ borderBottom: "3px double #000", paddingBottom: "2px", marginBottom: "2mm" }}>
+              <span style={{ fontSize: "11pt", fontWeight: 400 }}>Investment Results:</span>
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <tbody>
+                <tr>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px 4px 0", width: "25%" }}>Cost Value of Investment</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", width: "25%", textAlign: "right", fontWeight: 700 }}>{fmt(costValue)}</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", width: "25%" }}>Capital Gain on Unit Sold</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", width: "25%", textAlign: "right", fontWeight: 700 }}>{fmt(realizedGain)}</td>
                 </tr>
-              ))}
+                <tr>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px 4px 0" }}>Wealth increased by</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", textAlign: "right", fontWeight: 700 }}>{fmt(unrealizedGain)}</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px" }}>Dividend Received</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", textAlign: "right", fontWeight: 700 }}>{fmt(dividendTotal)}</td>
+                </tr>
+                <tr>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px 4px 0" }}>Current Value of Investment</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", textAlign: "right", fontWeight: 700 }}>{fmt(marketValue)}</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", fontStyle: "italic", background: GREY_BG }}>Total Value Creation</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", textAlign: "right", fontWeight: 700, fontStyle: "italic", background: GREY_BG }}>{fmt(totalValueCreation)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* NAV paragraph */}
+          <p style={{ fontSize: "10pt", marginTop: "6mm", marginBottom: "4mm" }}>
+            The current Net Asset Value (NAV) per unit, together with the applicable buy and sale prices of the fund, is presented below:
+          </p>
+
+          {/* NAV table — grey header, black borders top/bottom */}
+          <table style={{ width: "80%", borderCollapse: "collapse", margin: "0 auto" }}>
+            <thead>
+              <tr>
+                <td style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "6px 10px", textAlign: "center", fontWeight: 700, background: GREY_BG, width: "33%" }}>NAV</td>
+                <td style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "6px 10px", textAlign: "center", fontWeight: 700, background: GREY_BG, width: "33%" }}>Buy Price</td>
+                <td style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "6px 10px", textAlign: "center", fontWeight: 700, background: GREY_BG, width: "33%" }}>Sale Price</td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ borderBottom: "2px solid #000", padding: "6px 10px", textAlign: "center" }}>{nav.toFixed(3)}</td>
+                <td style={{ borderBottom: "2px solid #000", padding: "6px 10px", textAlign: "center" }}>{(nav * (1 + Number(fund.entryLoad))).toFixed(3)}</td>
+                <td style={{ borderBottom: "2px solid #000", padding: "6px 10px", textAlign: "center" }}>{(nav * (1 - Number(fund.exitLoad))).toFixed(3)}</td>
+              </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Units + Avg Cost row */}
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "4mm" }}>
-          <tbody>
-            <tr>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", fontWeight: 700, width: "25%", background: "#f5f5f5" }}>Number of Units</td>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", width: "25%", textAlign: "right" }}>{totalUnits.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", fontWeight: 700, width: "25%", background: "#f5f5f5" }}>Average Cost/Unit</td>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", width: "25%", textAlign: "right" }}>{avgCost.toFixed(3)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Investment Results */}
-        <p style={{ fontSize: "11pt", fontWeight: 700, marginBottom: "3mm" }}>Investment Results:</p>
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "10mm" }}>
-          <tbody>
-            <tr>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px", width: "25%" }}>Cost Value of Investment</td>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px", width: "25%", textAlign: "right" }}>{fmt(costValue)}</td>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px", width: "25%" }}>Capital Gain on Unit Sold</td>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px", width: "25%", textAlign: "right" }}>{fmt(realizedGain)}</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px" }}>Wealth increased by</td>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px", textAlign: "right" }}>{fmt(unrealizedGain)}</td>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px" }}>Dividend Received</td>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px", textAlign: "right" }}>{fmt(dividendTotal)}</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px" }}>Current Value of Investment</td>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px", textAlign: "right" }}>{fmt(marketValue)}</td>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px", fontStyle: "italic" }}>Total Value Creation</td>
-              <td style={{ border: "1px solid #ccc", padding: "5px 10px", textAlign: "right", fontStyle: "italic" }}>{fmt(totalValueCreation)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* NAV section */}
-        <p style={{ fontSize: "11pt", marginBottom: "4mm" }}>
-          The current Net Asset Value (NAV) per unit, together with the applicable buy and sale prices of the fund, is presented below:
-        </p>
-        <table style={{ width: "80%", borderCollapse: "collapse", margin: "0 auto" }}>
-          <thead>
-            <tr style={{ background: "#f5f5f5" }}>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", textAlign: "center", fontWeight: 700 }}>NAV</td>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", textAlign: "center", fontWeight: 700 }}>Buy Price</td>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", textAlign: "center", fontWeight: 700 }}>Sale Price</td>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", textAlign: "center" }}>{nav.toFixed(3)}</td>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", textAlign: "center" }}>{(nav * (1 + Number(fund.entryLoad))).toFixed(3)}</td>
-              <td style={{ border: "1px solid #ccc", padding: "6px 10px", textAlign: "center" }}>{(nav * (1 - Number(fund.exitLoad))).toFixed(3)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Footer */}
+        {/* Orange footer */}
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#F27023", color: "#fff", padding: "3mm 6mm", display: "flex", justifyContent: "space-between", fontSize: "8pt" }}>
           <span>+8801713-086101</span>
           <span>info@ekushwml.com</span>
