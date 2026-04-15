@@ -7,7 +7,15 @@ import { INVESTOR_TYPE_LABELS } from "@/lib/constants";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
-  const investorId = (session?.user as any)?.investorId;
+  let investorId = (session?.user as any)?.investorId;
+
+  if (!investorId && session?.user?.id) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { investor: { select: { id: true } } },
+    });
+    investorId = user?.investor?.id;
+  }
 
   if (!investorId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
