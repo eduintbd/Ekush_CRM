@@ -6,7 +6,7 @@ import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AllocationChart } from "@/components/dashboard/allocation-chart";
-import { DownloadPortfolioStatement } from "@/components/statements/pdf-buttons";
+import { Download } from "lucide-react";
 import {
   PortfolioStatementsTable,
   type HoldingRow,
@@ -125,7 +125,14 @@ export default async function StatementsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-[16px]">Portfolio Statements</CardTitle>
-          <DownloadPortfolioStatement />
+          <a
+            href="/forms/portfolio-statement"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 text-[13px] bg-ekush-orange text-white rounded-[5px] hover:bg-ekush-orange-dark"
+          >
+            <Download className="w-4 h-4" /> Download PDF
+          </a>
         </CardHeader>
         <CardContent className="p-0">
           <PortfolioStatementsTable holdings={tableRows} />
