@@ -16,7 +16,8 @@ export default async function DDIFormPage({
 }: {
   searchParams: { fundCode?: string; amount?: string; debitDay?: string; tenure?: string };
 }) {
-  const session = await getSession();
+  let session;
+  try { session = await getSession(); } catch { redirect("/login"); }
   if (!session) redirect("/login");
 
   const userId = (session.user as any)?.id;
