@@ -213,6 +213,24 @@ export default async function TaxCertificatePrintPage({
             </tbody>
           </table>
 
+          {/* Chalan details — only for EFUF and EGF */}
+          {(fund.code === "EFUF" || fund.code === "EGF") && (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt", marginBottom: "4mm" }}>
+              <tbody>
+                <tr>
+                  <td style={{ border: "1px solid #000", padding: "3px 8px", width: "70%" }}>Chalan Number</td>
+                  <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>
+                    {fund.code === "EFUF" ? "2425-00302670771" : "2425-00302681821"}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ border: "1px solid #000", padding: "3px 8px" }}>Chalan Date</td>
+                  <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>April 22, 2025</td>
+                </tr>
+              </tbody>
+            </table>
+          )}
+
           {/* Disclaimer */}
           <p style={{ fontSize: "8pt", color: "#666", marginTop: "6mm" }}>
             This certificate is issued for income tax purposes as per NBR requirements.<br />
