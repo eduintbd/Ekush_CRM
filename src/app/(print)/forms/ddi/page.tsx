@@ -39,11 +39,9 @@ export default async function DDIFormPage({
   const debitDay = Number(searchParams.debitDay || 5);
   const tenure = Number(searchParams.tenure || 5);
   const fundBank = FUND_BANK[fundCode] || FUND_BANK.EFUF;
-  const fundName = FUND_NAMES[fundCode as keyof typeof FUND_NAMES] || fundCode;
   const bank = investor.bankAccounts[0];
 
   const today = new Date();
-  const dateStr = today.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const dd = String(today.getDate()).padStart(2, "0");
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const yyyy = String(today.getFullYear());
@@ -81,12 +79,12 @@ export default async function DDIFormPage({
       `}} />
 
       <div className="no-print" style={{ position:"fixed", top:16, right:16, zIndex:50, display:"flex", gap:8 }}>
-        <button onClick={() => {}} id="print-btn" style={{ padding:"8px 16px", background:"#F27023", color:"#fff", border:"none", borderRadius:6, fontSize:14, fontWeight:600, cursor:"pointer" }}>
+        <button id="print-btn" style={{ padding:"8px 16px", background:"#F27023", color:"#fff", border:"none", borderRadius:6, fontSize:14, fontWeight:600, cursor:"pointer" }}>
           Save as PDF / Print
         </button>
         <a href="/sip" style={{ padding:"8px 16px", background:"#fff", color:"#333", border:"1px solid #ddd", borderRadius:6, fontSize:14, textDecoration:"none" }}>Back</a>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: `document.getElementById('print-btn').onclick=function(){window.print()};` }} />
+      <script dangerouslySetInnerHTML={{ __html: `document.getElementById('print-btn').addEventListener('click',function(){window.print()});` }} />
 
       {/* ─── A4 Page ─────────────────────────────────────────── */}
       <div className="print-page" style={S.page}>
