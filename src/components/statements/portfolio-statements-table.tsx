@@ -3,7 +3,7 @@
 import { Fragment, useState } from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { formatBDT, formatNumber } from "@/lib/utils";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Download } from "lucide-react";
 
 export interface HoldingRow {
   id: string;
@@ -84,7 +84,17 @@ export function PortfolioStatementsTable({ holdings }: Props) {
                 <TableRow className="bg-page-bg/40 hover:bg-page-bg/40">
                   <TableCell colSpan={6} className="p-0">
                     <div className="px-8 py-6">
-                      <p className="text-[13px] font-semibold text-text-dark mb-3">{h.fundName}</p>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[13px] font-semibold text-text-dark">{h.fundName}</p>
+                        <a
+                          href={`/forms/investment-update?fundCode=${h.fundCode}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] bg-ekush-orange text-white rounded-[5px] hover:bg-ekush-orange-dark transition-colors"
+                        >
+                          <Download className="w-3 h-3" /> Investment Update
+                        </a>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1 text-[13px]">
                         <DetailRow label="No of Units" value={formatNumber(h.totalCurrentUnits, 0)} />
                         <DetailRow label="Total Cost Value" value={formatBDT(h.costValue)} />

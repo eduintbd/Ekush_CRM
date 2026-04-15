@@ -118,7 +118,8 @@ export default async function StatementsPage() {
         </CardContent>
       </Card>
 
-      {/* Fund Allocation chart */}
+      {/* Fund Allocation + Goals side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
           <CardTitle className="text-[16px]">Fund Allocation</CardTitle>
@@ -128,7 +129,6 @@ export default async function StatementsPage() {
         </CardContent>
       </Card>
 
-      {/* Goals Progress Tracker */}
       {goals.length > 0 && (
         <Card>
           <CardHeader>
@@ -213,6 +213,7 @@ export default async function StatementsPage() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }
