@@ -84,29 +84,16 @@ export function DownloadTransactionReport({
 }
 
 export function DownloadTaxCertificate({ certId, fundCode }: { certId: string; fundCode: string }) {
-  const [loading, setLoading] = useState(false);
-
-  const handleDownload = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/statements/tax-certificate?id=${certId}`);
-      if (!res.ok) throw new Error("Failed to fetch data");
-      const certs = await res.json();
-      if (certs.length === 0) throw new Error("No certificate found");
-      const data = certs[0];
-      const doc = generateTaxCertificatePDF(data);
-      doc.save(`Tax_Certificate_${data.investorCode}_${fundCode}_${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (err) {
-      alert("Failed to generate PDF. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <Button onClick={handleDownload} disabled={loading} size="sm" className="bg-[#2DAAB8] hover:bg-[#259BA8] text-white">
-      {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
-      Download Tax Certificate
-    </Button>
+    <a
+      href={`/forms/tax-certificate?id=${certId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <Button size="sm" className="bg-[#2DAAB8] hover:bg-[#259BA8] text-white">
+        <Download className="w-4 h-4 mr-2" />
+        Download Tax Certificate
+      </Button>
+    </a>
   );
 }
