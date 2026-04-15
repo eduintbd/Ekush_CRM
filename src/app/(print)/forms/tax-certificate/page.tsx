@@ -40,11 +40,8 @@ export default async function TaxCertificatePrintPage({
   const fund = cert.fund;
   const regInfo = FUND_REG[fund.code] || FUND_REG.EFUF;
   const fmt = (n: number) => n === 0 ? "-" : Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtU = (n: number) => n === 0 ? "-" : n.toLocaleString("en-IN", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-
   const periodStart = cert.periodStart ? new Date(cert.periodStart) : null;
   const periodEnd = cert.periodEnd ? new Date(cert.periodEnd) : null;
-  const fmtDate = (d: Date | null) => d ? d.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "N/A";
   const fmtDateShort = (d: Date | null) => d ? d.toLocaleDateString("en-GB", { month: "long", day: "2-digit", year: "numeric" }) : "N/A";
 
   const today = new Date();
@@ -135,123 +132,82 @@ export default async function TaxCertificatePrintPage({
             </tbody>
           </table>
 
-          {/* Main data table */}
-          <table className="cert-table">
+          {/* Main data table — merged Beginning/End + one-liner During */}
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt", marginBottom: "4mm" }}>
             <thead>
               <tr style={{ background: "#333", color: "#fff" }}>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", fontWeight: 700 }}>Particulars</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", fontWeight: 700, textAlign: "center" }}>Units</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", fontWeight: 700, textAlign: "right" }}>Amount (BDT)</td>
+                <td style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: 700 }}>Particulars</td>
+                <td style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: 700, textAlign: "right" }}>Beginning of Period</td>
+                <td style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: 700, textAlign: "right" }}>End of Period</td>
               </tr>
             </thead>
             <tbody>
-              {/* Beginning of Period */}
-              <tr style={{ background: GREY_BG }}>
-                <td colSpan={3} style={{ border: "1px solid #000", padding: "3px 8px", fontWeight: 700 }}>Beginning of Period</td>
-              </tr>
+              {/* Cost Value */}
               <tr>
-                <td className="label" style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Units</td>
-                <td className="value" style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "center", background: YELLOW_BG }}>{fmtU(Number(cert.beginningUnits))}</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Cost Value</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px" }}>Cost Value</td>
                 <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.beginningCostValue))}</td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.endingCostValue))}</td>
               </tr>
+              {/* Market Value */}
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Market Value</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px" }}>Market Value</td>
                 <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.beginningMarketValue))}</td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.endingMarketValue))}</td>
               </tr>
+              {/* Unrealized Gain */}
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Unrealized Gain</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px" }}>Unrealized Gain</td>
                 <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.beginningUnrealizedGain))}</td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.endingUnrealizedGain))}</td>
               </tr>
+            </tbody>
+          </table>
 
-              {/* During the Period */}
+          {/* During the Period — one-liner rows */}
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt", marginBottom: "4mm" }}>
+            <thead>
               <tr style={{ background: GREY_BG }}>
-                <td colSpan={3} style={{ border: "1px solid #000", padding: "3px 8px", fontWeight: 700 }}>During the Period</td>
+                <td colSpan={2} style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: 700 }}>During the Period</td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ border: "1px solid #000", padding: "3px 8px", width: "70%" }}>Total Realized Gain during the Period</td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.totalRealizedGain))}</td>
               </tr>
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Units Added</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "center", background: YELLOW_BG }}>{fmtU(Number(cert.totalUnitsAdded))}</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Units Redeemed</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "center", background: YELLOW_BG }}>{fmtU(Number(cert.totalUnitsRedeemed))}</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Total Addition at Cost</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px" }}>Total Addition during the Period</td>
                 <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.totalAdditionAtCost))}</td>
               </tr>
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Total Redemption at Cost</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px" }}>Total Redemption during the Period</td>
                 <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.totalRedemptionAtCost))}</td>
               </tr>
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Net Investment</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.netInvestment))}</td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px" }}>Net Investment (Net of Addition and Redemption) during the Period</td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", fontWeight: 700, background: YELLOW_BG }}>{fmt(Number(cert.netInvestment))}</td>
               </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Realized Gain</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.totalRealizedGain))}</td>
-              </tr>
+            </tbody>
+          </table>
 
-              {/* End of Period */}
+          {/* Dividend Summary */}
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt", marginBottom: "4mm" }}>
+            <thead>
               <tr style={{ background: GREY_BG }}>
-                <td colSpan={3} style={{ border: "1px solid #000", padding: "3px 8px", fontWeight: 700 }}>End of Period</td>
+                <td colSpan={2} style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: 700 }}>Dividend Summary</td>
               </tr>
+            </thead>
+            <tbody>
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Units</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "center", background: YELLOW_BG }}>{fmtU(Number(cert.endingUnits))}</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Cost Value</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.endingCostValue))}</td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Market Value</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.endingMarketValue))}</td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>NAV</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "center", background: YELLOW_BG }}>{Number(cert.navAtEnd).toFixed(4)}</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Unrealized Gain</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.endingUnrealizedGain))}</td>
-              </tr>
-
-              {/* Dividend Summary */}
-              <tr style={{ background: GREY_BG }}>
-                <td colSpan={3} style={{ border: "1px solid #000", padding: "3px 8px", fontWeight: 700 }}>Dividend Summary</td>
-              </tr>
-              <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Gross Dividend</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px", width: "70%" }}>Gross Dividend</td>
                 <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.totalGrossDividend))}</td>
               </tr>
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Tax Deducted at Source</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px" }}>Tax Deducted at Source</td>
                 <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", background: YELLOW_BG }}>{fmt(Number(cert.totalTax))}</td>
               </tr>
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3px 8px", paddingLeft: "16px" }}>Net Dividend</td>
-                <td style={{ border: "1px solid #000", padding: "3px 8px" }}></td>
+                <td style={{ border: "1px solid #000", padding: "3px 8px" }}>Net Dividend</td>
                 <td style={{ border: "1px solid #000", padding: "3px 8px", textAlign: "right", fontWeight: 700, background: YELLOW_BG }}>{fmt(Number(cert.totalNetDividend))}</td>
               </tr>
             </tbody>
