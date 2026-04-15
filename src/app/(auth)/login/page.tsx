@@ -102,7 +102,7 @@ export default function LoginPage() {
           <div className="mt-5 text-center space-y-3">
             <p className="text-[13px] text-text-body">
               Do you want to register?{" "}
-              <a href="/onboarding" className="text-ekush-orange hover:underline font-semibold">
+              <a href="/register" className="text-ekush-orange hover:underline font-semibold">
                 Lets sign-up
               </a>
             </p>
