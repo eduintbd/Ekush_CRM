@@ -95,15 +95,15 @@ export default async function DDIFormPage({
       {/* ─── A4 Page ─────────────────────────────────────────── */}
       <div className="print-page" style={S.page}>
 
-        {/* Logo top-right */}
-        <div style={{ position:"relative" }}>
-          <img src="/logo.png" alt="Ekush" style={{ position:"absolute", top:"-10mm", right:0, height:"22mm" }} />
+        {/* Header — text left, logo right, horizontally aligned */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"10mm" }}>
+          <div>
+            <p style={{ fontSize:"14pt", fontWeight:700, fontStyle:"italic", margin:"0 0 2mm 0" }}>Systematic Investment Plan</p>
+            <p style={{ fontSize:"11pt", margin:"0 0 1mm 0" }}>Asset Manager: Ekush Wealth Management Limited</p>
+            <p style={{ fontSize:"11pt", fontWeight:700, margin:0 }}>Mutual Fund: {fundBank.name}</p>
+          </div>
+          <img src="/logo.png" alt="Ekush" style={{ height:"22mm", flexShrink:0 }} />
         </div>
-
-        {/* Header */}
-        <p style={{ ...S.title, fontStyle:"italic" }}>Systematic Investment Plan</p>
-        <p style={S.subtitle}>Asset Manager: Ekush Wealth Management Limited</p>
-        <p style={S.fundLine}>Mutual Fund: {fundBank.name}</p>
 
         {/* Form Title */}
         <div style={S.formTitle}>AUTO DEBIT INSTRUCTION FORM</div>
