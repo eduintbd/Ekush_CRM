@@ -368,9 +368,16 @@ export default function BuyPage() {
               <Button variant="outline" onClick={() => { setResult(null); setStep(0); setAmount(""); setPaymentSlip(null); }}>
                 Place Another Order
               </Button>
-              <Button onClick={() => router.push("/transactions")}>
-                View Orders
-              </Button>
+              <a
+                href={`/forms/money-receipt?fund=${encodeURIComponent(fund?.name || result.fund)}&amount=${Number(result.amount) || 0}&units=${Math.round(Number(result.estimatedUnits) || 0)}&nav=${nav.toFixed(4)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button>
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Download Receipt
+                </Button>
+              </a>
             </div>
           </CardContent>
         </Card>
