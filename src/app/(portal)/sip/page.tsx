@@ -417,7 +417,7 @@ export default function SipPage() {
               {/* DDI Form Preview Link */}
               <div className="text-center mb-6">
                 <a
-                  href={`/api/forms/ddi?fundCode=${encodeURIComponent(form.fundCode)}&amount=${encodeURIComponent(form.amount)}&debitDay=${encodeURIComponent(form.debitDay)}&tenure=${encodeURIComponent(form.tenure)}&frequency=${encodeURIComponent(form.frequency)}`}
+                  href={`/forms/ddi?fundCode=${encodeURIComponent(form.fundCode)}&amount=${encodeURIComponent(form.amount)}&debitDay=${encodeURIComponent(form.debitDay)}&tenure=${encodeURIComponent(form.tenure)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-[#2DAAB8] text-[#2DAAB8] rounded-[5px] text-[14px] font-medium hover:bg-[#2DAAB8] hover:text-white transition-colors"
