@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 
 
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { INVESTOR_TYPE_LABELS } from "@/lib/constants";
@@ -39,7 +39,7 @@ export default async function ProfilePage() {
 
   let investor;
   try {
-    investor = await getInvestorProfile(investorId);
+    investor = await withRetry(() => getInvestorProfile(investorId));
   } catch (err) {
     console.error("Profile fetch error:", err);
     return <p className="text-text-body text-center py-20">Could not load profile. Please refresh the page.</p>;

@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 
 
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,10 +45,9 @@ export default async function StatementsPage() {
   let holdings: Awaited<ReturnType<typeof getHoldings>> = [];
   let goals: Awaited<ReturnType<typeof getGoals>> = [];
   try {
-    [holdings, goals] = await Promise.all([
-      getHoldings(investorId),
-      getGoals(investorId),
-    ]);
+    [holdings, goals] = await withRetry(() =>
+      Promise.all([getHoldings(investorId), getGoals(investorId)])
+    );
   } catch (err) {
     console.error("Statements fetch error:", err);
     return <p className="text-text-body text-center py-20">Could not load statements. Please refresh the page.</p>;
