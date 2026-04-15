@@ -145,25 +145,25 @@ export default async function InvestmentUpdatePage({
             <div style={{ borderBottom: "3px double #000", paddingBottom: "2px", marginBottom: "2mm" }}>
               <span style={{ fontSize: "11pt", fontWeight: 400 }}>Investment Results:</span>
             </div>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9.5pt", whiteSpace: "nowrap" }}>
               <tbody>
                 <tr>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px 4px 0", width: "25%" }}>Cost Value of Investment</td>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", width: "25%", textAlign: "right", fontWeight: 700 }}>{fmt(costValue)}</td>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", width: "25%" }}>Capital Gain on Unit Sold</td>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", width: "25%", textAlign: "right", fontWeight: 700 }}>{fmt(realizedGain)}</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 4px 4px 0", width: "28%" }}>Cost Value of Investment</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 6px", width: "18%", textAlign: "right", fontWeight: 700 }}>{fmt(costValue)}</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 6px", width: "28%" }}>Capital Gain on Unit Sold</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 0 4px 6px", width: "18%", textAlign: "right", fontWeight: 700 }}>{fmt(realizedGain)}</td>
                 </tr>
                 <tr>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px 4px 0" }}>Wealth increased by</td>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", textAlign: "right", fontWeight: 700 }}>{fmt(unrealizedGain)}</td>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px" }}>Dividend Received</td>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", textAlign: "right", fontWeight: 700 }}>{fmt(dividendTotal)}</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 4px 4px 0" }}>Wealth increased by</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 6px", textAlign: "right", fontWeight: 700 }}>{fmt(unrealizedGain)}</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 6px" }}>Dividend Received</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 0 4px 6px", textAlign: "right", fontWeight: 700 }}>{fmt(dividendTotal)}</td>
                 </tr>
                 <tr>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px 4px 0" }}>Current Value of Investment</td>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", textAlign: "right", fontWeight: 700 }}>{fmt(marketValue)}</td>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", fontStyle: "italic", background: GREY_BG }}>Total Value Creation</td>
-                  <td style={{ borderBottom: "1px solid #000", padding: "4px 10px", textAlign: "right", fontWeight: 700, fontStyle: "italic", background: GREY_BG }}>{fmt(totalValueCreation)}</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 4px 4px 0" }}>Current Value of Investment</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 6px", textAlign: "right", fontWeight: 700 }}>{fmt(marketValue)}</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 6px", fontStyle: "italic", background: GREY_BG }}>Total Value Creation</td>
+                  <td style={{ borderBottom: "1px solid #000", padding: "4px 0 4px 6px", textAlign: "right", fontWeight: 700, fontStyle: "italic", background: GREY_BG }}>{fmt(totalValueCreation)}</td>
                 </tr>
               </tbody>
             </table>
