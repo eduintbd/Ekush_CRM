@@ -91,7 +91,9 @@ export async function POST(req: NextRequest) {
       rowsProcessed = result.updatedFields;
     } else {
       const parsed = await parseInvestorsWorkbook(buffer);
-      const result = await ingestInvestors(prisma, fundId, parsed);
+      // Skip transaction import for daily uploads — too slow for Vercel timeout.
+      // Transactions are imported during initial seed; daily uploads only update holdings.
+      const result = await ingestInvestors(prisma, fundId, parsed, { skipTransactions: true });
       rowsProcessed = result.holdingsUpserted + result.txCreated;
 
       // Log to audit log

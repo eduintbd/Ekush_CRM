@@ -517,7 +517,8 @@ export async function ingestFinStats(
 export async function ingestInvestors(
   prisma: PrismaClient,
   fundId: string,
-  parsed: InvestorsWorkbookResult
+  parsed: InvestorsWorkbookResult,
+  options?: { skipTransactions?: boolean }
 ) {
   let usersCreated = 0;
   let holdingsUpserted = 0;
@@ -551,12 +552,18 @@ export async function ingestInvestors(
     }
   }
 
-  // 2. Upsert holdings
+  // 2. Upsert holdings — pre-load all investor IDs for batch efficiency
+  const allCodes = [...new Set(parsed.holdings.map((h) => h.investorCode))];
+  const allInvestors = await prisma.investor.findMany({
+    where: { investorCode: { in: allCodes } },
+    select: { id: true, investorCode: true },
+  });
+  const investorIdMap = new Map(allInvestors.map((i) => [i.investorCode, i.id]));
+
   for (const h of parsed.holdings) {
-    const investor = await prisma.investor.findUnique({
-      where: { investorCode: h.investorCode },
-    });
-    if (!investor) continue;
+    const investorId = investorIdMap.get(h.investorCode);
+    if (!investorId) continue;
+    const investor = { id: investorId };
 
     const data = {
       lsUnitsBought: h.lsUnitsBought,
@@ -608,6 +615,9 @@ export async function ingestInvestors(
   }
 
   // 3. Insert transactions (skip duplicates by uniqueCode within same fund/investor)
+  if (options?.skipTransactions) {
+    return { usersCreated, holdingsUpserted, txCreated };
+  }
   const investorByCode = new Map<string, string>();
   for (const inv of parsed.investors) {
     const found = await prisma.investor.findUnique({
