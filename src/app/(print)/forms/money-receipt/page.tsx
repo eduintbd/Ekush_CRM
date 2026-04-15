@@ -79,7 +79,7 @@ export default async function MoneyReceiptPage({
         {/* Header bar */}
         <div style={{ background: "linear-gradient(135deg, #F27023, #e85d04)", padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <img src="/logo.png" alt="Ekush" style={{ height: "40px" }} />
+            <img src="/logo.png" alt="Ekush" style={{ height: "60px" }} />
           </div>
           <div style={{ textAlign: "right", color: "#fff" }}>
             <p style={{ fontSize: "18pt", fontWeight: 800, margin: 0, letterSpacing: "1px" }}>MONEY RECEIPT</p>
@@ -142,12 +142,7 @@ export default async function MoneyReceiptPage({
           </table>
 
           {/* Signature area */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "16px" }}>
-            <div style={{ textAlign: "center", width: "40%" }}>
-              <div style={{ borderTop: "1px solid #000", paddingTop: "4px", marginTop: "20px" }}>
-                <span style={{ fontSize: "9pt", color: "#666" }}>Investor Signature</span>
-              </div>
-            </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
             <div style={{ textAlign: "center", width: "40%" }}>
               <div style={{ borderTop: "1px solid #000", paddingTop: "4px", marginTop: "20px" }}>
                 <span style={{ fontSize: "9pt", color: "#666" }}>Authorized Signature</span>
