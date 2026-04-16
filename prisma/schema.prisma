@@ -310,6 +310,7 @@ model TaxCertificate {
 
   createdAt DateTime @default(now())
 
+  @@unique([investorId, fundId, periodEnd], name: "investorId_fundId_periodEnd")
   @@index([investorId, fundId])
   @@map("tax_certificates")
 }

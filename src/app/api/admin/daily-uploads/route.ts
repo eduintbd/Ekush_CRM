@@ -5,8 +5,10 @@ import { uploadFile } from "@/lib/upload";
 import {
   parseFinStats,
   parseInvestorsWorkbook,
+  parseTaxCertificates,
   ingestFinStats,
   ingestInvestors,
+  ingestTaxCertificates,
 } from "@/lib/excel-import";
 
 const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
@@ -96,6 +98,16 @@ export async function POST(req: NextRequest) {
       const result = await ingestInvestors(prisma, fundId, parsed, { skipTransactions: true });
       rowsProcessed = result.holdingsUpserted + result.txCreated;
 
+      // Tax certificates: pull authoritative per-investor values from the
+      // workbook's TAX CERTIFICATE sheet (source of truth, not computed).
+      const taxCerts = await parseTaxCertificates(buffer);
+      let taxCertsUpserted = 0;
+      if (taxCerts) {
+        const tcRes = await ingestTaxCertificates(prisma, fundId, taxCerts);
+        taxCertsUpserted = tcRes.upserted;
+        rowsProcessed += tcRes.upserted;
+      }
+
       // Log to audit log
       await prisma.auditLog.create({
         data: {
@@ -108,6 +120,7 @@ export async function POST(req: NextRequest) {
             usersCreated: result.usersCreated,
             holdingsUpserted: result.holdingsUpserted,
             txCreated: result.txCreated,
+            taxCertsUpserted,
           }),
         },
       });

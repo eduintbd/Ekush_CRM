@@ -477,6 +477,192 @@ export async function parseInvestorsWorkbook(
 }
 
 // ──────────────────────────────────────────────────────────────────
+// TAX CERTIFICATE sheet — authoritative per-investor period values
+// ──────────────────────────────────────────────────────────────────
+
+export interface TaxCertificateRow {
+  investorCode: string;
+  beginningUnits: number;
+  beginningCostValue: number;
+  beginningMarketValue: number;
+  beginningUnrealizedGain: number;
+  endingUnits: number;
+  endingCostValue: number;
+  endingMarketValue: number;
+  endingUnrealizedGain: number;
+  totalUnitsAdded: number;
+  totalAdditionAtCost: number;
+  totalUnitsRedeemed: number;
+  totalRedemptionAtCost: number;
+  netInvestment: number;
+  totalRealizedGain: number;
+  totalGrossDividend: number;
+  totalTax: number;
+  totalNetDividend: number;
+}
+
+export interface TaxCertificatesResult {
+  periodStart: Date | null;
+  periodEnd: Date | null;
+  navAtStart: number;
+  navAtEnd: number;
+  rows: TaxCertificateRow[];
+}
+
+// Period metadata lives in fixed cells W2:AA3 (cols 23-27):
+//   W = YEAR, X = MONTH, Y = DAY, Z = DATEVALUE, AA = NAV
+// Row 2 = period start, row 3 = period end.
+//
+// We always prefer Y/M/D over the Z cell: Excel's DATE() formula in Z resolves
+// to either a serial number or an ISO string depending on how the workbook was
+// last saved. Going through Y/M/D with Date.UTC guarantees a stable UTC-midnight
+// timestamp, which is what the unique (investor, fund, periodEnd) constraint
+// relies on.
+function readPeriodMeta(
+  sheet: ExcelJS.Worksheet,
+  rowNum: number
+): { date: Date | null; nav: number } {
+  const row = sheet.getRow(rowNum);
+  const y = parseExcelNumber(row.getCell(23).value);
+  const m = parseExcelNumber(row.getCell(24).value);
+  const d = parseExcelNumber(row.getCell(25).value);
+  let date: Date | null = null;
+  if (y && m && d) {
+    date = new Date(Date.UTC(y, m - 1, d));
+  } else {
+    const parsed = parseExcelDate(row.getCell(26).value);
+    if (parsed) {
+      date = new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
+    }
+  }
+  const nav = parseExcelNumber(row.getCell(27).value) ?? 0;
+  return { date, nav };
+}
+
+export async function parseTaxCertificates(
+  buffer: Buffer
+): Promise<TaxCertificatesResult | null> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as any);
+
+  const sheet = workbook.worksheets.find((s) => /tax\s*certificate/i.test(s.name));
+  if (!sheet) return null;
+
+  const startMeta = readPeriodMeta(sheet, 2);
+  const endMeta = readPeriodMeta(sheet, 3);
+
+  const rows: TaxCertificateRow[] = [];
+
+  // Fixed column positions (headers confirmed in row 1 across EFUF/EGF/ESRF):
+  //   1:INVESTOR CODE | 2:BEG UNITS | 3:BEG COST | 4:BEG MARKET | 5:BEG UNREAL
+  //   6:END UNITS | 7:END COST | 8:END MARKET | 9:END UNREAL
+  //   10:ADD UNITS | 11:ADD COST | 12:RED UNITS | 13:RED COST
+  //   14:NET INV | 15:REAL GAIN | 16:GROSS DIV | 17:TAX | 18:NET DIV
+  for (let r = 2; r <= sheet.rowCount; r++) {
+    const row = sheet.getRow(r);
+    const code = normalizeInvestorCode(row.getCell(1).value);
+    if (!/^[A-Z]\d{4,6}$/.test(code)) continue;
+
+    const n = (col: number) => parseExcelNumber(row.getCell(col).value) ?? 0;
+
+    rows.push({
+      investorCode: code,
+      beginningUnits: n(2),
+      beginningCostValue: n(3),
+      beginningMarketValue: n(4),
+      beginningUnrealizedGain: n(5),
+      endingUnits: n(6),
+      endingCostValue: n(7),
+      endingMarketValue: n(8),
+      endingUnrealizedGain: n(9),
+      totalUnitsAdded: n(10),
+      totalAdditionAtCost: n(11),
+      totalUnitsRedeemed: n(12),
+      totalRedemptionAtCost: n(13),
+      netInvestment: n(14),
+      totalRealizedGain: n(15),
+      totalGrossDividend: n(16),
+      totalTax: n(17),
+      totalNetDividend: n(18),
+    });
+  }
+
+  return {
+    periodStart: startMeta.date,
+    periodEnd: endMeta.date,
+    navAtStart: startMeta.nav,
+    navAtEnd: endMeta.nav,
+    rows,
+  };
+}
+
+export async function ingestTaxCertificates(
+  prisma: PrismaClient,
+  fundId: string,
+  parsed: TaxCertificatesResult
+): Promise<{ upserted: number; skipped: number }> {
+  if (!parsed.periodEnd || parsed.rows.length === 0) {
+    return { upserted: 0, skipped: parsed.rows.length };
+  }
+
+  const codes = parsed.rows.map((r) => r.investorCode);
+  const investors = await prisma.investor.findMany({
+    where: { investorCode: { in: codes } },
+    select: { id: true, investorCode: true },
+  });
+  const idMap = new Map(investors.map((i) => [i.investorCode, i.id]));
+
+  let upserted = 0;
+  let skipped = 0;
+
+  for (const row of parsed.rows) {
+    const investorId = idMap.get(row.investorCode);
+    if (!investorId) {
+      skipped++;
+      continue;
+    }
+
+    const data = {
+      periodStart: parsed.periodStart,
+      periodEnd: parsed.periodEnd,
+      beginningUnits: row.beginningUnits,
+      beginningCostValue: row.beginningCostValue,
+      beginningMarketValue: row.beginningMarketValue,
+      beginningUnrealizedGain: row.beginningUnrealizedGain,
+      endingUnits: row.endingUnits,
+      endingCostValue: row.endingCostValue,
+      endingMarketValue: row.endingMarketValue,
+      endingUnrealizedGain: row.endingUnrealizedGain,
+      totalUnitsAdded: row.totalUnitsAdded,
+      totalAdditionAtCost: row.totalAdditionAtCost,
+      totalUnitsRedeemed: row.totalUnitsRedeemed,
+      totalRedemptionAtCost: row.totalRedemptionAtCost,
+      netInvestment: row.netInvestment,
+      totalRealizedGain: row.totalRealizedGain,
+      totalGrossDividend: row.totalGrossDividend,
+      totalTax: row.totalTax,
+      totalNetDividend: row.totalNetDividend,
+      navAtEnd: parsed.navAtEnd,
+    };
+
+    await prisma.taxCertificate.upsert({
+      where: {
+        investorId_fundId_periodEnd: {
+          investorId,
+          fundId,
+          periodEnd: parsed.periodEnd,
+        },
+      },
+      update: data,
+      create: { investorId, fundId, ...data },
+    });
+    upserted++;
+  }
+
+  return { upserted, skipped };
+}
+
+// ──────────────────────────────────────────────────────────────────
 // Ingestion
 // ──────────────────────────────────────────────────────────────────
 
