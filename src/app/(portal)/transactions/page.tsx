@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TransactionFilters } from "@/components/transactions/transaction-filters";
 import type { Prisma } from "@prisma/client";
 
-const PAGE_SIZE = 50;
 // Years to populate the year dropdown — current year and previous 4
 const YEARS = (() => {
   const y = new Date().getFullYear();
@@ -16,7 +15,6 @@ const YEARS = (() => {
 })();
 
 interface SearchParams {
-  page?: string;
   fund?: string;
   type?: string;
   year?: string;
@@ -43,8 +41,6 @@ export default async function TransactionsPage({
   if (!investorId) {
     return <p className="text-text-body text-center py-20">Investor profile not found.</p>;
   }
-
-  const page = Math.max(1, parseInt(searchParams.page || "1"));
 
   // Resolve filters
   const funds = await prisma.fund.findMany({
@@ -81,10 +77,11 @@ export default async function TransactionsPage({
   const transactions = await prisma.transaction.findMany({
     where,
     include: { fund: { select: { code: true, name: true } } },
-    orderBy: { orderDate: "desc" },
-    take: PAGE_SIZE,
-    skip: (page - 1) * PAGE_SIZE,
+    orderBy: { orderDate: "asc" },
   });
+
+  const lumpsum = transactions.filter((t) => t.channel === "LS");
+  const sip = transactions.filter((t) => t.channel === "SIP");
 
   return (
     <div className="space-y-6">
@@ -92,51 +89,84 @@ export default async function TransactionsPage({
 
       <TransactionFilters funds={funds} years={YEARS} />
 
-      {/* Transactions Table */}
-      <Card>
-        <CardContent className="p-0">
-          {transactions.length === 0 ? (
+      {transactions.length === 0 ? (
+        <Card>
+          <CardContent className="p-0">
             <p className="text-text-body text-sm text-center py-8">No transactions found.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-0 hover:bg-transparent">
-                  <TableHead>No.</TableHead>
-                  <TableHead>Txn date</TableHead>
-                  <TableHead>Fund</TableHead>
-                  <TableHead>Txn type</TableHead>
-                  <TableHead className="text-right">No. of units</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((tx, idx) => (
-                  <TableRow key={tx.id}>
-                    <TableCell className="text-text-dark">{(page - 1) * PAGE_SIZE + idx + 1}</TableCell>
-                    <TableCell className="whitespace-nowrap text-text-dark">{formatDate(tx.orderDate)}</TableCell>
-                    <TableCell className="text-text-dark">{tx.fund.code}</TableCell>
-                    <TableCell>
-                      <span className={tx.direction === "SELL" ? "text-ekush-orange font-medium" : "text-text-dark font-medium"}>
-                        {tx.direction === "BUY" ? "Buy" : "Sell"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right text-text-dark">
-                      {formatNumber(Number(tx.units), 0)}
-                    </TableCell>
-                    <TableCell className="text-right text-text-dark">
-                      {Number(tx.nav).toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right text-text-dark">
-                      {formatNumber(Number(tx.amount), 0)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <TransactionSection title="Lumpsum History" rows={lumpsum} />
+          <TransactionSection title="SIP History" rows={sip} />
+        </>
+      )}
     </div>
+  );
+}
+
+function TransactionSection({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: {
+    id: string;
+    orderDate: Date;
+    direction: string;
+    units: number;
+    nav: number;
+    amount: number;
+    fund: { code: string };
+  }[];
+}) {
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h2 className="text-[15px] font-semibold text-text-dark font-rajdhani">{title}</h2>
+        </div>
+        {rows.length === 0 ? (
+          <p className="text-text-body text-sm text-center py-6">No {title.toLowerCase()} in this range.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="border-0 hover:bg-transparent">
+                <TableHead>No.</TableHead>
+                <TableHead>Txn date</TableHead>
+                <TableHead>Fund</TableHead>
+                <TableHead>Txn type</TableHead>
+                <TableHead className="text-right">No. of units</TableHead>
+                <TableHead className="text-right">Price</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((tx, idx) => (
+                <TableRow key={tx.id}>
+                  <TableCell className="text-text-dark">{idx + 1}</TableCell>
+                  <TableCell className="whitespace-nowrap text-text-dark">{formatDate(tx.orderDate)}</TableCell>
+                  <TableCell className="text-text-dark">{tx.fund.code}</TableCell>
+                  <TableCell>
+                    <span className={tx.direction === "SELL" ? "text-ekush-orange font-medium" : "text-text-dark font-medium"}>
+                      {tx.direction === "BUY" ? "Buy" : "Sell"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right text-text-dark">
+                    {formatNumber(Number(tx.units), 0)}
+                  </TableCell>
+                  <TableCell className="text-right text-text-dark">
+                    {Number(tx.nav).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-right text-text-dark">
+                    {formatNumber(Number(tx.amount), 0)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
