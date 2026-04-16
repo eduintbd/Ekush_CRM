@@ -3,11 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
-import {
-  generatePortfolioStatementPDF,
-  generateTaxCertificatePDF,
-  generateTransactionReportPDF,
-} from "@/lib/pdf";
+import { generatePortfolioStatementPDF } from "@/lib/pdf";
 
 export function DownloadPortfolioStatement() {
   const [loading, setLoading] = useState(false);
@@ -48,38 +44,21 @@ export function DownloadTransactionReport({
   from?: string;
   to?: string;
 }) {
-  const [loading, setLoading] = useState(false);
-
-  const handleDownload = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (fund) params.set("fund", fund);
-      if (year) params.set("year", year);
-      if (type) params.set("type", type);
-      if (from) params.set("from", from);
-      if (to) params.set("to", to);
-
-      const res = await fetch(`/api/statements/transactions?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch data");
-      const data = await res.json();
-      const doc = generateTransactionReportPDF(data);
-      const tag = [fund, year, type].filter(Boolean).join("_") || "all";
-      doc.save(
-        `Transaction_Report_${data.investorCode}_${tag}_${new Date().toISOString().slice(0, 10)}.pdf`
-      );
-    } catch (err) {
-      alert("Failed to generate PDF. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const params = new URLSearchParams();
+  if (fund) params.set("fund", fund);
+  if (year) params.set("year", year);
+  if (type) params.set("type", type);
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const href = `/forms/transaction-report${params.toString() ? `?${params.toString()}` : ""}`;
 
   return (
-    <Button onClick={handleDownload} disabled={loading} size="sm">
-      {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
-      Download PDF
-    </Button>
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      <Button size="sm">
+        <Download className="w-4 h-4 mr-2" />
+        Download PDF
+      </Button>
+    </a>
   );
 }
 
