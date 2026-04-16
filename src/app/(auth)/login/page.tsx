@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Check, X } from "lucide-react";
+
+const SIGNUP_CHECKLIST = [
+  "Applicant's and Nominee's National ID Card",
+  "Colour Photos and Signatures of the Applicant(s) and Nominee(s)",
+  "Blank Cheque / Bank Statement of the Applicant",
+  "Applicant's E-TIN Certificate (if any)",
+  "Soft copy of the Applicant's Signature, BO Acknowledgement. To create new BO Account Click Here",
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +21,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [signupGateOpen, setSignupGateOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,9 +111,13 @@ export default function LoginPage() {
           <div className="mt-5 text-center space-y-3">
             <p className="text-[13px] text-text-body">
               Do you want to register?{" "}
-              <a href="/register" className="text-ekush-orange hover:underline font-semibold">
+              <button
+                type="button"
+                onClick={() => setSignupGateOpen(true)}
+                className="text-ekush-orange hover:underline font-semibold"
+              >
                 Lets sign-up
-              </a>
+              </button>
             </p>
             <a href="#" className="text-[13px] text-ekush-orange hover:underline font-medium block">
               Forgot Password?
@@ -116,6 +129,61 @@ export default function LoginPage() {
           Licensed by BSEC | &copy; 2021-{new Date().getFullYear()} Ekush Wealth Management Ltd
         </p>
       </div>
+
+      {signupGateOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setSignupGateOpen(false)}
+        >
+          <div
+            className="bg-white rounded-card shadow-card max-w-[520px] w-full relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setSignupGateOpen(false)}
+              className="absolute top-3 right-3 text-text-body hover:text-text-dark"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="p-7">
+              <h3 className="text-[17px] font-semibold text-text-dark font-rajdhani mb-4">
+                Please keep the soft copy of the following documents ready:
+              </h3>
+
+              <ul className="divide-y divide-gray-100">
+                {SIGNUP_CHECKLIST.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 py-2.5 text-[13px] text-text-dark">
+                    <Check className="w-4 h-4 text-ekush-orange mt-0.5 shrink-0" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="text-[11.5px] text-text-body mt-3 italic">
+                Note: Mutual fund units will not be credited to your BO account unless BO Account Number is provided.
+                For any query, please contact 09678666888
+              </p>
+
+              <div className="mt-5 flex justify-center">
+                <Button
+                  onClick={() => {
+                    setSignupGateOpen(false);
+                    router.push("/register");
+                  }}
+                  className="px-8"
+                >
+                  Accept
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

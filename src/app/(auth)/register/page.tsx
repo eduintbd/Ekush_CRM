@@ -251,61 +251,126 @@ export default function RegisterPage() {
     return (data?.text as string) || "";
   }
 
+  function toAsciiDigits(s: string): string {
+    return s.replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d)));
+  }
+
   function extractDigits(text: string, minLen: number, maxLen: number): string {
-    const matches = text.match(/[0-9০-৯]{4,}/g) || [];
-    const toAscii = (s: string) =>
-      s.replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d)));
-    for (const m of matches) {
-      const ascii = toAscii(m).replace(/\D/g, "");
-      if (ascii.length >= minLen && ascii.length <= maxLen) return ascii;
+    const ascii = toAsciiDigits(text);
+    const clean = ascii.replace(/[\s\-_.]/g, "");
+    // prefer exact-length runs first
+    for (let len = maxLen; len >= minLen; len--) {
+      const re = new RegExp(`(?<!\\d)\\d{${len}}(?!\\d)`);
+      const m = clean.match(re);
+      if (m) return m[0];
     }
-    // longest fallback
-    const all = matches.map((m) => toAscii(m).replace(/\D/g, "")).sort((a, b) => b.length - a.length);
+    const matches = ascii.match(/\d{4,}/g) || [];
+    const all = matches.sort((a, b) => b.length - a.length);
     return all[0] || "";
   }
 
   function extractAfterLabel(text: string, labels: string[]): string {
+    const lower = text.toLowerCase();
     for (const label of labels) {
-      const idx = text.toLowerCase().indexOf(label.toLowerCase());
-      if (idx >= 0) {
-        const after = text.slice(idx + label.length).split(/\n/)[0].replace(/^[:\s]+/, "").trim();
-        if (after.length > 2) return after;
+      const l = label.toLowerCase();
+      let idx = lower.indexOf(l);
+      while (idx >= 0) {
+        let after = text.slice(idx + label.length);
+        after = after.replace(/^[:\-\s,]+/, "");
+        const line = after.split(/[\r\n]/)[0].trim();
+        // reject numeric-only or too-short matches, try next occurrence
+        if (line.length > 2 && !/^[\d\s]+$/.test(line)) return line;
+        idx = lower.indexOf(l, idx + 1);
       }
     }
     return "";
   }
 
   function extractName(text: string): string {
-    const m = text.match(/Name[:\s]+([A-Z][A-Z\s.]{3,})/);
+    const m = text.match(/Name[:\s]+([A-Z][A-Z .]{3,})/);
     if (m) return m[1].trim();
     return extractAfterLabel(text, ["নাম"]);
   }
 
-  async function handleNidUpload(file: File | null, target: "applicant" | "nominee") {
-    const setter = target === "applicant" ? setNidFront : setNomineeNidFront;
-    setter(file);
+  function extractBoId(text: string): string {
+    const labeled = text.match(/(?:BO\s*(?:ID|A\/?C|Account)[^\d]{0,20})(\d[\d\s\-]{12,})/i);
+    if (labeled) {
+      const digits = labeled[1].replace(/\D/g, "");
+      if (digits.length >= 12) return digits.slice(0, 16);
+    }
+    const clean = toAsciiDigits(text).replace(/[\s\-_.]/g, "");
+    const m16 = clean.match(/(?<!\d)\d{16}(?!\d)/);
+    if (m16) return m16[0];
+    return extractDigits(text, 12, 17);
+  }
+
+  function extractTin(text: string): string {
+    const labeled = text.match(/(?:e[-\s]?TIN|TIN|Tax\s*Identification\s*Number)[^\d]{0,20}(\d[\d\s\-]{8,})/i);
+    if (labeled) {
+      const digits = labeled[1].replace(/\D/g, "");
+      if (digits.length >= 9) return digits.slice(0, 12);
+    }
+    const clean = toAsciiDigits(text).replace(/[\s\-_.]/g, "");
+    const m12 = clean.match(/(?<!\d)\d{12}(?!\d)/);
+    if (m12) return m12[0];
+    return extractDigits(text, 9, 14);
+  }
+
+  const FATHER_LABELS = [
+    "Father's Name", "Fathers Name", "Father Name", "Father/Husband", "Father",
+    "পিতার নাম", "পিতা", "স্বামী",
+  ];
+  const MOTHER_LABELS = [
+    "Mother's Name", "Mothers Name", "Mother Name", "Mother",
+    "মাতার নাম", "মাতা",
+  ];
+  const PRESENT_ADDR_LABELS = [
+    "Present Address", "Address", "বর্তমান ঠিকানা", "ঠিকানা",
+  ];
+  const PERM_ADDR_LABELS = [
+    "Permanent Address", "স্থায়ী ঠিকানা",
+  ];
+
+  async function runNidOcrInto(file: File, target: "applicant" | "nominee") {
+    const text = await runOCR(file);
+    const nid = extractDigits(text, 10, 17);
+    const father = extractAfterLabel(text, FATHER_LABELS);
+    const mother = extractAfterLabel(text, MOTHER_LABELS);
+    const present = extractAfterLabel(text, PRESENT_ADDR_LABELS);
+    const permanent = extractAfterLabel(text, PERM_ADDR_LABELS);
+    // Keep existing non-empty values when new OCR pass doesn't find them
+    const merge = (prev: PersonInfo): PersonInfo => ({
+      ...prev,
+      nidNumber: prev.nidNumber || nid,
+      fatherName: prev.fatherName || father,
+      motherName: prev.motherName || mother,
+      presentAddress: prev.presentAddress || present,
+      permanentAddress: prev.permanentAddress || permanent,
+    });
+    if (target === "applicant") {
+      setApplicantInfo(merge);
+    } else {
+      setNomineeInfo(merge);
+      const nm = extractName(text);
+      if (nm) setNomineeName((prev) => prev || nm);
+    }
+  }
+
+  async function handleNidUpload(
+    file: File | null,
+    target: "applicant" | "nominee",
+    side: "front" | "back",
+  ) {
+    const setters = {
+      applicant: { front: setNidFront, back: setNidBack },
+      nominee: { front: setNomineeNidFront, back: setNomineeNidBack },
+    };
+    setters[target][side](file);
     if (!file) return;
-    setOcrBusy(target === "applicant" ? "applicant-nid" : "nominee-nid");
+    const busyKey = `${target}-nid-${side}`;
+    setOcrBusy(busyKey);
     try {
-      const text = await runOCR(file);
-      const nid = extractDigits(text, 10, 17);
-      const father = extractAfterLabel(text, ["Father", "পিতা", "পিতার নাম"]);
-      const mother = extractAfterLabel(text, ["Mother", "মাতা", "মাতার নাম"]);
-      const present = extractAfterLabel(text, ["Present Address", "ঠিকানা", "বর্তমান ঠিকানা", "Address"]);
-      const update = (prev: PersonInfo): PersonInfo => ({
-        ...prev,
-        nidNumber: nid || prev.nidNumber,
-        fatherName: father || prev.fatherName,
-        motherName: mother || prev.motherName,
-        presentAddress: present || prev.presentAddress,
-      });
-      if (target === "applicant") {
-        setApplicantInfo(update);
-      } else {
-        setNomineeInfo(update);
-        const nm = extractName(text);
-        if (nm) setNomineeName((prev) => prev || nm);
-      }
+      await runNidOcrInto(file, target);
     } catch (e) {
       console.error("OCR failed", e);
     } finally {
@@ -319,8 +384,8 @@ export default function RegisterPage() {
     setOcrBusy("bo");
     try {
       const text = await runOCR(file);
-      const boId = extractDigits(text, 12, 17);
-      if (boId) setBank((b) => ({ ...b, boAccountNo: boId }));
+      const boId = extractBoId(text);
+      if (boId) setBank((b) => ({ ...b, boAccountNo: b.boAccountNo || boId }));
     } catch (e) {
       console.error("BO OCR failed", e);
     } finally {
@@ -334,8 +399,8 @@ export default function RegisterPage() {
     setOcrBusy("tin");
     try {
       const text = await runOCR(file);
-      const tin = extractDigits(text, 9, 14);
-      if (tin) setTinNumber(tin);
+      const tin = extractTin(text);
+      if (tin) setTinNumber((prev) => prev || tin);
     } catch (e) {
       console.error("TIN OCR failed", e);
     } finally {
@@ -477,11 +542,17 @@ export default function RegisterPage() {
                   <FileUpload
                     label="NID Front*"
                     file={nidFront}
-                    onFile={(f) => handleNidUpload(f, "applicant")}
+                    onFile={(f) => handleNidUpload(f, "applicant", "front")}
                     accept="image/*,.pdf"
-                    busy={ocrBusy === "applicant-nid"}
+                    busy={ocrBusy === "applicant-nid-front"}
                   />
-                  <FileUpload label="NID Back Page" file={nidBack} onFile={setNidBack} accept="image/*,.pdf" />
+                  <FileUpload
+                    label="NID Back Page"
+                    file={nidBack}
+                    onFile={(f) => handleNidUpload(f, "applicant", "back")}
+                    accept="image/*,.pdf"
+                    busy={ocrBusy === "applicant-nid-back"}
+                  />
                   <FileUpload label="Passport Size Photo" file={photo} onFile={setPhoto} accept="image/*" />
                   <FileUpload label="Digital Signature" file={signature} onFile={setSignature} accept="image/*" />
                 </div>
@@ -498,11 +569,17 @@ export default function RegisterPage() {
                   <FileUpload
                     label="NID Front Page"
                     file={nomineeNidFront}
-                    onFile={(f) => handleNidUpload(f, "nominee")}
+                    onFile={(f) => handleNidUpload(f, "nominee", "front")}
                     accept="image/*,.pdf"
-                    busy={ocrBusy === "nominee-nid"}
+                    busy={ocrBusy === "nominee-nid-front"}
                   />
-                  <FileUpload label="NID Back Page" file={nomineeNidBack} onFile={setNomineeNidBack} accept="image/*,.pdf" />
+                  <FileUpload
+                    label="NID Back Page"
+                    file={nomineeNidBack}
+                    onFile={(f) => handleNidUpload(f, "nominee", "back")}
+                    accept="image/*,.pdf"
+                    busy={ocrBusy === "nominee-nid-back"}
+                  />
                   <FileUpload label="Passport Size Photo" file={nomineePhoto} onFile={setNomineePhoto} accept="image/*" />
                   <FileUpload label="Digital Signature" file={nomineeSignature} onFile={setNomineeSignature} accept="image/*" />
                 </div>
@@ -524,13 +601,19 @@ export default function RegisterPage() {
 
               {/* TIN */}
               <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                   <FileUpload
                     label="E-TIN Certificate of Principal Applicant"
                     file={tinCert}
                     onFile={handleTinUpload}
                     accept="image/*,.pdf"
                     busy={ocrBusy === "tin"}
+                  />
+                  <Input
+                    label="E-TIN Number"
+                    value={tinNumber}
+                    onChange={(e) => setTinNumber(e.target.value)}
+                    placeholder="Auto-filled from E-TIN certificate"
                   />
                 </div>
               </div>
