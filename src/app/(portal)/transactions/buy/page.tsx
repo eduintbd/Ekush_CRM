@@ -18,7 +18,6 @@ export default function BuyPage() {
   const [step, setStep] = useState(0);
   const [selectedFund, setSelectedFund] = useState("");
   const [amount, setAmount] = useState("");
-  const [dividendOption, setDividendOption] = useState("CIP");
   const [paymentSlip, setPaymentSlip] = useState<File | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -199,17 +198,6 @@ export default function BuyPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[14px] font-medium text-text-label">Dividend</label>
-                <select
-                  value={dividendOption}
-                  onChange={(e) => setDividendOption(e.target.value)}
-                  className="w-full h-[50px] rounded-[5px] border border-input-border bg-input-bg px-5 text-[14px] text-text-dark focus:outline-none focus:border-ekush-orange"
-                >
-                  <option value="CIP">CIP</option>
-                  <option value="CASH">Cash</option>
-                </select>
-              </div>
             </div>
 
             <div className="mt-8 text-center">
@@ -330,10 +318,6 @@ export default function BuyPage() {
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Estimated Units</span>
                 <span className="text-text-dark font-medium">{Math.round(estimatedUnits).toLocaleString("en-IN")}</span>
-              </div>
-              <div className="flex justify-between text-[14px]">
-                <span className="text-text-body">Dividend Option</span>
-                <span className="text-text-dark font-medium">{dividendOption}</span>
               </div>
               <div className="flex justify-between text-[14px]">
                 <span className="text-text-body">Payment</span>

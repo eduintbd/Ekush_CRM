@@ -17,6 +17,22 @@ const STEPS = [
 
 const NOMINEE_RELATIONSHIPS = ["Father/Mother", "Son/Daughter", "Spouse", "Other"];
 
+interface PersonInfo {
+  nidNumber: string;
+  fatherName: string;
+  motherName: string;
+  presentAddress: string;
+  permanentAddress: string;
+}
+
+const EMPTY_PERSON: PersonInfo = {
+  nidNumber: "",
+  fatherName: "",
+  motherName: "",
+  presentAddress: "",
+  permanentAddress: "",
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -40,9 +56,18 @@ export default function RegisterPage() {
   const [nomineePhoto, setNomineePhoto] = useState<File | null>(null);
   const [nomineeSignature, setNomineeSignature] = useState<File | null>(null);
   const [nomineeRelationship, setNomineeRelationship] = useState("");
+  const [nomineeName, setNomineeName] = useState("");
 
   // Documents — other
   const [tinCert, setTinCert] = useState<File | null>(null);
+  const [tinNumber, setTinNumber] = useState("");
+
+  // OCR state
+  const [ocrBusy, setOcrBusy] = useState<string | null>(null);
+
+  // Auto-filled / editable info
+  const [applicantInfo, setApplicantInfo] = useState<PersonInfo>(EMPTY_PERSON);
+  const [nomineeInfo, setNomineeInfo] = useState<PersonInfo>(EMPTY_PERSON);
 
   // Preview modal
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -77,6 +102,97 @@ export default function RegisterPage() {
     }
   };
 
+  // ---------- OCR helpers ----------
+  async function runOCR(file: File): Promise<string> {
+    // Dynamic import — tesseract.js is added in package.json; install before running.
+    // @ts-ignore — types provided by the package once installed
+    const mod: any = await import("tesseract.js");
+    const Tesseract: any = mod.default ?? mod;
+    const { data } = await Tesseract.recognize(file, "eng+ben");
+    return (data?.text as string) || "";
+  }
+
+  function extractDigits(text: string, minLen: number, maxLen: number): string {
+    const matches = text.match(/[0-9০-৯]{4,}/g) || [];
+    const toAscii = (s: string) =>
+      s.replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d)));
+    for (const m of matches) {
+      const ascii = toAscii(m).replace(/\D/g, "");
+      if (ascii.length >= minLen && ascii.length <= maxLen) return ascii;
+    }
+    // longest fallback
+    const all = matches.map((m) => toAscii(m).replace(/\D/g, "")).sort((a, b) => b.length - a.length);
+    return all[0] || "";
+  }
+
+  function extractAfterLabel(text: string, labels: string[]): string {
+    for (const label of labels) {
+      const idx = text.toLowerCase().indexOf(label.toLowerCase());
+      if (idx >= 0) {
+        const after = text.slice(idx + label.length).split(/\n/)[0].replace(/^[:\s]+/, "").trim();
+        if (after.length > 2) return after;
+      }
+    }
+    return "";
+  }
+
+  async function handleNidUpload(file: File | null, target: "applicant" | "nominee") {
+    const setter = target === "applicant" ? setNidFront : setNomineeNidFront;
+    setter(file);
+    if (!file) return;
+    setOcrBusy(target === "applicant" ? "applicant-nid" : "nominee-nid");
+    try {
+      const text = await runOCR(file);
+      const nid = extractDigits(text, 10, 17);
+      const father = extractAfterLabel(text, ["Father", "পিতা", "পিতার নাম"]);
+      const mother = extractAfterLabel(text, ["Mother", "মাতা", "মাতার নাম"]);
+      const present = extractAfterLabel(text, ["Present Address", "ঠিকানা", "বর্তমান ঠিকানা", "Address"]);
+      const update = (prev: PersonInfo): PersonInfo => ({
+        ...prev,
+        nidNumber: nid || prev.nidNumber,
+        fatherName: father || prev.fatherName,
+        motherName: mother || prev.motherName,
+        presentAddress: present || prev.presentAddress,
+      });
+      if (target === "applicant") setApplicantInfo(update);
+      else setNomineeInfo(update);
+    } catch (e) {
+      console.error("OCR failed", e);
+    } finally {
+      setOcrBusy(null);
+    }
+  }
+
+  async function handleBoUpload(file: File | null) {
+    setBoAcknowledgement(file);
+    if (!file) return;
+    setOcrBusy("bo");
+    try {
+      const text = await runOCR(file);
+      const boId = extractDigits(text, 12, 17);
+      if (boId) setBank((b) => ({ ...b, boAccountNo: boId }));
+    } catch (e) {
+      console.error("BO OCR failed", e);
+    } finally {
+      setOcrBusy(null);
+    }
+  }
+
+  async function handleTinUpload(file: File | null) {
+    setTinCert(file);
+    if (!file) return;
+    setOcrBusy("tin");
+    try {
+      const text = await runOCR(file);
+      const tin = extractDigits(text, 9, 14);
+      if (tin) setTinNumber(tin);
+    } catch (e) {
+      console.error("TIN OCR failed", e);
+    } finally {
+      setOcrBusy(null);
+    }
+  }
+
   const handleSubmit = async () => {
     setLoading(true);
     setError("");
@@ -95,6 +211,22 @@ export default function RegisterPage() {
       formData.append("dividendOption", dividendOption);
 
       formData.append("nomineeRelationship", nomineeRelationship);
+      formData.append("nomineeName", nomineeName);
+
+      // Applicant additional info
+      formData.append("nidNumber", applicantInfo.nidNumber);
+      formData.append("fatherName", applicantInfo.fatherName);
+      formData.append("motherName", applicantInfo.motherName);
+      formData.append("presentAddress", applicantInfo.presentAddress);
+      formData.append("permanentAddress", applicantInfo.permanentAddress);
+      formData.append("tinNumber", tinNumber);
+
+      // Nominee additional info
+      formData.append("nomineeNidNumber", nomineeInfo.nidNumber);
+      formData.append("nomineeFatherName", nomineeInfo.fatherName);
+      formData.append("nomineeMotherName", nomineeInfo.motherName);
+      formData.append("nomineePresentAddress", nomineeInfo.presentAddress);
+      formData.append("nomineePermanentAddress", nomineeInfo.permanentAddress);
 
       if (nidFront) formData.append("nidFront", nidFront);
       if (nidBack) formData.append("nidBack", nidBack);
@@ -189,10 +321,56 @@ export default function RegisterPage() {
               <div>
                 <h3 className="text-[14px] font-semibold text-text-dark mb-3">Principal Applicant&apos;s Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <FileUpload label="NID Front*" file={nidFront} onFile={setNidFront} accept="image/*,.pdf" />
+                  <FileUpload
+                    label="NID Front*"
+                    file={nidFront}
+                    onFile={(f) => handleNidUpload(f, "applicant")}
+                    accept="image/*,.pdf"
+                    busy={ocrBusy === "applicant-nid"}
+                  />
                   <FileUpload label="NID Back Page" file={nidBack} onFile={setNidBack} accept="image/*,.pdf" />
                   <FileUpload label="Passport Size Photo" file={photo} onFile={setPhoto} accept="image/*" />
                   <FileUpload label="Digital Signature" file={signature} onFile={setSignature} accept="image/*" />
+                </div>
+
+                <p className="text-[11px] text-text-body mt-2">
+                  Information below is auto-extracted from the NID; please review and edit as needed.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <Input
+                    label="NID / Passport Number"
+                    value={applicantInfo.nidNumber}
+                    onChange={(e) => setApplicantInfo({ ...applicantInfo, nidNumber: e.target.value })}
+                    placeholder="NID number"
+                  />
+                  <Input
+                    label="Father's / Husband's Name"
+                    value={applicantInfo.fatherName}
+                    onChange={(e) => setApplicantInfo({ ...applicantInfo, fatherName: e.target.value })}
+                    placeholder="Father / Husband name"
+                  />
+                  <Input
+                    label="Mother's Name"
+                    value={applicantInfo.motherName}
+                    onChange={(e) => setApplicantInfo({ ...applicantInfo, motherName: e.target.value })}
+                    placeholder="Mother name"
+                  />
+                  <Input
+                    label="Permanent Address"
+                    value={applicantInfo.permanentAddress}
+                    onChange={(e) => setApplicantInfo({ ...applicantInfo, permanentAddress: e.target.value })}
+                    placeholder="Permanent address"
+                  />
+                  <div className="md:col-span-2">
+                    <label className="text-[14px] font-medium text-text-label">Present Address</label>
+                    <textarea
+                      value={applicantInfo.presentAddress}
+                      onChange={(e) => setApplicantInfo({ ...applicantInfo, presentAddress: e.target.value })}
+                      placeholder="Present address (auto-filled from NID)"
+                      rows={2}
+                      className="mt-2 flex w-full rounded-[5px] border border-input-border bg-input-bg px-4 py-2 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -200,30 +378,91 @@ export default function RegisterPage() {
               <div>
                 <h3 className="text-[14px] font-semibold text-text-dark mb-3">Nominee Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <FileUpload label="NID Front Page" file={nomineeNidFront} onFile={setNomineeNidFront} accept="image/*,.pdf" />
+                  <FileUpload
+                    label="NID Front Page"
+                    file={nomineeNidFront}
+                    onFile={(f) => handleNidUpload(f, "nominee")}
+                    accept="image/*,.pdf"
+                    busy={ocrBusy === "nominee-nid"}
+                  />
                   <FileUpload label="NID Back Page" file={nomineeNidBack} onFile={setNomineeNidBack} accept="image/*,.pdf" />
                   <FileUpload label="Passport Size Photo" file={nomineePhoto} onFile={setNomineePhoto} accept="image/*" />
                   <FileUpload label="Digital Signature" file={nomineeSignature} onFile={setNomineeSignature} accept="image/*" />
                 </div>
-                <div className="mt-4 max-w-sm">
-                  <label className="text-[14px] font-medium text-text-label">Nominee Relationship</label>
-                  <select
-                    value={nomineeRelationship}
-                    onChange={(e) => setNomineeRelationship(e.target.value)}
-                    className="mt-2 flex h-[50px] w-full rounded-[5px] border border-input-border bg-input-bg px-4 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
-                  >
-                    <option value="">Select relationship</option>
-                    {NOMINEE_RELATIONSHIPS.map((r) => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <Input
+                    label="Nominee Name"
+                    value={nomineeName}
+                    onChange={(e) => setNomineeName(e.target.value)}
+                    placeholder="Nominee full name"
+                  />
+                  <div>
+                    <label className="text-[14px] font-medium text-text-label">Nominee Relationship</label>
+                    <select
+                      value={nomineeRelationship}
+                      onChange={(e) => setNomineeRelationship(e.target.value)}
+                      className="mt-2 flex h-[50px] w-full rounded-[5px] border border-input-border bg-input-bg px-4 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
+                    >
+                      <option value="">Select relationship</option>
+                      {NOMINEE_RELATIONSHIPS.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Input
+                    label="NID / Passport Number"
+                    value={nomineeInfo.nidNumber}
+                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, nidNumber: e.target.value })}
+                    placeholder="NID number"
+                  />
+                  <Input
+                    label="Father's / Husband's Name"
+                    value={nomineeInfo.fatherName}
+                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, fatherName: e.target.value })}
+                    placeholder="Father / Husband name"
+                  />
+                  <Input
+                    label="Mother's Name"
+                    value={nomineeInfo.motherName}
+                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, motherName: e.target.value })}
+                    placeholder="Mother name"
+                  />
+                  <Input
+                    label="Permanent Address"
+                    value={nomineeInfo.permanentAddress}
+                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, permanentAddress: e.target.value })}
+                    placeholder="Permanent address"
+                  />
+                  <div className="md:col-span-2">
+                    <label className="text-[14px] font-medium text-text-label">Present Address</label>
+                    <textarea
+                      value={nomineeInfo.presentAddress}
+                      onChange={(e) => setNomineeInfo({ ...nomineeInfo, presentAddress: e.target.value })}
+                      placeholder="Present address (auto-filled from NID)"
+                      rows={2}
+                      className="mt-2 flex w-full rounded-[5px] border border-input-border bg-input-bg px-4 py-2 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* TIN */}
               <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FileUpload label="E-TIN Certificate of Principal Applicant" file={tinCert} onFile={setTinCert} accept="image/*,.pdf" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                  <FileUpload
+                    label="E-TIN Certificate of Principal Applicant"
+                    file={tinCert}
+                    onFile={handleTinUpload}
+                    accept="image/*,.pdf"
+                    busy={ocrBusy === "tin"}
+                  />
+                  <Input
+                    label="TIN Number"
+                    value={tinNumber}
+                    onChange={(e) => setTinNumber(e.target.value)}
+                    placeholder="TIN number (auto-filled from certificate)"
+                  />
                 </div>
               </div>
             </div>
@@ -266,8 +505,9 @@ export default function RegisterPage() {
                 <FileUpload
                   label="BO Acknowledgement Receipt"
                   file={boAcknowledgement}
-                  onFile={setBoAcknowledgement}
+                  onFile={handleBoUpload}
                   accept="image/*,.pdf"
+                  busy={ocrBusy === "bo"}
                 />
               </div>
 
@@ -295,7 +535,7 @@ export default function RegisterPage() {
                 <p><strong>Email:</strong> {profile.email}</p>
                 <p><strong>Phone:</strong> {profile.phone}</p>
                 <p><strong>Bank:</strong> {bank.bankName} — A/C: {bank.accountNumber}</p>
-                {nomineeRelationship && <p><strong>Nominee Relationship:</strong> {nomineeRelationship}</p>}
+                {nomineeName && <p><strong>Nominee:</strong> {nomineeName} ({nomineeRelationship || "—"})</p>}
                 <p><strong>Dividend Option:</strong> {dividendOption === "CIP" ? "CIP" : "Cash"}</p>
                 <p><strong>Documents:</strong> {[
                   nidFront && "Applicant NID Front",
@@ -364,6 +604,8 @@ export default function RegisterPage() {
         onClose={() => setPreviewOpen(false)}
         data={{
           profile: { name: profile.name, email: profile.email, phone: profile.phone },
+          applicant: applicantInfo,
+          nominee: { ...nomineeInfo, name: nomineeName },
           bank: {
             bankName: bank.bankName,
             branchName: bank.branchName,
@@ -371,6 +613,7 @@ export default function RegisterPage() {
             routingNumber: bank.routingNumber,
             boAccountNo: bank.boAccountNo,
           },
+          tinNumber,
           dividendOption,
           nomineeRelationship,
           files: {
@@ -392,7 +635,19 @@ export default function RegisterPage() {
   );
 }
 
-function FileUpload({ label, file, onFile, accept }: { label: string; file: File | null; onFile: (f: File | null) => void; accept: string }) {
+function FileUpload({
+  label,
+  file,
+  onFile,
+  accept,
+  busy,
+}: {
+  label: string;
+  file: File | null;
+  onFile: (f: File | null) => void;
+  accept: string;
+  busy?: boolean;
+}) {
   const ref = useRef<HTMLInputElement>(null);
   return (
     <div>
@@ -403,7 +658,11 @@ function FileUpload({ label, file, onFile, accept }: { label: string; file: File
           file ? "border-green-400 bg-green-50" : "border-gray-200 hover:border-ekush-orange"
         }`}
       >
-        {file ? (
+        {busy ? (
+          <div className="flex items-center justify-center gap-2 text-[11px] text-ekush-orange">
+            <Loader2 className="w-4 h-4 animate-spin" /> Reading…
+          </div>
+        ) : file ? (
           <p className="text-[12px] text-green-700 font-medium truncate">{file.name}</p>
         ) : (
           <div>

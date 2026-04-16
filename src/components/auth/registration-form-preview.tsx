@@ -3,8 +3,18 @@
 import { useEffect, useMemo } from "react";
 import { X, Printer } from "lucide-react";
 
+export interface PersonInfo {
+  nidNumber: string;
+  fatherName: string;
+  motherName: string;
+  presentAddress: string;
+  permanentAddress: string;
+}
+
 export interface RegistrationPreviewData {
   profile: { name: string; email: string; phone: string };
+  applicant: PersonInfo;
+  nominee: PersonInfo & { name: string };
   bank: {
     bankName: string;
     branchName: string;
@@ -12,6 +22,7 @@ export interface RegistrationPreviewData {
     routingNumber: string;
     boAccountNo: string;
   };
+  tinNumber: string;
   dividendOption: "CASH" | "CIP" | string;
   nomineeRelationship: string;
   files: {
@@ -82,11 +93,21 @@ export function RegistrationFormPreview({
     <>
       <style>{`
         @media print {
+          @page { size: A4; margin: 0; }
+          html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
           body * { visibility: hidden; }
           .reg-preview, .reg-preview * { visibility: visible; }
-          .reg-preview { position: absolute; left: 0; top: 0; width: 100%; }
+          .reg-preview { position: static !important; inset: auto !important; background: #fff !important; overflow: visible !important; }
           .reg-preview .no-print { display: none !important; }
-          .reg-preview .reg-page { box-shadow: none !important; margin: 0 !important; page-break-after: always; }
+          .reg-preview .reg-page {
+            box-shadow: none !important;
+            margin: 0 !important;
+            page-break-after: always;
+            break-after: page;
+            width: 210mm !important;
+            min-height: 297mm !important;
+          }
+          .reg-preview .reg-page:last-child { page-break-after: auto; break-after: auto; }
         }
         .reg-field { border-bottom: 1px solid #333; min-height: 18px; padding: 2px 4px; }
         .reg-box { border: 1px solid #333; }
@@ -148,6 +169,33 @@ export function RegistrationFormPreview({
                   <div style={{ width: "22px", textAlign: "center" }}>Y</div>
                   <div style={{ width: "22px", textAlign: "center" }}>Y</div>
                 </div>
+
+                {/* Principal applicant signature shown right after the Date */}
+                <div className="mt-3">
+                  <p className="reg-label">Principal Applicant&rsquo;s Signature</p>
+                  <div
+                    className="reg-box"
+                    style={{
+                      width: "55mm",
+                      height: "20mm",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginTop: "4px",
+                      padding: "2px",
+                    }}
+                  >
+                    {urls.signature ? (
+                      <img
+                        src={urls.signature}
+                        alt="Principal signature"
+                        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                      />
+                    ) : (
+                      <span className="text-[8pt]" style={{ color: "#777" }}>Signature</span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -158,27 +206,20 @@ export function RegistrationFormPreview({
                     <p className="text-[8pt]" style={{ color: "#777" }}>Passport Size<br/>Photograph</p>
                   )}
                 </div>
-                <div className="reg-box text-center" style={{ width: "32mm", height: "38mm", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2px" }}>
-                  {urls.signature ? (
-                    <img src={urls.signature} alt="Signature" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-                  ) : (
-                    <p className="text-[8pt]" style={{ color: "#777" }}>Signature</p>
-                  )}
-                </div>
               </div>
             </div>
 
             <div className="reg-sub-title">PERSONAL INFORMATION</div>
             <LabeledField label="Name (in BLOCK LETTER)" value={data.profile.name.toUpperCase()} />
-            <LabeledField label="Father&rsquo;s / Husband&rsquo;s Name" value="" />
-            <LabeledField label="Mother&rsquo;s Name" value="" />
-            <LabeledField label="NID / Passport Number" value="" />
+            <LabeledField label="Father&rsquo;s / Husband&rsquo;s Name" value={data.applicant.fatherName} />
+            <LabeledField label="Mother&rsquo;s Name" value={data.applicant.motherName} />
+            <LabeledField label="NID / Passport Number" value={data.applicant.nidNumber} />
 
             <div className="reg-sub-title mt-3">CONTACT INFORMATION</div>
             <LabeledField label="Contact Number/s" value={data.profile.phone} />
             <LabeledField label="Email Address" value={data.profile.email} />
-            <LabeledField label="Present Address" value="" />
-            <LabeledField label="Permanent Address" value="" />
+            <LabeledField label="Present Address" value={data.applicant.presentAddress} />
+            <LabeledField label="Permanent Address" value={data.applicant.permanentAddress} />
 
             <div className="reg-sub-title mt-3">FINANCIAL AND INVESTMENT-RELATED INFORMATION</div>
             <LabeledField label="Investor&rsquo;s Bank Account&rsquo;s Name" value={data.profile.name} />
@@ -199,7 +240,7 @@ export function RegistrationFormPreview({
             </div>
 
             <LabeledField label="BO Account Number" value={data.bank.boAccountNo} />
-            <LabeledField label="TAX Identification Number (TIN)" value="" />
+            <LabeledField label="TAX Identification Number (TIN)" value={data.tinNumber} />
           </div>
         </div>
 
@@ -217,26 +258,17 @@ export function RegistrationFormPreview({
                   <p className="text-[8pt]" style={{ color: "#777" }}>Passport Size<br/>Photograph</p>
                 )}
               </div>
-              <div className="reg-box text-center" style={{ width: "32mm", height: "38mm", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2px" }}>
-                {urls.nomineeSignature ? (
-                  <img src={urls.nomineeSignature} alt="Nominee signature" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-                ) : (
-                  <p className="text-[8pt]" style={{ color: "#777" }}>Signature</p>
-                )}
-              </div>
             </div>
 
             <div className="reg-sub-title">PERSONAL INFORMATION</div>
-            <LabeledField label="Name (in BLOCK LETTER)" value="" />
-            <LabeledField label="Father&rsquo;s / Husband&rsquo;s Name" value="" />
-            <LabeledField label="Mother&rsquo;s Name" value="" />
-            <LabeledField label="NID / Passport Number" value="" />
+            <LabeledField label="Name (in BLOCK LETTER)" value={(data.nominee.name || "").toUpperCase()} />
+            <LabeledField label="Father&rsquo;s / Husband&rsquo;s Name" value={data.nominee.fatherName} />
+            <LabeledField label="Mother&rsquo;s Name" value={data.nominee.motherName} />
+            <LabeledField label="NID / Passport Number" value={data.nominee.nidNumber} />
 
             <div className="reg-sub-title mt-3">CONTACT INFORMATION</div>
-            <LabeledField label="Contact Number/s" value="" />
-            <LabeledField label="Email Address" value="" />
-            <LabeledField label="Present Address" value="" />
-            <LabeledField label="Permanent Address" value="" />
+            <LabeledField label="Present Address" value={data.nominee.presentAddress} />
+            <LabeledField label="Permanent Address" value={data.nominee.permanentAddress} />
 
             <div className="reg-sub-title mt-3">RELATIONSHIP</div>
             <div className="my-2" style={{ fontSize: "10pt" }}>
@@ -246,64 +278,6 @@ export function RegistrationFormPreview({
               </span>{" "}
               of the Principal Applicant.
             </div>
-
-            {/* Supporting uploads */}
-            <div className="reg-sub-title mt-4">ATTACHED DOCUMENTS</div>
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              <DocTile label="Applicant&rsquo;s NID – Front" url={urls.nidFront} />
-              <DocTile label="Applicant&rsquo;s NID – Back" url={urls.nidBack} />
-              <DocTile label="Nominee&rsquo;s NID – Front" url={urls.nomineeNidFront} />
-              <DocTile label="Nominee&rsquo;s NID – Back" url={urls.nomineeNidBack} />
-              <DocTile label="E-TIN Certificate" url={urls.tinCert} />
-              <DocTile label="Cheque Leaf" url={urls.chequeLeafPhoto} />
-              <DocTile label="BO Acknowledgement" url={urls.boAcknowledgement} />
-            </div>
-          </div>
-        </div>
-
-        {/* Page 3 — Signature Card */}
-        <div className="reg-page bg-white mx-auto my-4 shadow-lg" style={{ width: "210mm", minHeight: "297mm", padding: "15mm" }}>
-          <div style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: "10pt", color: "#000", lineHeight: 1.4 }}>
-
-            <div className="reg-section-title text-center">SIGNATURE CARD (INDIVIDUAL)</div>
-
-            <div className="grid grid-cols-2 gap-6 mt-4">
-              <SignatureBlock
-                title="Principal Applicant"
-                name={data.profile.name}
-                photoUrl={urls.photo}
-                signatureUrl={urls.signature}
-              />
-              <SignatureBlock
-                title="Nominee"
-                name=""
-                photoUrl={urls.nomineePhoto}
-                signatureUrl={urls.nomineeSignature}
-              />
-            </div>
-
-            <div className="mt-8 pt-4" style={{ borderTop: "1px solid #ccc" }}>
-              <p className="reg-label mb-1">Dated:</p>
-              <p>{dateStr}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6 mt-10">
-              <div className="text-center">
-                <div style={{ borderTop: "1px solid #000", paddingTop: "4px", marginTop: "40px" }}>
-                  Principal Applicant&rsquo;s Signature
-                </div>
-              </div>
-              <div className="text-center">
-                <div style={{ borderTop: "1px solid #000", paddingTop: "4px", marginTop: "40px" }}>
-                  Authorized Signature (EWML)
-                </div>
-              </div>
-            </div>
-
-            <p className="mt-10 text-[8.5pt]" style={{ color: "#666" }}>
-              Checklist: Bank Details of the Principal Applicant · BO Account Information · e-TIN · NID/Passport ·
-              Photographs · Bank Cheque Copy · Nominee documents.
-            </p>
           </div>
         </div>
       </div>
@@ -315,61 +289,7 @@ function LabeledField({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid my-1" style={{ gridTemplateColumns: "40% 60%" }}>
       <div className="reg-label py-1" dangerouslySetInnerHTML={{ __html: label }} />
-      <div className="reg-field">{value || "\u00A0"}</div>
-    </div>
-  );
-}
-
-function DocTile({ label, url }: { label: string; url: string | null }) {
-  return (
-    <div>
-      <p className="reg-label mb-1" dangerouslySetInnerHTML={{ __html: label }} />
-      <div className="reg-box" style={{ height: "48mm", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-        {url ? (
-          <img src={url} alt={label} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-        ) : (
-          <span className="text-[9pt]" style={{ color: "#999" }}>Not provided</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SignatureBlock({
-  title,
-  name,
-  photoUrl,
-  signatureUrl,
-}: {
-  title: string;
-  name: string;
-  photoUrl: string | null;
-  signatureUrl: string | null;
-}) {
-  return (
-    <div className="reg-box p-3">
-      <p className="font-semibold text-center mb-3">{title}</p>
-      <div className="flex gap-3 justify-center">
-        <div className="reg-box text-center" style={{ width: "32mm", height: "38mm", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {photoUrl ? (
-            <img src={photoUrl} alt="photo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "cover" }} />
-          ) : (
-            <span className="text-[8pt]" style={{ color: "#777" }}>Photograph</span>
-          )}
-        </div>
-      </div>
-      <div className="mt-3">
-        <p className="reg-label">Full Name:</p>
-        <div className="reg-field">{name || "\u00A0"}</div>
-      </div>
-      <div className="mt-2">
-        <p className="reg-label">Signature:</p>
-        <div className="reg-field" style={{ height: "48px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {signatureUrl ? (
-            <img src={signatureUrl} alt="signature" style={{ maxHeight: "44px", objectFit: "contain" }} />
-          ) : null}
-        </div>
-      </div>
+      <div className="reg-field" style={{ whiteSpace: "pre-wrap" }}>{value || "\u00A0"}</div>
     </div>
   );
 }

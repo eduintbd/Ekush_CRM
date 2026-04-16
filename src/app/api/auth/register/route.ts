@@ -21,6 +21,22 @@ export async function POST(req: NextRequest) {
 
   // Nominee (relationship selected on the documents step)
   const nomineeRelationship = formData.get("nomineeRelationship") as string;
+  const nomineeName = (formData.get("nomineeName") as string) || "";
+
+  // Applicant additional info (auto-filled from NID OCR; user may edit)
+  const nidNumber = (formData.get("nidNumber") as string) || "";
+  const fatherName = (formData.get("fatherName") as string) || "";
+  const motherName = (formData.get("motherName") as string) || "";
+  const presentAddress = (formData.get("presentAddress") as string) || "";
+  const permanentAddress = (formData.get("permanentAddress") as string) || "";
+  const tinNumber = (formData.get("tinNumber") as string) || "";
+
+  // Nominee additional info
+  const nomineeNidNumber = (formData.get("nomineeNidNumber") as string) || "";
+  const nomineeFatherName = (formData.get("nomineeFatherName") as string) || "";
+  const nomineeMotherName = (formData.get("nomineeMotherName") as string) || "";
+  const nomineePresentAddress = (formData.get("nomineePresentAddress") as string) || "";
+  const nomineePermanentAddress = (formData.get("nomineePermanentAddress") as string) || "";
 
   if (!name || !email || !password) {
     return NextResponse.json({ error: "Name, email, and password are required" }, { status: 400 });
@@ -53,6 +69,9 @@ export async function POST(req: NextRequest) {
               investorCode: `PENDING-${Date.now().toString(36).toUpperCase()}`, // Temp — admin assigns real code during approval
               name,
               investorType: "INDIVIDUAL",
+              nidNumber: nidNumber || null,
+              tinNumber: tinNumber || null,
+              address: presentAddress || null,
               boId: boAccountNo || null,
               dividendOption,
             },
@@ -75,13 +94,14 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Create nominee (only relationship is captured on the registration form now)
-      if (nomineeRelationship) {
+      // Create nominee if any nominee details provided
+      if (nomineeRelationship || nomineeName || nomineeNidNumber) {
         await tx.nominee.create({
           data: {
             investorId: user.investor!.id,
-            name: "",
-            relationship: nomineeRelationship,
+            name: nomineeName || "",
+            relationship: nomineeRelationship || null,
+            nidNumber: nomineeNidNumber || null,
             share: 100,
           },
         });
@@ -123,13 +143,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create a KYC record in PENDING state
+    // Create a KYC record in PENDING state — capture full snapshot of OCR-derived fields
     await prisma.kycRecord.create({
       data: {
         investorId,
         type: "REGISTRATION",
         status: "PENDING",
-        data: JSON.stringify({ name, email, phone, bankName, accountNumber, dividendOption }),
+        data: JSON.stringify({
+          name, email, phone, bankName, accountNumber, dividendOption,
+          applicant: {
+            nidNumber, fatherName, motherName, presentAddress, permanentAddress, tinNumber,
+          },
+          nominee: {
+            name: nomineeName,
+            relationship: nomineeRelationship,
+            nidNumber: nomineeNidNumber,
+            fatherName: nomineeFatherName,
+            motherName: nomineeMotherName,
+            presentAddress: nomineePresentAddress,
+            permanentAddress: nomineePermanentAddress,
+          },
+        }),
       },
     });
 
