@@ -721,7 +721,9 @@ export async function ingestInvestors(
         data: {
           passwordHash,
           role: "INVESTOR",
-          status: "PENDING",
+          // Imported investors are already real, approved accounts — only
+          // the self-registration flow creates PENDING users awaiting approval.
+          status: "ACTIVE",
           investor: {
             create: {
               investorCode: inv.code,

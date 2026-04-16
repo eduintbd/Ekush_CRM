@@ -45,7 +45,12 @@ export default async function DashboardPage() {
     console.error("Dashboard data fetch error:", err);
   }
 
-  const isPending = session?.user?.status === "PENDING";
+  // Only show the pending-verification banner for self-registered accounts that
+  // still hold a placeholder investor code (PENDING-XXXXX). Real investors
+  // imported from the Excel files may also have a PENDING user status but
+  // carry a real code like "A00055" — they should not see this banner.
+  const investorCode = session?.user?.investorCode ?? "";
+  const isPending = session?.user?.status === "PENDING" && investorCode.startsWith("PENDING-");
 
   return (
     <div className="space-y-8">
