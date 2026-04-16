@@ -1,12 +1,42 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckCircle, ChevronRight, ChevronLeft, Upload, Loader2, User, FileText, CreditCard, Eye } from "lucide-react";
 import Link from "next/link";
 import { RegistrationFormPreview } from "@/components/auth/registration-form-preview";
+
+const DRAFT_KEY = "ekush.register.draft.v2";
+
+type DraftFile = { name: string; type: string; dataUrl: string };
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function fileToDraft(f: File | null, cache: Map<File, string>): Promise<DraftFile | null> {
+  if (!f) return null;
+  let dataUrl = cache.get(f);
+  if (!dataUrl) {
+    dataUrl = await readAsDataUrl(f);
+    cache.set(f, dataUrl);
+  }
+  return { name: f.name, type: f.type, dataUrl };
+}
+
+async function draftToFile(d: DraftFile | null): Promise<File | null> {
+  if (!d) return null;
+  const res = await fetch(d.dataUrl);
+  const blob = await res.blob();
+  return new File([blob], d.name, { type: d.type });
+}
 
 const STEPS = [
   { id: "profile", title: "Profile", icon: User },
@@ -80,6 +110,115 @@ export default function RegisterPage() {
   });
   const [dividendOption, setDividendOption] = useState("CASH");
 
+  // ---- Draft persistence (text + base64 files) ----
+  const fileEncodeCache = useRef<Map<File, string>>(new Map());
+  const draftLoadedRef = useRef(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem(DRAFT_KEY);
+    draftLoadedRef.current = true;
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      if (typeof d.step === "number") setStep(d.step);
+      if (d.profile) {
+        // never restore password — user must re-enter for security
+        setProfile({
+          name: d.profile.name || "",
+          email: d.profile.email || "",
+          phone: d.profile.phone || "",
+          password: "",
+          confirmPassword: "",
+        });
+      }
+      if (d.bank) setBank(d.bank);
+      if (typeof d.dividendOption === "string") setDividendOption(d.dividendOption);
+      if (typeof d.nomineeRelationship === "string") setNomineeRelationship(d.nomineeRelationship);
+      if (typeof d.nomineeName === "string") setNomineeName(d.nomineeName);
+      if (typeof d.tinNumber === "string") setTinNumber(d.tinNumber);
+      if (d.applicantInfo) setApplicantInfo({ ...EMPTY_PERSON, ...d.applicantInfo });
+      if (d.nomineeInfo) setNomineeInfo({ ...EMPTY_PERSON, ...d.nomineeInfo });
+
+      const fileSetters: Record<string, (f: File | null) => void> = {
+        nidFront: setNidFront,
+        nidBack: setNidBack,
+        photo: setPhoto,
+        signature: setSignature,
+        nomineeNidFront: setNomineeNidFront,
+        nomineeNidBack: setNomineeNidBack,
+        nomineePhoto: setNomineePhoto,
+        nomineeSignature: setNomineeSignature,
+        tinCert: setTinCert,
+        chequeLeafPhoto: setChequeLeafPhoto,
+        boAcknowledgement: setBoAcknowledgement,
+      };
+      const files = (d.files || {}) as Record<string, DraftFile | null>;
+      Object.entries(files).forEach(async ([k, df]) => {
+        const setter = fileSetters[k];
+        if (!setter) return;
+        const f = await draftToFile(df);
+        if (f) {
+          fileEncodeCache.current.set(f, df!.dataUrl);
+          setter(f);
+        }
+      });
+    } catch (e) {
+      console.warn("Failed to restore draft", e);
+    }
+  }, []);
+
+  // Save draft on any change (skip until restore has run)
+  useEffect(() => {
+    if (typeof window === "undefined" || !draftLoadedRef.current) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const cache = fileEncodeCache.current;
+        const filesObj: Record<string, DraftFile | null> = {
+          nidFront: await fileToDraft(nidFront, cache),
+          nidBack: await fileToDraft(nidBack, cache),
+          photo: await fileToDraft(photo, cache),
+          signature: await fileToDraft(signature, cache),
+          nomineeNidFront: await fileToDraft(nomineeNidFront, cache),
+          nomineeNidBack: await fileToDraft(nomineeNidBack, cache),
+          nomineePhoto: await fileToDraft(nomineePhoto, cache),
+          nomineeSignature: await fileToDraft(nomineeSignature, cache),
+          tinCert: await fileToDraft(tinCert, cache),
+          chequeLeafPhoto: await fileToDraft(chequeLeafPhoto, cache),
+          boAcknowledgement: await fileToDraft(boAcknowledgement, cache),
+        };
+        if (cancelled) return;
+        const draft = {
+          step,
+          profile: { ...profile, password: "", confirmPassword: "" },
+          bank,
+          dividendOption,
+          nomineeRelationship,
+          nomineeName,
+          tinNumber,
+          applicantInfo,
+          nomineeInfo,
+          files: filesObj,
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch (e) {
+        console.warn("Draft autosave failed (likely quota)", e);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [
+    step, profile, bank, dividendOption, nomineeRelationship, nomineeName, tinNumber,
+    applicantInfo, nomineeInfo,
+    nidFront, nidBack, photo, signature,
+    nomineeNidFront, nomineeNidBack, nomineePhoto, nomineeSignature,
+    tinCert, chequeLeafPhoto, boAcknowledgement,
+  ]);
+
   const canProceed = () => {
     switch (step) {
       case 0:
@@ -136,6 +275,12 @@ export default function RegisterPage() {
     return "";
   }
 
+  function extractName(text: string): string {
+    const m = text.match(/Name[:\s]+([A-Z][A-Z\s.]{3,})/);
+    if (m) return m[1].trim();
+    return extractAfterLabel(text, ["নাম"]);
+  }
+
   async function handleNidUpload(file: File | null, target: "applicant" | "nominee") {
     const setter = target === "applicant" ? setNidFront : setNomineeNidFront;
     setter(file);
@@ -154,8 +299,13 @@ export default function RegisterPage() {
         motherName: mother || prev.motherName,
         presentAddress: present || prev.presentAddress,
       });
-      if (target === "applicant") setApplicantInfo(update);
-      else setNomineeInfo(update);
+      if (target === "applicant") {
+        setApplicantInfo(update);
+      } else {
+        setNomineeInfo(update);
+        const nm = extractName(text);
+        if (nm) setNomineeName((prev) => prev || nm);
+      }
     } catch (e) {
       console.error("OCR failed", e);
     } finally {
@@ -247,6 +397,9 @@ export default function RegisterPage() {
         return;
       }
 
+      // Submission succeeded — clear the autosaved draft
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+
       // Auto-login using the just-created credentials, then land on the dashboard
       // where a "pending verification" banner is shown until admin approval.
       const loginRes = await fetch("/api/auth/login", {
@@ -334,44 +487,8 @@ export default function RegisterPage() {
                 </div>
 
                 <p className="text-[11px] text-text-body mt-2">
-                  Information below is auto-extracted from the NID; please review and edit as needed.
+                  NID details (number, parents&apos; names, present address) will be auto-extracted from your NID upload and printed onto the form.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                  <Input
-                    label="NID / Passport Number"
-                    value={applicantInfo.nidNumber}
-                    onChange={(e) => setApplicantInfo({ ...applicantInfo, nidNumber: e.target.value })}
-                    placeholder="NID number"
-                  />
-                  <Input
-                    label="Father's / Husband's Name"
-                    value={applicantInfo.fatherName}
-                    onChange={(e) => setApplicantInfo({ ...applicantInfo, fatherName: e.target.value })}
-                    placeholder="Father / Husband name"
-                  />
-                  <Input
-                    label="Mother's Name"
-                    value={applicantInfo.motherName}
-                    onChange={(e) => setApplicantInfo({ ...applicantInfo, motherName: e.target.value })}
-                    placeholder="Mother name"
-                  />
-                  <Input
-                    label="Permanent Address"
-                    value={applicantInfo.permanentAddress}
-                    onChange={(e) => setApplicantInfo({ ...applicantInfo, permanentAddress: e.target.value })}
-                    placeholder="Permanent address"
-                  />
-                  <div className="md:col-span-2">
-                    <label className="text-[14px] font-medium text-text-label">Present Address</label>
-                    <textarea
-                      value={applicantInfo.presentAddress}
-                      onChange={(e) => setApplicantInfo({ ...applicantInfo, presentAddress: e.target.value })}
-                      placeholder="Present address (auto-filled from NID)"
-                      rows={2}
-                      className="mt-2 flex w-full rounded-[5px] border border-input-border bg-input-bg px-4 py-2 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Nominee */}
@@ -390,78 +507,30 @@ export default function RegisterPage() {
                   <FileUpload label="Digital Signature" file={nomineeSignature} onFile={setNomineeSignature} accept="image/*" />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                  <Input
-                    label="Nominee Name"
-                    value={nomineeName}
-                    onChange={(e) => setNomineeName(e.target.value)}
-                    placeholder="Nominee full name"
-                  />
-                  <div>
-                    <label className="text-[14px] font-medium text-text-label">Nominee Relationship</label>
-                    <select
-                      value={nomineeRelationship}
-                      onChange={(e) => setNomineeRelationship(e.target.value)}
-                      className="mt-2 flex h-[50px] w-full rounded-[5px] border border-input-border bg-input-bg px-4 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
-                    >
-                      <option value="">Select relationship</option>
-                      {NOMINEE_RELATIONSHIPS.map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <Input
-                    label="NID / Passport Number"
-                    value={nomineeInfo.nidNumber}
-                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, nidNumber: e.target.value })}
-                    placeholder="NID number"
-                  />
-                  <Input
-                    label="Father's / Husband's Name"
-                    value={nomineeInfo.fatherName}
-                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, fatherName: e.target.value })}
-                    placeholder="Father / Husband name"
-                  />
-                  <Input
-                    label="Mother's Name"
-                    value={nomineeInfo.motherName}
-                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, motherName: e.target.value })}
-                    placeholder="Mother name"
-                  />
-                  <Input
-                    label="Permanent Address"
-                    value={nomineeInfo.permanentAddress}
-                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, permanentAddress: e.target.value })}
-                    placeholder="Permanent address"
-                  />
-                  <div className="md:col-span-2">
-                    <label className="text-[14px] font-medium text-text-label">Present Address</label>
-                    <textarea
-                      value={nomineeInfo.presentAddress}
-                      onChange={(e) => setNomineeInfo({ ...nomineeInfo, presentAddress: e.target.value })}
-                      placeholder="Present address (auto-filled from NID)"
-                      rows={2}
-                      className="mt-2 flex w-full rounded-[5px] border border-input-border bg-input-bg px-4 py-2 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
-                    />
-                  </div>
+                <div className="mt-4 max-w-sm">
+                  <label className="text-[14px] font-medium text-text-label">Nominee Relationship</label>
+                  <select
+                    value={nomineeRelationship}
+                    onChange={(e) => setNomineeRelationship(e.target.value)}
+                    className="mt-2 flex h-[50px] w-full rounded-[5px] border border-input-border bg-input-bg px-4 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
+                  >
+                    <option value="">Select relationship</option>
+                    {NOMINEE_RELATIONSHIPS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               {/* TIN */}
               <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FileUpload
                     label="E-TIN Certificate of Principal Applicant"
                     file={tinCert}
                     onFile={handleTinUpload}
                     accept="image/*,.pdf"
                     busy={ocrBusy === "tin"}
-                  />
-                  <Input
-                    label="TIN Number"
-                    value={tinNumber}
-                    onChange={(e) => setTinNumber(e.target.value)}
-                    placeholder="TIN number (auto-filled from certificate)"
                   />
                 </div>
               </div>

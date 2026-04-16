@@ -170,32 +170,6 @@ export function RegistrationFormPreview({
                   <div style={{ width: "22px", textAlign: "center" }}>Y</div>
                 </div>
 
-                {/* Principal applicant signature shown right after the Date */}
-                <div className="mt-3">
-                  <p className="reg-label">Principal Applicant&rsquo;s Signature</p>
-                  <div
-                    className="reg-box"
-                    style={{
-                      width: "55mm",
-                      height: "20mm",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginTop: "4px",
-                      padding: "2px",
-                    }}
-                  >
-                    {urls.signature ? (
-                      <img
-                        src={urls.signature}
-                        alt="Principal signature"
-                        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
-                      />
-                    ) : (
-                      <span className="text-[8pt]" style={{ color: "#777" }}>Signature</span>
-                    )}
-                  </div>
-                </div>
               </div>
 
               <div className="flex gap-3">
@@ -204,6 +178,13 @@ export function RegistrationFormPreview({
                     <img src={urls.photo} alt="Photo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "cover" }} />
                   ) : (
                     <p className="text-[8pt]" style={{ color: "#777" }}>Passport Size<br/>Photograph</p>
+                  )}
+                </div>
+                <div className="reg-box text-center" style={{ width: "32mm", height: "38mm", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2px" }}>
+                  {urls.signature ? (
+                    <img src={urls.signature} alt="Signature" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                  ) : (
+                    <p className="text-[8pt]" style={{ color: "#777" }}>Signature</p>
                   )}
                 </div>
               </div>
@@ -258,6 +239,13 @@ export function RegistrationFormPreview({
                   <p className="text-[8pt]" style={{ color: "#777" }}>Passport Size<br/>Photograph</p>
                 )}
               </div>
+              <div className="reg-box text-center" style={{ width: "32mm", height: "38mm", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2px" }}>
+                {urls.nomineeSignature ? (
+                  <img src={urls.nomineeSignature} alt="Nominee signature" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                ) : (
+                  <p className="text-[8pt]" style={{ color: "#777" }}>Signature</p>
+                )}
+              </div>
             </div>
 
             <div className="reg-sub-title">PERSONAL INFORMATION</div>
@@ -277,6 +265,152 @@ export function RegistrationFormPreview({
                 {data.nomineeRelationship || ""}
               </span>{" "}
               of the Principal Applicant.
+            </div>
+          </div>
+        </div>
+
+        {/* Page 3 — Terms & Conditions + Signatory block */}
+        <div className="reg-page bg-white mx-auto my-4 shadow-lg" style={{ width: "210mm", minHeight: "297mm", padding: "15mm" }}>
+          <div style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: "9.5pt", color: "#000", lineHeight: 1.4 }}>
+            <div className="text-center mb-3">
+              <p style={{ fontSize: "13pt", fontWeight: 700 }}>INVESTOR&rsquo;S REGISTRATION FORM</p>
+              <p style={{ fontSize: "10pt", fontWeight: 600 }}>Asset Manager: Ekush Wealth Management Limited</p>
+              <p style={{ fontSize: "9pt", fontStyle: "italic" }}>(Please Fill up the form using only BLOCK LETTERS)</p>
+            </div>
+
+            <div className="reg-section-title text-center">TERMS AND CONDITIONS (T&amp;C)</div>
+
+            <ol style={{ paddingLeft: "18px", marginTop: "8px" }}>
+              <li style={{ marginBottom: "4px" }}>
+                The Units of Ekush Wealth Management Limited (EWML) managed funds may be bought through EWML and
+                authorized selling agents appointed by EWML from time to time. Surrender of Units is allowed only through EWML.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                Application may be made by an individual (both residence and non-resident), a corporation or company
+                (both local and foreign), a trust or a society (registered in or outside of Bangladesh) and not by a
+                minor or unsound mind.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                Joint application is acceptable by two persons. Registration and Unit allocation will be in favor of
+                Principal Applicant while dividend and other benefits, if any, will be addressed to the bank account of
+                Principal Applicant or Joint Applicant mentioned in the application form. In case of the death of any
+                of the joint holders, only the survivor shall be recognized as having any title of the Units. On death
+                of both the joint holders, the Units will bestow upon the nominee.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                The Units may be transferred by way of inheritance/gift and/or by specific operation of the law. In case
+                of transfer the fund will charge a nominal fee as decided by the asset manager from time to time except
+                in the case of transfer by way of inheritance.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                Dividend may be delivered in cash or by way of Units under Cumulative Investment Plan (CIP) as the
+                application mentioned in the application form.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                All payments in connection with or arising out of transactions in the Units hereby applied for shall be in BDT.
+              </li>
+            </ol>
+
+            <p className="reg-sub-title" style={{ marginTop: "6px" }}>SIP Specific T&amp;C</p>
+            <ol start={7} style={{ paddingLeft: "18px", marginTop: "6px" }}>
+              <li style={{ marginBottom: "4px" }}>
+                Minimum instalment amount of the individual investor is BDT 1,000.00. For institutional investor,
+                minimum instalment amount is BDT 10,000.00.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                Instalment amount will be debited on the 5th, 15th and 25th day of each month. Investor will choose a
+                date as per their convenience. If the day is a weekend/ holiday, instalment amount will be debited on
+                the next working day.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                After the maturity, the investor may- a) continue the instalment amount for another tenure b) keep the
+                matured amount as non-SIP investment c) transfer the matured amount to the designated bank account of
+                the investor.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                For auto renewal option, the investor must submit another &ldquo;Auto debit Instruction Form&rdquo; having
+                validity for another specific period.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                There will no minimum lot size of units under SIP. Any remaining fraction amount will be converted when
+                it sums up to one unit.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                In case of return of a DDI (Direct Debit Instruction) by the investor&rsquo;s bank, the investor must
+                either a) submit a cheque of the same amount within 5 (five) working days after getting notification
+                from EWML or EWML may send the DDI again with the consent of the investor.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                After clearance/encashment of DDI (Direct Debit Instruction), the units will be allocated in favor of
+                the principal applicant with a denomination of the number of units proportionate to the prevailing
+                purchase price of the week. The units will be delivered to the unit holder&rsquo;s BO A/C in demat form
+                after each five instalments.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                Surrender/partial surrender IS NOT ALLOWED until the instalment tenor ends.
+              </li>
+            </ol>
+
+            <p className="reg-sub-title" style={{ marginTop: "6px" }}>Non-SIP Specific T&amp;C</p>
+            <ol start={15} style={{ paddingLeft: "18px", marginTop: "6px" }}>
+              <li style={{ marginBottom: "4px" }}>
+                Minimum purchase amount is BDT. 5,000.00 for individual investors and BDT. 50,000.00 for institutional
+                Investors.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                Application for purchase of units should be accompanied by an A/C Payee Cheque/Pay Order/Bank Draft in
+                favor of the relevant fund&rsquo;s name.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                After clearance/encashment of cheque/draft/pay order, the applicant will be allocated units of the
+                relevant fund against every purchase with a denomination of number of units s/he applies for. The units
+                will also be delivered to the unit holder&rsquo;s BO A/C in demat form.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                Surrender/partial surrender is allowed. However, in order to surrender/partially surrender, the investor
+                will have to surrender the relevant fund&rsquo;s unit from her/his BO A/C to the relevant fund&rsquo;s
+                repurchase account before asking for the surrender value.
+              </li>
+            </ol>
+
+            {/* Signatory block — agreed with T&C */}
+            <div
+              className="reg-box"
+              style={{
+                marginTop: "14px",
+                padding: "12px 14px",
+                width: "95mm",
+              }}
+            >
+              <p style={{ fontWeight: 700, textDecoration: "underline", marginBottom: "8px" }}>
+                Principal Applicant&rsquo;s / Signatory I
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                <span className="reg-label" style={{ minWidth: "22mm" }}>Signature</span>
+                <div
+                  className="reg-box"
+                  style={{
+                    flex: 1,
+                    height: "18mm",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "2px",
+                  }}
+                >
+                  {urls.signature ? (
+                    <img
+                      src={urls.signature}
+                      alt="Principal signature"
+                      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                    />
+                  ) : null}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span className="reg-label" style={{ minWidth: "22mm" }}>Date:</span>
+                <span style={{ fontWeight: 600 }}>{dateStr}</span>
+              </div>
             </div>
           </div>
         </div>
