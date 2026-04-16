@@ -11,7 +11,7 @@ const SIGNUP_CHECKLIST = [
   "Colour Photos and Signatures of the Applicant(s) and Nominee(s)",
   "Blank Cheque / Bank Statement of the Applicant",
   "Applicant's E-TIN Certificate (if any)",
-  "Soft copy of the Applicant's Signature, BO Acknowledgement. To create new BO Account Click Here",
+  "Soft copy of the BO Acknowledgement / BO ID number",
 ];
 
 export default function LoginPage() {
@@ -166,7 +166,7 @@ export default function LoginPage() {
 
               <p className="text-[11.5px] text-text-body mt-3 italic">
                 Note: Mutual fund units will not be credited to your BO account unless BO Account Number is provided.
-                For any query, please contact 09678666888
+                For any query, please contact +8801713086101 and +88001906440541.
               </p>
 
               <div className="mt-5 flex justify-center">
