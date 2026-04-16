@@ -4,8 +4,9 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle, ChevronRight, ChevronLeft, Upload, Loader2, User, FileText, CreditCard } from "lucide-react";
+import { CheckCircle, ChevronRight, ChevronLeft, Upload, Loader2, User, FileText, CreditCard, Eye } from "lucide-react";
 import Link from "next/link";
+import { RegistrationFormPreview } from "@/components/auth/registration-form-preview";
 
 const STEPS = [
   { id: "profile", title: "Profile", icon: User },
@@ -31,15 +32,20 @@ export default function RegisterPage() {
   const [nidFront, setNidFront] = useState<File | null>(null);
   const [nidBack, setNidBack] = useState<File | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [signature, setSignature] = useState<File | null>(null);
 
   // Documents — nominee
   const [nomineeNidFront, setNomineeNidFront] = useState<File | null>(null);
   const [nomineeNidBack, setNomineeNidBack] = useState<File | null>(null);
   const [nomineePhoto, setNomineePhoto] = useState<File | null>(null);
+  const [nomineeSignature, setNomineeSignature] = useState<File | null>(null);
   const [nomineeRelationship, setNomineeRelationship] = useState("");
 
   // Documents — other
   const [tinCert, setTinCert] = useState<File | null>(null);
+
+  // Preview modal
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Financial information
   const [chequeLeafPhoto, setChequeLeafPhoto] = useState<File | null>(null);
@@ -93,9 +99,11 @@ export default function RegisterPage() {
       if (nidFront) formData.append("nidFront", nidFront);
       if (nidBack) formData.append("nidBack", nidBack);
       if (photo) formData.append("photo", photo);
+      if (signature) formData.append("signature", signature);
       if (nomineeNidFront) formData.append("nomineeNidFront", nomineeNidFront);
       if (nomineeNidBack) formData.append("nomineeNidBack", nomineeNidBack);
       if (nomineePhoto) formData.append("nomineePhoto", nomineePhoto);
+      if (nomineeSignature) formData.append("nomineeSignature", nomineeSignature);
       if (tinCert) formData.append("tinCert", tinCert);
       if (chequeLeafPhoto) formData.append("chequeLeafPhoto", chequeLeafPhoto);
       if (boAcknowledgement) formData.append("boAcknowledgement", boAcknowledgement);
@@ -180,20 +188,22 @@ export default function RegisterPage() {
               {/* Principal Applicant */}
               <div>
                 <h3 className="text-[14px] font-semibold text-text-dark mb-3">Principal Applicant&apos;s Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <FileUpload label="NID Front*" file={nidFront} onFile={setNidFront} accept="image/*,.pdf" />
                   <FileUpload label="NID Back Page" file={nidBack} onFile={setNidBack} accept="image/*,.pdf" />
                   <FileUpload label="Passport Size Photo" file={photo} onFile={setPhoto} accept="image/*" />
+                  <FileUpload label="Digital Signature" file={signature} onFile={setSignature} accept="image/*" />
                 </div>
               </div>
 
               {/* Nominee */}
               <div>
                 <h3 className="text-[14px] font-semibold text-text-dark mb-3">Nominee Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <FileUpload label="NID Front Page" file={nomineeNidFront} onFile={setNomineeNidFront} accept="image/*,.pdf" />
                   <FileUpload label="NID Back Page" file={nomineeNidBack} onFile={setNomineeNidBack} accept="image/*,.pdf" />
                   <FileUpload label="Passport Size Photo" file={nomineePhoto} onFile={setNomineePhoto} accept="image/*" />
+                  <FileUpload label="Digital Signature" file={nomineeSignature} onFile={setNomineeSignature} accept="image/*" />
                 </div>
                 <div className="mt-4 max-w-sm">
                   <label className="text-[14px] font-medium text-text-label">Nominee Relationship</label>
@@ -324,10 +334,19 @@ export default function RegisterPage() {
                   Next <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={loading} className="bg-ekush-orange hover:bg-ekush-orange-dark text-white">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
-                  Submit Registration
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setPreviewOpen(true)}
+                    className="border-ekush-orange text-ekush-orange hover:bg-orange-50"
+                  >
+                    <Eye className="w-4 h-4 mr-1" /> Preview Registration Form
+                  </Button>
+                  <Button onClick={handleSubmit} disabled={loading} className="bg-ekush-orange hover:bg-ekush-orange-dark text-white">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+                    Submit Registration
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -339,6 +358,36 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+
+      <RegistrationFormPreview
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        data={{
+          profile: { name: profile.name, email: profile.email, phone: profile.phone },
+          bank: {
+            bankName: bank.bankName,
+            branchName: bank.branchName,
+            accountNumber: bank.accountNumber,
+            routingNumber: bank.routingNumber,
+            boAccountNo: bank.boAccountNo,
+          },
+          dividendOption,
+          nomineeRelationship,
+          files: {
+            nidFront,
+            nidBack,
+            photo,
+            signature,
+            nomineeNidFront,
+            nomineeNidBack,
+            nomineePhoto,
+            nomineeSignature,
+            tinCert,
+            chequeLeafPhoto,
+            boAcknowledgement,
+          },
+        }}
+      />
     </div>
   );
 }
