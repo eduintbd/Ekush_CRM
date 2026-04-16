@@ -113,6 +113,7 @@ export default function RegisterPage() {
   // ---- Draft persistence (text + base64 files) ----
   const fileEncodeCache = useRef<Map<File, string>>(new Map());
   const draftLoadedRef = useRef(false);
+  const [draftRestored, setDraftRestored] = useState(false);
 
   // Restore draft on mount
   useEffect(() => {
@@ -122,9 +123,12 @@ export default function RegisterPage() {
     if (!raw) return;
     try {
       const d = JSON.parse(raw);
-      if (typeof d.step === "number") setStep(d.step);
+      // Password is never restored for security — so force the user back to
+      // step 0 to re-enter it. They can click Next through the remaining steps
+      // because the text fields and files below are all repopulated.
+      setStep(0);
+      setDraftRestored(true);
       if (d.profile) {
-        // never restore password — user must re-enter for security
         setProfile({
           name: d.profile.name || "",
           email: d.profile.email || "",
@@ -409,8 +413,13 @@ export default function RegisterPage() {
   }
 
   const handleSubmit = async () => {
-    setLoading(true);
     setError("");
+    if (!profile.password || profile.password.length < 6) {
+      setError("Please enter your password (min 6 characters) on the Profile step to continue.");
+      setStep(0);
+      return;
+    }
+    setLoading(true);
     try {
       const formData = new FormData();
       formData.append("name", profile.name);
@@ -516,6 +525,11 @@ export default function RegisterPage() {
           {step === 0 && (
             <div className="space-y-4">
               <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-4">Applicant&apos;s Profile</h2>
+              {draftRestored && !profile.password && (
+                <div className="bg-amber-50 border border-amber-200 rounded-[10px] p-3 text-[13px] text-amber-800">
+                  We restored your saved progress. For your security, please re-enter your password to continue.
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input label="Applicant's Name (as per Bank)*" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} placeholder="Full name" required />
                 <Input label="Email*" type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} placeholder="Email address" required />
