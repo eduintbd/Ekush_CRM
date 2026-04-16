@@ -9,12 +9,7 @@ export async function POST(req: NextRequest) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const phone = formData.get("phone") as string;
-  const nidNumber = formData.get("nidNumber") as string;
   const password = formData.get("password") as string;
-  const dateOfBirth = formData.get("dateOfBirth") as string;
-  const address = formData.get("address") as string;
-  const tinNumber = formData.get("tinNumber") as string;
-  const investorType = (formData.get("investorType") as string) || "INDIVIDUAL";
 
   // Bank
   const bankName = formData.get("bankName") as string;
@@ -22,14 +17,13 @@ export async function POST(req: NextRequest) {
   const accountNumber = formData.get("accountNumber") as string;
   const routingNumber = formData.get("routingNumber") as string;
   const boAccountNo = formData.get("boAccountNo") as string;
+  const dividendOption = (formData.get("dividendOption") as string) === "CIP" ? "CIP" : "CASH";
 
-  // Nominee
-  const nomineeName = formData.get("nomineeName") as string;
-  const nomineeNidNumber = formData.get("nomineeNidNumber") as string;
+  // Nominee (relationship selected on the documents step)
   const nomineeRelationship = formData.get("nomineeRelationship") as string;
 
-  if (!name || !email || !password || !nidNumber) {
-    return NextResponse.json({ error: "Name, email, NID, and password are required" }, { status: 400 });
+  if (!name || !email || !password) {
+    return NextResponse.json({ error: "Name, email, and password are required" }, { status: 400 });
   }
 
   if (password.length < 6) {
@@ -58,12 +52,9 @@ export async function POST(req: NextRequest) {
             create: {
               investorCode: `PENDING-${Date.now().toString(36).toUpperCase()}`, // Temp — admin assigns real code during approval
               name,
-              investorType,
-              nidNumber: nidNumber || null,
-              tinNumber: tinNumber || null,
-              address: address || null,
-              dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+              investorType: "INDIVIDUAL",
               boId: boAccountNo || null,
+              dividendOption,
             },
           },
         },
@@ -84,14 +75,13 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Create nominee
-      if (nomineeName) {
+      // Create nominee (only relationship is captured on the registration form now)
+      if (nomineeRelationship) {
         await tx.nominee.create({
           data: {
             investorId: user.investor!.id,
-            name: nomineeName,
-            nidNumber: nomineeNidNumber || null,
-            relationship: nomineeRelationship || null,
+            name: "",
+            relationship: nomineeRelationship,
             share: 100,
           },
         });
@@ -106,9 +96,12 @@ export async function POST(req: NextRequest) {
       { key: "nidFront", type: "NID_FRONT" },
       { key: "nidBack", type: "NID_BACK" },
       { key: "photo", type: "PHOTO" },
-      { key: "nomineeNidDoc", type: "NOMINEE_NID" },
-      { key: "chequeLeaf", type: "CHEQUE_LEAF" },
+      { key: "nomineeNidFront", type: "NOMINEE_NID_FRONT" },
+      { key: "nomineeNidBack", type: "NOMINEE_NID_BACK" },
+      { key: "nomineePhoto", type: "NOMINEE_PHOTO" },
       { key: "tinCert", type: "TIN_CERT" },
+      { key: "chequeLeafPhoto", type: "CHEQUE_LEAF_PHOTO" },
+      { key: "boAcknowledgement", type: "BO_ACKNOWLEDGEMENT" },
     ];
 
     for (const { key, type } of docTypes) {
@@ -134,7 +127,7 @@ export async function POST(req: NextRequest) {
         investorId,
         type: "REGISTRATION",
         status: "PENDING",
-        data: JSON.stringify({ name, email, phone, nidNumber, tinNumber, bankName, accountNumber }),
+        data: JSON.stringify({ name, email, phone, bankName, accountNumber, dividendOption }),
       },
     });
 
@@ -147,7 +140,7 @@ export async function POST(req: NextRequest) {
           action: "REGISTRATION",
           entity: "Investor",
           entityId: investorId,
-          newValue: JSON.stringify({ name, email, phone, nidNumber }),
+          newValue: JSON.stringify({ name, email, phone }),
         },
       });
 
@@ -157,7 +150,7 @@ export async function POST(req: NextRequest) {
           investorId,
           type: "NEW_REGISTRATION",
           status: "OPEN",
-          description: `New investor registration: ${name} (${email}, ${phone}). NID: ${nidNumber}. Pending approval and investor code assignment.`,
+          description: `New investor registration: ${name} (${email}, ${phone}). Pending approval and investor code assignment.`,
           trackingNumber: `REG-${Date.now().toString(36).toUpperCase()}`,
           slaDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
         },

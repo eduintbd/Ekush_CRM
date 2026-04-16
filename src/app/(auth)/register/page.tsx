@@ -10,47 +10,64 @@ import Link from "next/link";
 const STEPS = [
   { id: "profile", title: "Profile", icon: User },
   { id: "documents", title: "Upload Documents", icon: FileText },
-  { id: "bank", title: "Bank & BO", icon: CreditCard },
+  { id: "financial", title: "Financial Information", icon: CreditCard },
   { id: "submit", title: "Submit", icon: CheckCircle },
 ];
+
+const NOMINEE_RELATIONSHIPS = ["Father/Mother", "Son/Daughter", "Spouse", "Other"];
 
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [regType, setRegType] = useState<"individual" | "institution">("individual");
 
   // Profile fields
   const [profile, setProfile] = useState({
-    name: "", email: "", phone: "", nidNumber: "", password: "", confirmPassword: "",
-    dateOfBirth: "", address: "", tinNumber: "",
+    name: "", email: "", phone: "", password: "", confirmPassword: "",
   });
 
-  // Documents
+  // Documents — principal applicant
   const [nidFront, setNidFront] = useState<File | null>(null);
   const [nidBack, setNidBack] = useState<File | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
-  const [nomineeNid, setNomineeNid] = useState<File | null>(null);
-  const [chequeLeaf, setChequeLeaf] = useState<File | null>(null);
+
+  // Documents — nominee
+  const [nomineeNidFront, setNomineeNidFront] = useState<File | null>(null);
+  const [nomineeNidBack, setNomineeNidBack] = useState<File | null>(null);
+  const [nomineePhoto, setNomineePhoto] = useState<File | null>(null);
+  const [nomineeRelationship, setNomineeRelationship] = useState("");
+
+  // Documents — other
   const [tinCert, setTinCert] = useState<File | null>(null);
 
-  // Bank & BO
+  // Financial information
+  const [chequeLeafPhoto, setChequeLeafPhoto] = useState<File | null>(null);
+  const [boAcknowledgement, setBoAcknowledgement] = useState<File | null>(null);
   const [bank, setBank] = useState({
-    bankName: "", branchName: "", accountNumber: "", accountType: "", routingNumber: "", boAccountNo: "",
+    bankName: "", branchName: "", accountNumber: "", routingNumber: "", boAccountNo: "",
   });
-
-  // Nominee
-  const [nominee, setNominee] = useState({ name: "", nidNumber: "", relationship: "" });
+  const [dividendOption, setDividendOption] = useState("CASH");
 
   const canProceed = () => {
     switch (step) {
-      case 0: return profile.name && profile.email && profile.phone && profile.nidNumber && profile.password && profile.password === profile.confirmPassword && profile.password.length >= 6;
-      case 1: return nidFront !== null;
-      case 2: return bank.bankName && bank.accountNumber;
-      case 3: return true;
-      default: return false;
+      case 0:
+        return (
+          profile.name &&
+          profile.email &&
+          profile.phone &&
+          profile.password &&
+          profile.password === profile.confirmPassword &&
+          profile.password.length >= 6
+        );
+      case 1:
+        return nidFront !== null;
+      case 2:
+        return bank.bankName && bank.accountNumber;
+      case 3:
+        return true;
+      default:
+        return false;
     }
   };
 
@@ -59,42 +76,51 @@ export default function RegisterPage() {
     setError("");
     try {
       const formData = new FormData();
-      // Profile
       formData.append("name", profile.name);
       formData.append("email", profile.email);
       formData.append("phone", profile.phone);
-      formData.append("nidNumber", profile.nidNumber);
       formData.append("password", profile.password);
-      formData.append("dateOfBirth", profile.dateOfBirth);
-      formData.append("address", profile.address);
-      formData.append("tinNumber", profile.tinNumber);
-      formData.append("investorType", regType === "individual" ? "INDIVIDUAL" : "COMPANY_ORGANIZATION");
-      // Bank
+
       formData.append("bankName", bank.bankName);
       formData.append("branchName", bank.branchName);
       formData.append("accountNumber", bank.accountNumber);
       formData.append("routingNumber", bank.routingNumber);
       formData.append("boAccountNo", bank.boAccountNo);
-      // Nominee
-      formData.append("nomineeName", nominee.name);
-      formData.append("nomineeNidNumber", nominee.nidNumber);
-      formData.append("nomineeRelationship", nominee.relationship);
-      // Documents
+      formData.append("dividendOption", dividendOption);
+
+      formData.append("nomineeRelationship", nomineeRelationship);
+
       if (nidFront) formData.append("nidFront", nidFront);
       if (nidBack) formData.append("nidBack", nidBack);
       if (photo) formData.append("photo", photo);
-      if (nomineeNid) formData.append("nomineeNidDoc", nomineeNid);
-      if (chequeLeaf) formData.append("chequeLeaf", chequeLeaf);
+      if (nomineeNidFront) formData.append("nomineeNidFront", nomineeNidFront);
+      if (nomineeNidBack) formData.append("nomineeNidBack", nomineeNidBack);
+      if (nomineePhoto) formData.append("nomineePhoto", nomineePhoto);
       if (tinCert) formData.append("tinCert", tinCert);
+      if (chequeLeafPhoto) formData.append("chequeLeafPhoto", chequeLeafPhoto);
+      if (boAcknowledgement) formData.append("boAcknowledgement", boAcknowledgement);
 
-      const res = await fetch("/api/auth/register", { method: "POST", body: formData });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Registration failed");
-      } else {
-        setSuccess(true);
+      const regRes = await fetch("/api/auth/register", { method: "POST", body: formData });
+      const regData = await regRes.json();
+      if (!regRes.ok) {
+        setError(regData.error || "Registration failed");
+        return;
       }
+
+      // Auto-login using the just-created credentials, then land on the dashboard
+      // where a "pending verification" banner is shown until admin approval.
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login: profile.email, password: profile.password }),
+      });
+      if (!loginRes.ok) {
+        const loginData = await loginRes.json().catch(() => ({}));
+        setError(loginData.error || "Registered, but auto sign-in failed. Please log in manually.");
+        return;
+      }
+      router.replace("/dashboard");
+      router.refresh();
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -102,48 +128,13 @@ export default function RegisterPage() {
     }
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-page-bg font-poppins">
-        <div className="w-full max-w-[500px] px-6 text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-[22px] font-semibold text-text-dark font-rajdhani mb-2">Registration Submitted!</h1>
-          <p className="text-[14px] text-text-body mb-6">
-            Your application has been submitted successfully. Our team will review and verify your documents.
-            You will receive a confirmation email at <strong>{profile.email}</strong> once approved.
-          </p>
-          <p className="text-[13px] text-text-muted mb-6">
-            Until approval, you can log in with your email and password to check your status.
-            After approval, you will receive an Investor Code for login.
-          </p>
-          <Link href="/login">
-            <Button className="bg-ekush-orange hover:bg-ekush-orange-dark text-white">Go to Login</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-page-bg font-poppins">
       <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <img src="/logo.png" alt="Ekush" className="h-14 mx-auto mb-3" />
           <h1 className="text-[22px] font-semibold text-text-dark font-rajdhani">Online Registration</h1>
           <p className="text-[13px] text-text-body">Ekush Wealth Management Limited</p>
-        </div>
-
-        {/* Type toggle */}
-        <div className="flex justify-center mb-6">
-          <div className="flex rounded-full overflow-hidden border border-ekush-orange">
-            <button onClick={() => setRegType("individual")} className={`px-6 py-2 text-[13px] font-medium transition-colors ${regType === "individual" ? "bg-ekush-orange text-white" : "bg-white text-ekush-orange"}`}>
-              Individual
-            </button>
-            <button onClick={() => setRegType("institution")} className={`px-6 py-2 text-[13px] font-medium transition-colors ${regType === "institution" ? "bg-ekush-orange text-white" : "bg-white text-ekush-orange"}`}>
-              Institution
-            </button>
-          </div>
         </div>
 
         {/* Step indicator */}
@@ -161,7 +152,6 @@ export default function RegisterPage() {
           ))}
         </div>
 
-        {/* Form card */}
         <div className="bg-white rounded-[10px] shadow-card p-8">
 
           {/* Step 0: Profile */}
@@ -171,13 +161,10 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input label="Applicant's Name (as per Bank)*" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} placeholder="Full name" required />
                 <Input label="Email*" type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} placeholder="Email address" required />
-                <Input label="NID/Passport Number*" value={profile.nidNumber} onChange={(e) => setProfile({ ...profile, nidNumber: e.target.value })} placeholder="NID or Passport Number" required />
                 <Input label="Phone Number*" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="01XXXXXXXXX" required />
+                <div className="hidden md:block" />
                 <Input label="Password* (min 6 chars)" type="password" value={profile.password} onChange={(e) => setProfile({ ...profile, password: e.target.value })} placeholder="Create password" required />
                 <Input label="Confirm Password*" type="password" value={profile.confirmPassword} onChange={(e) => setProfile({ ...profile, confirmPassword: e.target.value })} placeholder="Confirm password" required />
-                <Input label="Date of Birth" type="date" value={profile.dateOfBirth} onChange={(e) => setProfile({ ...profile, dateOfBirth: e.target.value })} />
-                <Input label="Present Address" value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} placeholder="Address" />
-                <Input label="Applicant's E-TIN (12 digits)" value={profile.tinNumber} onChange={(e) => setProfile({ ...profile, tinNumber: e.target.value })} placeholder="12 digit E-TIN" />
               </div>
               {profile.password && profile.confirmPassword && profile.password !== profile.confirmPassword && (
                 <p className="text-red-500 text-[12px]">Passwords do not match</p>
@@ -187,35 +174,104 @@ export default function RegisterPage() {
 
           {/* Step 1: Upload Documents */}
           {step === 1 && (
-            <div className="space-y-4">
-              <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-4">Upload Documents</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FileUpload label="NID/Passport Front*" file={nidFront} onFile={setNidFront} accept="image/*,.pdf" />
-                <FileUpload label="NID/Passport Back" file={nidBack} onFile={setNidBack} accept="image/*,.pdf" />
-                <FileUpload label="Passport Size Photo" file={photo} onFile={setPhoto} accept="image/*" />
-                <FileUpload label="Nominee's NID" file={nomineeNid} onFile={setNomineeNid} accept="image/*,.pdf" />
-                <FileUpload label="Blank Cheque Leaf / Bank Statement" file={chequeLeaf} onFile={setChequeLeaf} accept="image/*,.pdf" />
-                <FileUpload label="E-TIN Certificate" file={tinCert} onFile={setTinCert} accept="image/*,.pdf" />
+            <div className="space-y-6">
+              <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani">Upload Documents</h2>
+
+              {/* Principal Applicant */}
+              <div>
+                <h3 className="text-[14px] font-semibold text-text-dark mb-3">Principal Applicant&apos;s Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FileUpload label="NID Front*" file={nidFront} onFile={setNidFront} accept="image/*,.pdf" />
+                  <FileUpload label="NID Back Page" file={nidBack} onFile={setNidBack} accept="image/*,.pdf" />
+                  <FileUpload label="Passport Size Photo" file={photo} onFile={setPhoto} accept="image/*" />
+                </div>
+              </div>
+
+              {/* Nominee */}
+              <div>
+                <h3 className="text-[14px] font-semibold text-text-dark mb-3">Nominee Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FileUpload label="NID Front Page" file={nomineeNidFront} onFile={setNomineeNidFront} accept="image/*,.pdf" />
+                  <FileUpload label="NID Back Page" file={nomineeNidBack} onFile={setNomineeNidBack} accept="image/*,.pdf" />
+                  <FileUpload label="Passport Size Photo" file={nomineePhoto} onFile={setNomineePhoto} accept="image/*" />
+                </div>
+                <div className="mt-4 max-w-sm">
+                  <label className="text-[14px] font-medium text-text-label">Nominee Relationship</label>
+                  <select
+                    value={nomineeRelationship}
+                    onChange={(e) => setNomineeRelationship(e.target.value)}
+                    className="mt-2 flex h-[50px] w-full rounded-[5px] border border-input-border bg-input-bg px-4 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
+                  >
+                    <option value="">Select relationship</option>
+                    {NOMINEE_RELATIONSHIPS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* TIN */}
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FileUpload label="E-TIN Certificate of Principal Applicant" file={tinCert} onFile={setTinCert} accept="image/*,.pdf" />
+                </div>
               </div>
             </div>
           )}
 
-          {/* Step 2: Bank & BO */}
+          {/* Step 2: Financial Information */}
           {step === 2 && (
-            <div className="space-y-4">
-              <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-4">Bank &amp; BO Account Details</h2>
+            <div className="space-y-5">
+              <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-2">Financial Information</h2>
+
+              <div className="max-w-md">
+                <FileUpload
+                  label="You can upload photo of cheque leaf"
+                  file={chequeLeafPhoto}
+                  onFile={setChequeLeafPhoto}
+                  accept="image/*,.pdf"
+                />
+              </div>
+
+              <p className="text-[13px] text-text-body">
+                Or you can give following information about your bank details:
+              </p>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input label="Bank Name*" value={bank.bankName} onChange={(e) => setBank({ ...bank, bankName: e.target.value })} placeholder="Bank name" required />
                 <Input label="Branch Name" value={bank.branchName} onChange={(e) => setBank({ ...bank, branchName: e.target.value })} placeholder="Branch" />
                 <Input label="Bank Account No*" value={bank.accountNumber} onChange={(e) => setBank({ ...bank, accountNumber: e.target.value })} placeholder="Account number" required />
                 <Input label="Routing Number" value={bank.routingNumber} onChange={(e) => setBank({ ...bank, routingNumber: e.target.value })} placeholder="Routing number" />
-                <Input label="BO Account No (16 digits)" value={bank.boAccountNo} onChange={(e) => setBank({ ...bank, boAccountNo: e.target.value })} placeholder="16 digit BO Account No" />
               </div>
-              <h3 className="text-[14px] font-semibold text-text-dark mt-6 mb-2">Nominee Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input label="Nominee's Name" value={nominee.name} onChange={(e) => setNominee({ ...nominee, name: e.target.value })} placeholder="Nominee name" />
-                <Input label="Nominee's NID Number" value={nominee.nidNumber} onChange={(e) => setNominee({ ...nominee, nidNumber: e.target.value })} placeholder="NID" />
-                <Input label="Relationship" value={nominee.relationship} onChange={(e) => setNominee({ ...nominee, relationship: e.target.value })} placeholder="e.g., Spouse, Child" />
+
+              {/* BO Account: number OR acknowledgement upload */}
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-end gap-4">
+                <Input
+                  label="BO Account No (16 digits)"
+                  value={bank.boAccountNo}
+                  onChange={(e) => setBank({ ...bank, boAccountNo: e.target.value })}
+                  placeholder="16 digit BO Account No"
+                />
+                <div className="text-[13px] text-text-body pb-4 text-center">or</div>
+                <FileUpload
+                  label="BO Acknowledgement Receipt"
+                  file={boAcknowledgement}
+                  onFile={setBoAcknowledgement}
+                  accept="image/*,.pdf"
+                />
+              </div>
+
+              {/* Dividend option */}
+              <div className="max-w-sm">
+                <label className="text-[14px] font-medium text-text-label">Dividend Option</label>
+                <select
+                  value={dividendOption}
+                  onChange={(e) => setDividendOption(e.target.value)}
+                  className="mt-2 flex h-[50px] w-full rounded-[5px] border border-input-border bg-input-bg px-4 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="CIP">CIP</option>
+                </select>
               </div>
             </div>
           )}
@@ -228,24 +284,32 @@ export default function RegisterPage() {
                 <p><strong>Name:</strong> {profile.name}</p>
                 <p><strong>Email:</strong> {profile.email}</p>
                 <p><strong>Phone:</strong> {profile.phone}</p>
-                <p><strong>NID:</strong> {profile.nidNumber}</p>
                 <p><strong>Bank:</strong> {bank.bankName} — A/C: {bank.accountNumber}</p>
-                {nominee.name && <p><strong>Nominee:</strong> {nominee.name} ({nominee.relationship})</p>}
-                <p><strong>Documents:</strong> {[nidFront && "NID Front", nidBack && "NID Back", photo && "Photo", chequeLeaf && "Cheque Leaf", tinCert && "E-TIN"].filter(Boolean).join(", ") || "None"}</p>
+                {nomineeRelationship && <p><strong>Nominee Relationship:</strong> {nomineeRelationship}</p>}
+                <p><strong>Dividend Option:</strong> {dividendOption === "CIP" ? "CIP" : "Cash"}</p>
+                <p><strong>Documents:</strong> {[
+                  nidFront && "Applicant NID Front",
+                  nidBack && "Applicant NID Back",
+                  photo && "Applicant Photo",
+                  nomineeNidFront && "Nominee NID Front",
+                  nomineeNidBack && "Nominee NID Back",
+                  nomineePhoto && "Nominee Photo",
+                  tinCert && "E-TIN",
+                  chequeLeafPhoto && "Cheque Leaf",
+                  boAcknowledgement && "BO Acknowledgement",
+                ].filter(Boolean).join(", ") || "None"}</p>
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-[10px] p-4">
                 <p className="text-[13px] text-amber-800">
-                  By submitting, you confirm that all information provided is accurate. Your application will be reviewed by our team.
-                  You will receive a confirmation email once approved.
+                  By submitting, you confirm that all information provided is accurate. You will be signed in immediately with
+                  a pending-verification status; our team will review your documents and approve your account shortly.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Error */}
           {error && <p className="text-red-500 text-[13px] mt-2">{error}</p>}
 
-          {/* Navigation */}
           <div className="flex justify-between mt-8">
             <div>
               {step > 0 && (
@@ -291,7 +355,7 @@ function FileUpload({ label, file, onFile, accept }: { label: string; file: File
         }`}
       >
         {file ? (
-          <p className="text-[12px] text-green-700 font-medium">{file.name}</p>
+          <p className="text-[12px] text-green-700 font-medium truncate">{file.name}</p>
         ) : (
           <div>
             <Upload className="w-5 h-5 text-gray-400 mx-auto mb-1" />

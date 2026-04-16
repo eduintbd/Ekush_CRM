@@ -45,8 +45,23 @@ export default async function DashboardPage() {
     console.error("Dashboard data fetch error:", err);
   }
 
+  const isPending = session?.user?.status === "PENDING";
+
   return (
     <div className="space-y-8">
+      {isPending && (
+        <div className="rounded-[10px] border border-amber-300 bg-amber-50 px-5 py-4 flex items-start gap-3">
+          <div className="w-2 h-2 rounded-full bg-amber-500 mt-[6px] shrink-0" />
+          <div>
+            <p className="text-[14px] font-semibold text-amber-900 font-rajdhani">Pending verification</p>
+            <p className="text-[13px] text-amber-800">
+              Your registration has been received. Our team will review your documents and approve your account shortly.
+              You can browse the portal in the meantime, but some features will be unavailable until approval.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Performance charts — NAV carousel + peer comparison */}
       <div>
         <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-4">

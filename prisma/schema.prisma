@@ -64,6 +64,7 @@ model Investor {
   address      String?
   riskProfile  String?
   boId         String?
+  dividendOption String @default("CASH") // CASH | CIP
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   holdings        FundHolding[]
