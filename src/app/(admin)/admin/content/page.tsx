@@ -284,8 +284,12 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
   useEffect(() => { load(); }, []);
 
   const eligible = rows.filter((r) => {
+    // When a code filter is entered, show the matching investor regardless of
+    // email/fund filters — admin wants to look up contact info by code.
+    if (codeFilter) {
+      return r.investorCode.toLowerCase().includes(codeFilter.toLowerCase());
+    }
     if (!r.email) return false;
-    if (codeFilter && !r.investorCode.toLowerCase().includes(codeFilter.toLowerCase())) return false;
     if (template === "EFUF_PORTFOLIO") return !skipZero || r.funds.EFUF?.hasPortfolio;
     if (template === "EGF_PORTFOLIO") return !skipZero || r.funds.EGF?.hasPortfolio;
     if (template === "ESRF_PORTFOLIO") return !skipZero || r.funds.ESRF?.hasPortfolio;
@@ -395,18 +399,15 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
               {["EFUF_PORTFOLIO", "EGF_PORTFOLIO", "ESRF_PORTFOLIO"].includes(template) && (
                 <th className="p-2 text-center">PDF</th>
               )}
-              <th className="p-2 text-right">EFUF MV</th>
-              <th className="p-2 text-right">EGF MV</th>
-              <th className="p-2 text-right">ESRF MV</th>
               <th className="p-2 text-left">Email</th>
               <th className="p-2 text-left">Phone</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={9} className="p-6 text-center text-text-muted"><Loader2 className="w-4 h-4 animate-spin inline" /></td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-text-muted"><Loader2 className="w-4 h-4 animate-spin inline" /></td></tr>
             ) : eligible.length === 0 ? (
-              <tr><td colSpan={9} className="p-6 text-center text-text-muted">
+              <tr><td colSpan={6} className="p-6 text-center text-text-muted">
                 No investors match the current filter.
               </td></tr>
             ) : eligible.map((r) => {
@@ -428,7 +429,7 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
                   {["EFUF_PORTFOLIO", "EGF_PORTFOLIO", "ESRF_PORTFOLIO"].includes(template) && (
                     <td className="p-2 text-center">
                       <a
-                        href={`/print/forms/portfolio-statement?investorCode=${r.investorCode}&fundCode=${relevantFundCode}`}
+                        href={`/forms/portfolio-statement?investorCode=${r.investorCode}&fundCode=${relevantFundCode}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded text-[11px] font-medium"
@@ -437,15 +438,6 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
                       </a>
                     </td>
                   )}
-                  <td className={`p-2 text-right ${r.funds.EFUF?.hasPortfolio ? "text-text-dark" : "text-text-muted"}`}>
-                    {r.funds.EFUF?.hasPortfolio ? r.funds.EFUF.marketValue.toLocaleString("en-IN", { maximumFractionDigits: 0 }) : "—"}
-                  </td>
-                  <td className={`p-2 text-right ${r.funds.EGF?.hasPortfolio ? "text-text-dark" : "text-text-muted"}`}>
-                    {r.funds.EGF?.hasPortfolio ? r.funds.EGF.marketValue.toLocaleString("en-IN", { maximumFractionDigits: 0 }) : "—"}
-                  </td>
-                  <td className={`p-2 text-right ${r.funds.ESRF?.hasPortfolio ? "text-text-dark" : "text-text-muted"}`}>
-                    {r.funds.ESRF?.hasPortfolio ? r.funds.ESRF.marketValue.toLocaleString("en-IN", { maximumFractionDigits: 0 }) : "—"}
-                  </td>
                   <td className="p-2">{r.email || <span className="text-amber-600">(missing)</span>}</td>
                   <td className="p-2">{r.phone || "—"}</td>
                 </tr>
