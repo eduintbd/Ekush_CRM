@@ -54,10 +54,12 @@ export default function LoginPage() {
       <div className="w-full max-w-[420px] px-6">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 bg-ekush-orange rounded-[10px] flex items-center justify-center font-bold text-white text-2xl shadow-card mb-3">
-            E
-          </div>
-          <h1 className="text-lg font-bold text-text-dark font-rajdhani">Ekush WML</h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Ekush Wealth Management Limited"
+            className="h-16 w-auto mb-3"
+          />
           <p className="text-xs text-text-body tracking-wider uppercase">Investor Portal</p>
         </div>
 
@@ -124,8 +126,11 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-[11px] text-text-body mt-6">
-          Licensed by BSEC | &copy; 2021-{new Date().getFullYear()} Ekush Wealth Management Ltd
+        <p className="text-center text-[11px] text-text-body mt-6 leading-relaxed">
+          Ekush Wealth Management Limited (Ekush) is a registered Asset Management
+          Company (license no. BSEC/AMC/2019/44, dated November 20, 2019) under the
+          Bangladesh Securities and Exchange Commission (BSEC) of the Government of
+          the People&rsquo;s Republic of Bangladesh.
         </p>
       </div>
 

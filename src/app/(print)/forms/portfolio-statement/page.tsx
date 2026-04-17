@@ -1,7 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { prisma, withRetry } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { formatBDT } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -20,28 +19,27 @@ export default async function PortfolioStatementPage({
 
   try {
     let investorId: string | undefined;
-    
+
     // Admin preview mode: allow specifying investorCode and fundCode
     if (searchParams.investorCode) {
       const user = (session.user as any);
       const isAdmin = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"].includes(user?.role);
-      
+
       if (!isAdmin) {
         return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Unauthorized</div>;
       }
-      
+
       investor = await prisma.investor.findUnique({
         where: { investorCode: searchParams.investorCode },
       });
-      
+
       if (!investor) {
         return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Investor not found</div>;
       }
-      
+
       investorId = investor.id;
       filterFundCode = searchParams.fundCode || null;
     } else {
-      // Regular user mode: use session investorId
       const userId = (session.user as any)?.id;
       investorId = (session.user as any)?.investorId;
       if (!investorId && userId) {
@@ -58,8 +56,7 @@ export default async function PortfolioStatementPage({
       where: { investorId },
       include: { fund: true },
     }));
-    
-    // Filter by fund if specified
+
     if (filterFundCode) {
       holdings = holdings.filter((h) => h.fund.code === filterFundCode);
     }
@@ -70,11 +67,9 @@ export default async function PortfolioStatementPage({
 
   const today = new Date();
   const dateStr = today.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const fmt = (n: number) => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt2 = (n: number) => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt0 = (n: number) => n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
-  const GREY_BG = "#f0f0f0";
-
-  // Compute totals
   let totalCost = 0;
   let totalMarket = 0;
   let totalGain = 0;
@@ -94,90 +89,252 @@ export default async function PortfolioStatementPage({
   });
 
   const totalReturn = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+  const fileName = `Portfolio-Statement-${investor.investorCode}.pdf`;
+
+  const FONT = "Arial, Helvetica, sans-serif";
+  const BORDER_GREY = "#E5E5E5";
+  const ORANGE = "#F27023";
+
+  const numericTh = {
+    fontFamily: FONT,
+    fontSize: "10pt",
+    fontWeight: 700,
+    color: "#000",
+    textAlign: "right" as const,
+    padding: "10px 6px",
+  };
+  const numericTd = {
+    fontFamily: FONT,
+    fontSize: "10pt",
+    fontWeight: 400,
+    color: "#000",
+    textAlign: "right" as const,
+    padding: "12px 6px",
+  };
+  const numericTdBold = { ...numericTd, fontWeight: 700 };
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
-        @media print { body{margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;} .no-print{display:none!important;} .print-page{width:210mm;min-height:297mm;padding:0;margin:0;box-shadow:none!important;} }
+        body { margin: 0; padding: 0; background: #f5f5f5; }
         @page { size: A4 portrait; margin: 0; }
+        @media print {
+          body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print { display: none !important; }
+          .statement-page { box-shadow: none !important; margin: 0 !important; }
+        }
       `}} />
 
+      {/* html2pdf.js from CDN */}
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" async></script>
+
+      {/* Floating action buttons */}
       <div className="no-print" style={{ position: "fixed", top: 16, right: 16, zIndex: 50, display: "flex", gap: 8 }}>
-        <button id="print-btn" style={{ padding: "8px 16px", background: "#F27023", color: "#fff", border: "none", borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Save as PDF / Print</button>
-        <a href="/statements" style={{ padding: "8px 16px", background: "#fff", color: "#333", border: "1px solid #ddd", borderRadius: 6, fontSize: 14, textDecoration: "none" }}>Back</a>
+        <button
+          id="download-pdf-btn"
+          style={{
+            padding: "8px 16px",
+            background: ORANGE,
+            color: "#fff",
+            border: "none",
+            borderRadius: 6,
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontFamily: FONT,
+          }}
+          aria-label="Download PDF"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Download PDF
+        </button>
+        <a
+          href="/statements"
+          style={{
+            padding: "8px 16px",
+            background: "#fff",
+            color: "#333",
+            border: "1px solid #ddd",
+            borderRadius: 6,
+            fontSize: 14,
+            textDecoration: "none",
+            fontFamily: FONT,
+          }}
+        >
+          Back
+        </a>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: `document.getElementById('print-btn').addEventListener('click',function(){window.print()});` }} />
 
-      <div className="print-page" style={{ width: "210mm", minHeight: "297mm", margin: "0 auto", background: "#fff", fontFamily: "Arial, Helvetica, sans-serif", fontSize: "11pt", color: "#000", lineHeight: "1.5", position: "relative" }}>
+      {/* Inline handler — polls for html2pdf to load (async script) then binds */}
+      <script dangerouslySetInnerHTML={{ __html: `
+        (function() {
+          var btn = document.getElementById('download-pdf-btn');
+          if (!btn) return;
+          btn.addEventListener('click', function() {
+            var el = document.getElementById('statement-content');
+            if (!el) return;
+            var start = Date.now();
+            (function tryRender() {
+              if (typeof window.html2pdf === 'undefined') {
+                if (Date.now() - start > 5000) { alert('PDF generator failed to load.'); return; }
+                return setTimeout(tryRender, 80);
+              }
+              var originalText = btn.innerHTML;
+              btn.innerHTML = 'Generating...';
+              btn.disabled = true;
+              window.html2pdf()
+                .set({
+                  margin: 0,
+                  filename: ${JSON.stringify(fileName)},
+                  image: { type: 'jpeg', quality: 0.98 },
+                  html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                })
+                .from(el)
+                .save()
+                .then(function() { btn.innerHTML = originalText; btn.disabled = false; })
+                .catch(function() { btn.innerHTML = originalText; btn.disabled = false; });
+            })();
+          });
+        })();
+      `}} />
 
-        {/* Banner */}
-        <img src="/banner_for_portfolio.png" alt="" style={{ width: "100%", display: "block" }} />
+      {/* A4 page */}
+      <div
+        id="statement-content"
+        className="statement-page"
+        style={{
+          width: "210mm",
+          minHeight: "297mm",
+          margin: "20px auto",
+          background: "#fff",
+          fontFamily: FONT,
+          color: "#000",
+          position: "relative",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+        }}
+      >
+        {/* Header: full-bleed, ~130px tall */}
+        <div style={{ position: "relative", width: "100%", height: "130px", overflow: "hidden" }}>
+          {/* Orange wave SVG — bleeds from left, S-curve flowing right with layered lighter bands */}
+          <svg
+            viewBox="0 0 800 260"
+            preserveAspectRatio="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+          >
+            {/* Background layered bands (lighter oranges), suggesting motion */}
+            <path d="M0,0 L0,180 C 120,130 260,90 420,120 C 560,145 680,195 800,170 L800,0 Z" fill="#FCD7B8" />
+            <path d="M0,0 L0,150 C 140,105 280,65 440,95 C 580,120 690,170 800,140 L800,0 Z" fill="#F9B582" />
+            <path d="M0,0 L0,120 C 160,80 300,45 460,75 C 600,100 700,150 800,115 L800,0 Z" fill="#F48A46" />
+            {/* Foreground bold orange S-curve */}
+            <path d="M0,0 L0,95 C 170,50 320,20 480,55 C 620,85 710,135 800,95 L800,0 Z" fill={ORANGE} />
+          </svg>
 
-        {/* Content */}
-        <div style={{ padding: "8mm 22mm 20mm 22mm" }}>
+          {/* Logo in top-right corner */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Ekush Wealth Management Limited"
+            style={{
+              position: "absolute",
+              top: "25px",
+              right: "30px",
+              width: "180px",
+              height: "auto",
+              zIndex: 2,
+            }}
+            crossOrigin="anonymous"
+          />
+        </div>
 
+        {/* Body */}
+        <div style={{ padding: "40px 60px 60px 60px" }}>
           {/* Date */}
-          <p style={{ fontSize: "11pt", marginBottom: "6mm" }}>{dateStr}</p>
+          <p style={{ fontFamily: FONT, fontSize: "11pt", fontWeight: 400, color: "#000", margin: 0 }}>
+            {dateStr}
+          </p>
 
-          {/* Investor */}
-          <p style={{ fontSize: "12pt", fontWeight: 700, margin: "0 0 1mm 0" }}>{investor.name}</p>
-          <p style={{ fontSize: "11pt", marginBottom: "6mm" }}>Investor Code: {investor.investorCode}</p>
+          {/* Investor name + code */}
+          <p style={{ fontFamily: FONT, fontSize: "12pt", fontWeight: 700, color: "#000", margin: "20px 0 0 0" }}>
+            {investor.name}
+          </p>
+          <p style={{ fontFamily: FONT, fontSize: "11pt", fontWeight: 400, color: "#000", margin: "4px 0 0 0" }}>
+            Investor Code: {investor.investorCode}
+          </p>
 
           {/* Title */}
-          <p style={{ fontSize: "14pt", fontWeight: 700, marginBottom: "4mm" }}>Portfolio Statement</p>
+          <p style={{ fontFamily: FONT, fontSize: "18pt", fontWeight: 700, color: "#000", margin: "30px 0 0 0" }}>
+            Portfolio Statement
+          </p>
 
-          {/* Holdings table */}
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "6mm", fontSize: "9.5pt" }}>
+          {/* Table */}
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              marginTop: "15px",
+              tableLayout: "fixed",
+            }}
+          >
+            <colgroup>
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "15%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "12%" }} />
+            </colgroup>
             <thead>
-              <tr>
-                <th style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "left", fontWeight: 700, background: GREY_BG }}>Fund</th>
-                <th style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", fontWeight: 700, background: GREY_BG }}>Units</th>
-                <th style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", fontWeight: 700, background: GREY_BG }}>Avg Cost</th>
-                <th style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", fontWeight: 700, background: GREY_BG }}>NAV</th>
-                <th style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", fontWeight: 700, background: GREY_BG }}>Cost Value</th>
-                <th style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", fontWeight: 700, background: GREY_BG }}>Market Value</th>
-                <th style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", fontWeight: 700, background: GREY_BG }}>Gain/Loss</th>
-                <th style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", fontWeight: 700, background: GREY_BG }}>Return</th>
+              <tr style={{ borderTop: "1.5px solid #000", borderBottom: `1px solid ${BORDER_GREY}` }}>
+                <th style={{ ...numericTh, textAlign: "left" }}>Fund</th>
+                <th style={numericTh}>Units</th>
+                <th style={numericTh}>Avg Cost</th>
+                <th style={numericTh}>NAV</th>
+                <th style={numericTh}>Cost Value</th>
+                <th style={numericTh}>Market Value</th>
+                <th style={numericTh}>Gain/Loss</th>
+                <th style={numericTh}>Return</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.code}>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "5px 6px", fontWeight: 700 }}>{r.code}</td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "5px 6px", textAlign: "right" }}>{r.units.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "5px 6px", textAlign: "right" }}>{r.avgCost.toFixed(4)}</td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "5px 6px", textAlign: "right" }}>{r.nav.toFixed(4)}</td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "5px 6px", textAlign: "right" }}>{fmt(r.costValue)}</td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "5px 6px", textAlign: "right" }}>{fmt(r.marketValue)}</td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "5px 6px", textAlign: "right" }}>{fmt(r.gain)}</td>
-                  <td style={{ borderBottom: "1px solid #ccc", padding: "5px 6px", textAlign: "right" }}>{r.returnPct >= 0 ? "+" : ""}{r.returnPct.toFixed(2)}%</td>
+                  <td style={{ ...numericTd, textAlign: "left", fontWeight: 700 }}>{r.code}</td>
+                  <td style={numericTd}>{fmt0(r.units)}</td>
+                  <td style={numericTd}>{r.avgCost.toFixed(4)}</td>
+                  <td style={numericTd}>{r.nav.toFixed(4)}</td>
+                  <td style={numericTd}>{fmt2(r.costValue)}</td>
+                  <td style={numericTd}>{fmt2(r.marketValue)}</td>
+                  <td style={numericTd}>{fmt2(r.gain)}</td>
+                  <td style={numericTd}>
+                    {r.returnPct >= 0 ? "+" : ""}
+                    {r.returnPct.toFixed(2)}%
+                  </td>
                 </tr>
               ))}
-              <tr style={{ fontWeight: 700 }}>
-                <td style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", background: GREY_BG }}>TOTAL</td>
-                <td style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", background: GREY_BG }} colSpan={3}></td>
-                <td style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", background: GREY_BG }}>{fmt(totalCost)}</td>
-                <td style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", background: GREY_BG }}>{fmt(totalMarket)}</td>
-                <td style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", background: GREY_BG }}>{fmt(totalGain)}</td>
-                <td style={{ borderTop: "2px solid #000", borderBottom: "2px solid #000", padding: "5px 6px", textAlign: "right", background: GREY_BG }}>{totalReturn.toFixed(2)}%</td>
+              <tr style={{ borderBottom: `1px solid ${BORDER_GREY}` }}>
+                <td style={{ ...numericTd, textAlign: "left", fontWeight: 700 }}>TOTAL</td>
+                <td style={numericTd}></td>
+                <td style={numericTd}></td>
+                <td style={numericTd}></td>
+                <td style={numericTdBold}>{fmt2(totalCost)}</td>
+                <td style={numericTdBold}>{fmt2(totalMarket)}</td>
+                <td style={numericTdBold}>{fmt2(totalGain)}</td>
+                <td style={numericTdBold}>{totalReturn.toFixed(2)}%</td>
               </tr>
             </tbody>
           </table>
-
-          {/* Disclaimer */}
-          <p style={{ fontSize: "8pt", color: "#888", marginTop: "8mm" }}>
-            This is a computer-generated statement. NAV values are as of the statement date.<br />
-            Past performance does not guarantee future results. Investments are subject to market risk.<br />
-            Ekush Wealth Management Ltd | www.ekushwml.com
-          </p>
-        </div>
-
-        {/* Orange footer */}
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#F27023", color: "#fff", padding: "3mm 6mm", display: "flex", justifyContent: "space-between", fontSize: "8pt" }}>
-          <span>+8801713-086101</span>
-          <span>info@ekushwml.com</span>
-          <span>Apt-A3, House: 17, Road: 01, Block: A, Niketon, Gulshan 01, Dhaka-1212</span>
-          <span>www.ekushwml.com</span>
         </div>
       </div>
     </>
