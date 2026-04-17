@@ -60,8 +60,8 @@ export default async function DashboardPage() {
           <div>
             <p className="text-[14px] font-semibold text-amber-900 font-rajdhani">Pending verification</p>
             <p className="text-[13px] text-amber-800">
-              Your registration has been received. Our team will review your documents and approve your account shortly.
-              You can browse the portal in the meantime, but some features will be unavailable until approval.
+              Your registration has been received. Our team will review your documents and approve your account shortly after you complete the investment. To do so{" "}
+              <a href="/transactions/buy" className="text-ekush-orange font-semibold hover:underline">click here (Buy Units)</a>.
             </p>
           </div>
         </div>
