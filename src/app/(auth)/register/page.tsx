@@ -246,13 +246,54 @@ export default function RegisterPage() {
   };
 
   // ---------- OCR helpers ----------
+  const [ocrStatus, setOcrStatus] = useState("");
+
+  async function preprocessImage(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = Math.max(1, 2400 / Math.max(img.width, img.height));
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d")!;
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // Grayscale + adaptive threshold for cleaner text
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = imageData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const gray = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+          const bw = gray > 140 ? 255 : 0;
+          d[i] = d[i + 1] = d[i + 2] = bw;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob failed"))), "image/png");
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function runOCR(file: File): Promise<string> {
-    // Dynamic import — tesseract.js is added in package.json; install before running.
     // @ts-ignore — types provided by the package once installed
     const mod: any = await import("tesseract.js");
     const Tesseract: any = mod.default ?? mod;
-    const { data } = await Tesseract.recognize(file, "eng+ben");
-    return (data?.text as string) || "";
+    // Preprocess for cleaner text extraction
+    let blob: Blob;
+    try {
+      blob = await preprocessImage(file);
+    } catch {
+      blob = file;
+    }
+    // Run both languages; Bangla first to prioritize Bangla text
+    const [benResult, engResult] = await Promise.all([
+      Tesseract.recognize(blob, "ben").catch(() => ({ data: { text: "" } })),
+      Tesseract.recognize(blob, "eng").catch(() => ({ data: { text: "" } })),
+    ]);
+    const combined = ((benResult.data?.text || "") + "\n" + (engResult.data?.text || "")).trim();
+    return combined;
   }
 
   function toAsciiDigits(s: string): string {
@@ -336,12 +377,28 @@ export default function RegisterPage() {
   ];
 
   async function runNidOcrInto(file: File, target: "applicant" | "nominee") {
+    setOcrStatus("Reading NID — this may take a moment...");
     const text = await runOCR(file);
     const nid = extractDigits(text, 10, 17);
     const father = extractAfterLabel(text, FATHER_LABELS);
     const mother = extractAfterLabel(text, MOTHER_LABELS);
     const present = extractAfterLabel(text, PRESENT_ADDR_LABELS);
     const permanent = extractAfterLabel(text, PERM_ADDR_LABELS);
+
+    // Build a summary of what was found
+    const found: string[] = [];
+    if (nid) found.push(`NID: ${nid}`);
+    if (father) found.push(`Father: ${father}`);
+    if (mother) found.push(`Mother: ${mother}`);
+    if (present) found.push("Address: found");
+
+    if (found.length > 0) {
+      setOcrStatus(`Extracted: ${found.join(" | ")}`);
+    } else {
+      setOcrStatus("Could not extract fields — use Edit in the preview to fill manually.");
+    }
+    setTimeout(() => setOcrStatus(""), 8000);
+
     // Keep existing non-empty values when new OCR pass doesn't find them
     const merge = (prev: PersonInfo): PersonInfo => ({
       ...prev,
@@ -386,12 +443,21 @@ export default function RegisterPage() {
     setBoAcknowledgement(file);
     if (!file) return;
     setOcrBusy("bo");
+    setOcrStatus("Reading BO acknowledgement...");
     try {
       const text = await runOCR(file);
       const boId = extractBoId(text);
-      if (boId) setBank((b) => ({ ...b, boAccountNo: b.boAccountNo || boId }));
+      if (boId) {
+        setBank((b) => ({ ...b, boAccountNo: b.boAccountNo || boId }));
+        setOcrStatus(`Extracted BO: ${boId}`);
+      } else {
+        setOcrStatus("Could not extract BO number — enter it manually.");
+      }
+      setTimeout(() => setOcrStatus(""), 6000);
     } catch (e) {
       console.error("BO OCR failed", e);
+      setOcrStatus("BO reading failed.");
+      setTimeout(() => setOcrStatus(""), 4000);
     } finally {
       setOcrBusy(null);
     }
@@ -401,12 +467,21 @@ export default function RegisterPage() {
     setTinCert(file);
     if (!file) return;
     setOcrBusy("tin");
+    setOcrStatus("Reading E-TIN certificate...");
     try {
       const text = await runOCR(file);
       const tin = extractTin(text);
-      if (tin) setTinNumber((prev) => prev || tin);
+      if (tin) {
+        setTinNumber((prev) => prev || tin);
+        setOcrStatus(`Extracted TIN: ${tin}`);
+      } else {
+        setOcrStatus("Could not extract TIN — enter it manually.");
+      }
+      setTimeout(() => setOcrStatus(""), 6000);
     } catch (e) {
       console.error("TIN OCR failed", e);
+      setOcrStatus("TIN reading failed.");
+      setTimeout(() => setOcrStatus(""), 4000);
     } finally {
       setOcrBusy(null);
     }
@@ -571,8 +646,13 @@ export default function RegisterPage() {
                   <FileUpload label="Digital Signature" file={signature} onFile={setSignature} accept="image/*" />
                 </div>
 
+                {ocrStatus && (
+                  <div className="mt-2 px-3 py-2 rounded-md bg-blue-50 border border-blue-200 text-[12px] text-blue-800 animate-pulse">
+                    {ocrStatus}
+                  </div>
+                )}
                 <p className="text-[11px] text-text-body mt-2">
-                  NID details (number, parents&apos; names, present address) will be auto-extracted from your NID upload and printed onto the form.
+                  NID details (number, parents&apos; names, address) will be auto-extracted and printed onto the form. You can also use the <strong>Edit</strong> button in the preview to correct or fill any field manually.
                 </p>
               </div>
 
