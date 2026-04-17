@@ -46,23 +46,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
   }
 
-  // Check if email or phone already exists — User has @unique on both, so
-  // we want a specific message rather than a generic P2002 catch.
+  // Only email is unique; phone and name may be duplicated.
   const existingByEmail = await prisma.user.findFirst({ where: { email } });
   if (existingByEmail) {
     return NextResponse.json(
       { error: `An account with the email ${email} already exists. Please log in or use a different email.` },
       { status: 400 },
     );
-  }
-  if (phone) {
-    const existingByPhone = await prisma.user.findFirst({ where: { phone } });
-    if (existingByPhone) {
-      return NextResponse.json(
-        { error: `An account with the phone number ${phone} already exists. Please use a different phone number.` },
-        { status: 400 },
-      );
-    }
   }
 
   const passwordHash = await hash(password, 10);
