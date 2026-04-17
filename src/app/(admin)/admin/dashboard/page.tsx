@@ -6,7 +6,6 @@ import { formatBDT, formatDate } from "@/lib/utils";
 import { Users, ArrowLeftRight, AlertCircle, TrendingUp, FileText, Bell, Clock } from "lucide-react";
 import Link from "next/link";
 import { CollapsibleCard } from "@/components/admin/collapsible-card";
-import { PendingBankRow } from "@/components/admin/pending-bank-row";
 
 export const dynamic = "force-dynamic";
 
@@ -28,17 +27,6 @@ export default async function AdminDashboard() {
     createdAt: Date;
     user: { email: string | null; phone: string | null; status: string };
   }> = [];
-  let pendingBanks: Array<{
-    id: string;
-    bankName: string;
-    accountNumber: string;
-    branchName: string | null;
-    routingNumber: string | null;
-    chequeLeafUrl: string | null;
-    createdAt: Date;
-    investor: { name: string; investorCode: string };
-  }> = [];
-
   try {
     // Run queries sequentially (more stable with Supabase pooler than 10 in parallel)
     investorCount = await prisma.investor.count();
@@ -52,12 +40,6 @@ export default async function AdminDashboard() {
     pendingInvestors = await prisma.investor.findMany({
       where: { user: { status: "PENDING" } },
       include: { user: { select: { email: true, phone: true, status: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
-    pendingBanks = await prisma.bankAccount.findMany({
-      where: { status: "PENDING_APPROVAL" },
-      include: { investor: { select: { name: true, investorCode: true } } },
       orderBy: { createdAt: "desc" },
       take: 50,
     });
@@ -118,49 +100,6 @@ export default async function AdminDashboard() {
                     </Link>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CollapsibleCard>
-
-      {/* Pending Bank Account Approvals */}
-      <CollapsibleCard
-        title={`Pending Bank Account Approvals (${pendingBanks.length})`}
-        subtitle="Review cheque / details, fill gaps, then approve as secondary account"
-        defaultOpen={pendingBanks.length > 0}
-      >
-        <Table>
-          <TableHeader>
-            <TableRow className="border-0 hover:bg-transparent bg-amber-50">
-              <TableHead>Submitted</TableHead>
-              <TableHead>Investor</TableHead>
-              <TableHead>Cheque</TableHead>
-              <TableHead>Details</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {pendingBanks.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-text-muted py-6">
-                  No pending bank account requests.
-                </TableCell>
-              </TableRow>
-            ) : (
-              pendingBanks.map((b) => (
-                <PendingBankRow
-                  key={b.id}
-                  id={b.id}
-                  investorName={b.investor.name}
-                  investorCode={b.investor.investorCode}
-                  chequeLeafUrl={b.chequeLeafUrl}
-                  bankName={b.bankName}
-                  accountNumber={b.accountNumber}
-                  branchName={b.branchName}
-                  routingNumber={b.routingNumber}
-                  createdAt={b.createdAt.toISOString()}
-                />
               ))
             )}
           </TableBody>

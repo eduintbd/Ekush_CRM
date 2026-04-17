@@ -151,20 +151,27 @@ export default function AdminTicketsPage() {
           }
           setActionLoading(resolvingTicketId);
           try {
-            // First resolve the ticket (which triggers bank status update)
+            // Approve the bank account first — flips status PENDING_APPROVAL → ACTIVE
+            // and fills in the bank details. Only after that do we mark the
+            // ticket resolved, so the investor sees the secondary account
+            // immediately on profile / SIP.
+            if (bankIdMatch) {
+              const res = await fetch(`/api/admin/bank-accounts/${bankIdMatch[1]}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "approve", ...bankForm }),
+              });
+              if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                alert(data.error || "Could not approve bank account.");
+                return;
+              }
+            }
             await fetch(`/api/support/tickets/${resolvingTicketId}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ status: "RESOLVED" }),
             });
-            // Then update bank account with the actual details
-            if (bankIdMatch) {
-              await fetch(`/api/admin/bank-accounts/${bankIdMatch[1]}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bankForm),
-              });
-            }
             setResolvingTicketId(null);
             fetchTickets();
           } finally {

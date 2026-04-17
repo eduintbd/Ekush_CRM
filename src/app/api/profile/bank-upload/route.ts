@@ -56,21 +56,24 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Existing investor (has investor code) = create a verification ticket.
-  // New sign-ups (no code yet) = no ticket.
-  const investor = await prisma.investor.findUnique({ where: { id: investorId }, select: { investorCode: true, name: true } });
-  if (investor?.investorCode) {
-    const trackingNumber = `BNK-${Date.now().toString(36).toUpperCase()}`;
-    await prisma.serviceRequest.create({
-      data: {
-        investorId,
-        type: "BANK_VERIFICATION",
-        status: "OPEN",
-        description: `Bank account change request from ${investor.name} (${investor.investorCode}). Cheque leaf uploaded for verification. Bank Account ID: ${bankAccount.id}`,
-        trackingNumber,
-        slaDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      },
-    });
+  // Any secondary bank change (isFirst === false) creates a BANK_VERIFICATION
+  // ticket regardless of registration state — admin reviews in /admin/tickets
+  // and approves, which flips the bank status to ACTIVE.
+  if (!isFirst) {
+    const investor = await prisma.investor.findUnique({ where: { id: investorId }, select: { investorCode: true, name: true } });
+    if (investor) {
+      const trackingNumber = `BNK-${Date.now().toString(36).toUpperCase()}`;
+      await prisma.serviceRequest.create({
+        data: {
+          investorId,
+          type: "BANK_VERIFICATION",
+          status: "OPEN",
+          description: `Bank account change request from ${investor.name} (${investor.investorCode}). Cheque leaf uploaded for verification. Bank Account ID: ${bankAccount.id}`,
+          trackingNumber,
+          slaDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
   }
 
   return NextResponse.json({ success: true });
