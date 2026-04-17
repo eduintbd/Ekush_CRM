@@ -267,7 +267,13 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
   const [skipZero, setSkipZero] = useState(true);
   const [codeFilter, setCodeFilter] = useState("");
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ sent: number; failed: number; skipped: number; total: number } | null>(null);
+  const [result, setResult] = useState<{
+    sent: number;
+    failed: number;
+    skipped: number;
+    total: number;
+    results?: Array<{ investorCode: string; status: string; error?: string }>;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const opt = TEMPLATE_OPTIONS.find((o) => o.id === template);
@@ -325,7 +331,13 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setResult({ sent: data.sent, failed: data.failed, skipped: data.skipped, total: data.total });
+        setResult({
+          sent: data.sent,
+          failed: data.failed,
+          skipped: data.skipped,
+          total: data.total,
+          results: data.results,
+        });
         setSelected(new Set());
         onSent();
       } else {
@@ -374,11 +386,30 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
         </div>
       </div>
 
-      {result && (
-        <div className="bg-green-50 border border-green-200 rounded-[5px] p-3 text-[12px] text-green-800">
-          Batch complete — <strong>Sent: {result.sent}</strong> · Failed: {result.failed} · Skipped: {result.skipped} (total {result.total})
-        </div>
-      )}
+      {result && (() => {
+        const failures = (result.results || []).filter((r) => r.status === "FAILED");
+        const hasFailures = failures.length > 0;
+        return (
+          <div
+            className={`border rounded-[5px] p-3 text-[12px] ${
+              hasFailures
+                ? "bg-red-50 border-red-200 text-red-800"
+                : "bg-green-50 border-green-200 text-green-800"
+            }`}
+          >
+            Batch complete — <strong>Sent: {result.sent}</strong> · Failed: {result.failed} · Skipped: {result.skipped} (total {result.total})
+            {hasFailures && (
+              <ul className="mt-2 list-disc pl-5 space-y-0.5">
+                {failures.map((f, i) => (
+                  <li key={i}>
+                    <span className="font-mono">{f.investorCode}</span>: {f.error || "unknown error"}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="overflow-x-auto">
         <table className="w-full text-[12px]">
