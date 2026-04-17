@@ -53,6 +53,8 @@ export async function GET(req: NextRequest) {
     "investor_return_percent",
     "buy_unit",
     "sell_unit",
+    "dsex",
+    "ds30",
   ];
 
   const rows = records.map((r) => {
@@ -73,6 +75,8 @@ export async function GET(req: NextRequest) {
       investor_return_percent: investorReturn.toFixed(2),
       buy_unit: buyUnit.toFixed(4),
       sell_unit: sellUnit.toFixed(4),
+      dsex: r.dsex != null ? Number(r.dsex).toFixed(2) : "",
+      ds30: r.ds30 != null ? Number(r.ds30).toFixed(2) : "",
     };
   });
 

@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ActionCard } from "@/components/dashboard/action-card";
 import { NavCarousel } from "@/components/dashboard/nav-carousel";
-import { PeerComparisonChart } from "@/components/dashboard/peer-comparison-chart";
+import { PerformanceComparison } from "@/components/dashboard/performance-comparison";
 import { ErrorBoundary } from "@/components/error-boundary";
 import {
   TrendingUp,
@@ -85,7 +85,7 @@ export default async function DashboardPage() {
             />
           </ErrorBoundary>
           <ErrorBoundary fallback={<div className="bg-white rounded-[10px] shadow-card p-6 text-center text-text-muted text-sm">Chart unavailable</div>}>
-            <PeerComparisonChart />
+            <PerformanceComparison />
           </ErrorBoundary>
         </div>
       </div>
