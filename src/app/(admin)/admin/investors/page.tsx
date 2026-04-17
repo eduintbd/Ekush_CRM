@@ -3,7 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { INVESTOR_TYPE_LABELS } from "@/lib/constants";
+import { DeleteInvestorButton } from "@/components/admin/delete-investor-button";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
@@ -110,12 +113,18 @@ export default async function AdminInvestorsPage({
                       {inv.user.email || inv.user.phone || "N/A"}
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/admin/investors/${inv.id}`}
-                        className="text-ekush-orange hover:underline text-sm"
-                      >
-                        View
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/admin/investors/${inv.id}`}
+                          className="text-ekush-orange hover:underline text-sm"
+                        >
+                          View
+                        </Link>
+                        <DeleteInvestorButton
+                          investorId={inv.id}
+                          investorName={inv.name}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
