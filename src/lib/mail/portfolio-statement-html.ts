@@ -1,33 +1,34 @@
-// Pure HTML builder for the Portfolio Statement document. Returns the
-// A4-sized content block — both the print page and the email-attachment
-// PDF renderer use this so the two outputs stay byte-for-byte identical.
-
-export interface PortfolioStatementRow {
-  fundCode: string;
-  units: number;
-  avgCost: number;
-  nav: number;
-  costValue: number;
-  marketValue: number;
-  gain: number;
-  returnPct: number;
-}
+// Pure HTML builder for the Portfolio Statement document. Single source of
+// truth for both the print page and the email-attachment PDF, so the two
+// outputs stay byte-for-byte identical.
 
 export interface PortfolioStatementData {
   dateStr: string;
   investorName: string;
   investorCode: string;
-  rows: PortfolioStatementRow[];
-  totalCost: number;
-  totalMarket: number;
-  totalGain: number;
-  totalReturn: number;
-  logoDataUrl?: string; // if omitted, "/logo.png" is used (suitable for the print page)
+  fundName: string;
+  fundCode: string;
+  totalUnits: number;
+  avgCost: number;
+  costValue: number;
+  marketValue: number;
+  realizedGain: number;
+  dividendTotal: number;
+  nav: number;
+  entryLoad: number; // fractional, e.g. 0.02
+  exitLoad: number;
+  bannerDataUrl?: string; // if omitted, "/banner_for_portfolio.png" is used
 }
 
 const ORANGE = "#F27023";
-const BORDER_GREY = "#E5E5E5";
+const GREY_BG = "#f0f0f0";
 const FONT = "Arial, Helvetica, sans-serif";
+
+const FUND_REG_NO: Record<string, string> = {
+  EFUF: "BSEC/Mutual Fund/2019/106",
+  EGF: "BSEC/Mutual Fund/2022/129",
+  ESRF: "BSEC/Mutual Fund/2022/130",
+};
 
 function fmt2(n: number): string {
   return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -44,39 +45,15 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-// Returns just the A4 page (no <html>/<head>). Safe to embed inside the
-// print page's server component.
 export function buildPortfolioStatementBody(data: PortfolioStatementData): string {
-  const logoSrc = data.logoDataUrl ?? "/logo.png";
+  const bannerSrc = data.bannerDataUrl ?? "/banner_for_portfolio.png";
+  const regNo = FUND_REG_NO[data.fundCode] || FUND_REG_NO.EFUF;
 
-  const thNumeric =
-    "font-family:" + FONT +
-    ";font-size:10pt;font-weight:700;color:#000;text-align:right;padding:10px 6px;";
-  const thLeft = thNumeric.replace("text-align:right", "text-align:left");
-  const tdNumeric =
-    "font-family:" + FONT +
-    ";font-size:10pt;font-weight:400;color:#000;text-align:right;padding:12px 6px;";
-  const tdLeftBold =
-    "font-family:" + FONT +
-    ";font-size:10pt;font-weight:700;color:#000;text-align:left;padding:12px 6px;";
-  const tdNumericBold = tdNumeric.replace("font-weight:400", "font-weight:700");
+  const unrealizedGain = data.marketValue - data.costValue;
+  const totalValueCreation = data.realizedGain + data.dividendTotal + unrealizedGain;
 
-  const rowsHtml = data.rows
-    .map(
-      (r) => `
-        <tr>
-          <td style="${tdLeftBold}">${escapeHtml(r.fundCode)}</td>
-          <td style="${tdNumeric}">${fmt0(r.units)}</td>
-          <td style="${tdNumeric}">${r.avgCost.toFixed(4)}</td>
-          <td style="${tdNumeric}">${r.nav.toFixed(4)}</td>
-          <td style="${tdNumeric}">${fmt2(r.costValue)}</td>
-          <td style="${tdNumeric}">${fmt2(r.marketValue)}</td>
-          <td style="${tdNumeric}">${fmt2(r.gain)}</td>
-          <td style="${tdNumeric}">${r.returnPct >= 0 ? "+" : ""}${r.returnPct.toFixed(2)}%</td>
-        </tr>
-      `,
-    )
-    .join("");
+  const buyPrice = data.nav * (1 + (data.entryLoad || 0));
+  const sellPrice = data.nav * (1 - (data.exitLoad || 0));
 
   return `
   <div
@@ -84,59 +61,132 @@ export function buildPortfolioStatementBody(data: PortfolioStatementData): strin
     class="statement-page"
     style="width:210mm;min-height:297mm;background:#fff;font-family:${FONT};color:#000;position:relative;margin:0 auto;"
   >
-    <div style="position:relative;width:100%;height:130px;overflow:hidden;">
-      <svg viewBox="0 0 800 260" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;width:100%;height:100%;" aria-hidden="true">
-        <path d="M0,0 L0,180 C 120,130 260,90 420,120 C 560,145 680,195 800,170 L800,0 Z" fill="#FCD7B8" />
-        <path d="M0,0 L0,150 C 140,105 280,65 440,95 C 580,120 690,170 800,140 L800,0 Z" fill="#F9B582" />
-        <path d="M0,0 L0,120 C 160,80 300,45 460,75 C 600,100 700,150 800,115 L800,0 Z" fill="#F48A46" />
-        <path d="M0,0 L0,95 C 170,50 320,20 480,55 C 620,85 710,135 800,95 L800,0 Z" fill="${ORANGE}" />
-      </svg>
-      <img src="${logoSrc}" alt="Ekush Wealth Management Limited" style="position:absolute;top:25px;right:30px;width:180px;height:auto;z-index:2;" crossorigin="anonymous" />
-    </div>
+    <!-- Banner (full-width) -->
+    <img src="${bannerSrc}" alt="" style="display:block;width:100%;height:auto;" crossorigin="anonymous" />
 
-    <div style="padding:40px 60px 60px 60px;">
-      <p style="font-family:${FONT};font-size:11pt;font-weight:400;color:#000;margin:0;">${escapeHtml(data.dateStr)}</p>
-      <p style="font-family:${FONT};font-size:12pt;font-weight:700;color:#000;margin:20px 0 0 0;">${escapeHtml(data.investorName)}</p>
-      <p style="font-family:${FONT};font-size:11pt;font-weight:400;color:#000;margin:4px 0 0 0;">Investor Code: ${escapeHtml(data.investorCode)}</p>
-      <p style="font-family:${FONT};font-size:18pt;font-weight:700;color:#000;margin:30px 0 0 0;">Portfolio Statement</p>
+    <!-- Content -->
+    <div style="padding:8mm 22mm 20mm 22mm;">
 
-      <table style="width:100%;border-collapse:collapse;margin-top:15px;table-layout:fixed;">
-        <colgroup>
-          <col style="width:10%" /><col style="width:10%" /><col style="width:11%" /><col style="width:10%" />
-          <col style="width:14%" /><col style="width:15%" /><col style="width:14%" /><col style="width:12%" />
-        </colgroup>
-        <thead>
-          <tr style="border-top:1.5px solid #000;border-bottom:1px solid ${BORDER_GREY};">
-            <th style="${thLeft}">Fund</th>
-            <th style="${thNumeric}">Units</th>
-            <th style="${thNumeric}">Avg Cost</th>
-            <th style="${thNumeric}">NAV</th>
-            <th style="${thNumeric}">Cost Value</th>
-            <th style="${thNumeric}">Market Value</th>
-            <th style="${thNumeric}">Gain/Loss</th>
-            <th style="${thNumeric}">Return</th>
-          </tr>
-        </thead>
+      <!-- Date -->
+      <p style="font-family:${FONT};font-size:11pt;color:#000;margin:0 0 6mm 0;">${escapeHtml(data.dateStr)}</p>
+
+      <!-- Investor -->
+      <p style="font-family:${FONT};font-size:12pt;font-weight:700;color:#000;margin:0 0 1mm 0;">${escapeHtml(data.investorName)}</p>
+      <p style="font-family:${FONT};font-size:11pt;color:#000;margin:0 0 5mm 0;">Investor Code: ${escapeHtml(data.investorCode)}</p>
+
+      <!-- Fund info grey box -->
+      <div style="border:1px solid #ccc;padding:4mm 6mm;margin-bottom:4mm;background:${GREY_BG};">
+        <h2 style="font-family:${FONT};font-size:13pt;font-weight:700;color:#000;text-align:center;margin:0 0 2mm 0;">${escapeHtml(data.fundName.toUpperCase())}</h2>
+        <p style="font-family:${FONT};font-size:9pt;color:#444;text-align:center;margin:0 0 3mm 0;">
+          Registered under the Bangladesh Securities &amp; Exchange Commission (Mutual Fund) Rules, 2001.
+        </p>
+        <table style="width:80%;margin:0 auto;font-family:${FONT};font-size:9.5pt;border-collapse:collapse;">
+          <tbody>
+            <tr>
+              <td style="padding:1px 0;font-weight:600;width:35%;">Registration No</td>
+              <td style="padding:1px 6px;width:5%;">:</td>
+              <td style="padding:1px 0;">${escapeHtml(regNo)}</td>
+            </tr>
+            <tr>
+              <td style="padding:1px 0;font-weight:600;">Sponsor</td>
+              <td style="padding:1px 6px;">:</td>
+              <td style="padding:1px 0;">Ekush Wealth Management Limited</td>
+            </tr>
+            <tr>
+              <td style="padding:1px 0;font-weight:600;">Asset Manager</td>
+              <td style="padding:1px 6px;">:</td>
+              <td style="padding:1px 0;">Ekush Wealth Management Limited</td>
+            </tr>
+            <tr>
+              <td style="padding:1px 0;font-weight:600;">Trustee</td>
+              <td style="padding:1px 6px;">:</td>
+              <td style="padding:1px 0;">Sandhani Life Insurance Co. Ltd</td>
+            </tr>
+            <tr>
+              <td style="padding:1px 0;font-weight:600;">Custodian</td>
+              <td style="padding:1px 6px;">:</td>
+              <td style="padding:1px 0;">BRAC Bank Limited</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Units / Avg Cost row -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:3mm;">
         <tbody>
-          ${rowsHtml}
-          <tr style="border-bottom:1px solid ${BORDER_GREY};">
-            <td style="${tdLeftBold}">TOTAL</td>
-            <td style="${tdNumeric}"></td>
-            <td style="${tdNumeric}"></td>
-            <td style="${tdNumeric}"></td>
-            <td style="${tdNumericBold}">${fmt2(data.totalCost)}</td>
-            <td style="${tdNumericBold}">${fmt2(data.totalMarket)}</td>
-            <td style="${tdNumericBold}">${fmt2(data.totalGain)}</td>
-            <td style="${tdNumericBold}">${data.totalReturn.toFixed(2)}%</td>
+          <tr>
+            <td style="border-top:2px solid #000;border-bottom:1px solid #000;padding:5px 10px;font-family:${FONT};font-size:10pt;font-weight:700;width:25%;">Number of Units</td>
+            <td style="border-top:2px solid #000;border-bottom:1px solid #000;padding:5px 10px;font-family:${FONT};font-size:10pt;width:25%;text-align:right;">${fmt0(data.totalUnits)}</td>
+            <td style="border-top:2px solid #000;border-bottom:1px solid #000;padding:5px 10px;font-family:${FONT};font-size:10pt;font-weight:700;width:25%;">Average Cost/Unit</td>
+            <td style="border-top:2px solid #000;border-bottom:1px solid #000;padding:5px 10px;font-family:${FONT};font-size:10pt;width:25%;text-align:right;">${data.avgCost.toFixed(3)}</td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Investment Results -->
+      <div style="margin-bottom:3mm;">
+        <div style="border-bottom:3px double #000;padding-bottom:2px;margin-bottom:2mm;">
+          <span style="font-family:${FONT};font-size:11pt;font-weight:400;">Investment Results:</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-family:${FONT};font-size:9.5pt;white-space:nowrap;">
+          <tbody>
+            <tr>
+              <td style="border-bottom:1px solid #000;padding:4px 4px 4px 0;width:28%;">Cost Value of Investment</td>
+              <td style="border-bottom:1px solid #000;padding:4px 6px;width:18%;text-align:right;font-weight:700;">${fmt2(data.costValue)}</td>
+              <td style="border-bottom:1px solid #000;padding:4px 6px;width:28%;">Capital Gain on Unit Sold</td>
+              <td style="border-bottom:1px solid #000;padding:4px 0 4px 6px;width:18%;text-align:right;font-weight:700;">${fmt2(data.realizedGain)}</td>
+            </tr>
+            <tr>
+              <td style="border-bottom:1px solid #000;padding:4px 4px 4px 0;">Wealth increased by</td>
+              <td style="border-bottom:1px solid #000;padding:4px 6px;text-align:right;font-weight:700;">${fmt2(unrealizedGain)}</td>
+              <td style="border-bottom:1px solid #000;padding:4px 6px;">Dividend Received</td>
+              <td style="border-bottom:1px solid #000;padding:4px 0 4px 6px;text-align:right;font-weight:700;">${fmt2(data.dividendTotal)}</td>
+            </tr>
+            <tr>
+              <td style="border-bottom:1px solid #000;padding:4px 4px 4px 0;">Current Value of Investment</td>
+              <td style="border-bottom:1px solid #000;padding:4px 6px;text-align:right;font-weight:700;">${fmt2(data.marketValue)}</td>
+              <td style="border-bottom:1px solid #000;padding:4px 6px;font-style:italic;background:${GREY_BG};">Total Value Creation</td>
+              <td style="border-bottom:1px solid #000;padding:4px 0 4px 6px;text-align:right;font-weight:700;font-style:italic;background:${GREY_BG};">${fmt2(totalValueCreation)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- NAV paragraph -->
+      <p style="font-family:${FONT};font-size:10pt;color:#000;margin:6mm 0 4mm 0;">
+        The current Net Asset Value (NAV) per unit, together with the applicable buy and sale prices of the fund, is presented below:
+      </p>
+
+      <!-- NAV table -->
+      <table style="width:80%;border-collapse:collapse;margin:0 auto;">
+        <thead>
+          <tr>
+            <td style="border-top:2px solid #000;border-bottom:2px solid #000;padding:6px 10px;text-align:center;font-family:${FONT};font-size:10pt;font-weight:700;background:${GREY_BG};width:33%;">NAV</td>
+            <td style="border-top:2px solid #000;border-bottom:2px solid #000;padding:6px 10px;text-align:center;font-family:${FONT};font-size:10pt;font-weight:700;background:${GREY_BG};width:33%;">Buy Price</td>
+            <td style="border-top:2px solid #000;border-bottom:2px solid #000;padding:6px 10px;text-align:center;font-family:${FONT};font-size:10pt;font-weight:700;background:${GREY_BG};width:33%;">Sale Price</td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border-bottom:2px solid #000;padding:6px 10px;text-align:center;font-family:${FONT};font-size:10pt;">${data.nav.toFixed(3)}</td>
+            <td style="border-bottom:2px solid #000;padding:6px 10px;text-align:center;font-family:${FONT};font-size:10pt;">${buyPrice.toFixed(3)}</td>
+            <td style="border-bottom:2px solid #000;padding:6px 10px;text-align:center;font-family:${FONT};font-size:10pt;">${sellPrice.toFixed(3)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Orange footer strip (keeps visual parity with the old investment-update print view) -->
+      <div style="position:absolute;bottom:0;left:0;right:0;background:${ORANGE};color:#fff;padding:3mm 6mm;display:flex;justify-content:space-between;font-family:${FONT};font-size:8pt;">
+        <span>+8801713-086101</span>
+        <span>info@ekushwml.com</span>
+        <span>Apt-A3, House: 17, Road: 01, Block: A, Niketon, Gulshan 01, Dhaka-1212</span>
+        <span>www.ekushwml.com</span>
+      </div>
     </div>
   </div>
   `.trim();
 }
 
-// Wrap the body in a minimal HTML document ready for Puppeteer.
 export function buildPortfolioStatementFullHtml(data: PortfolioStatementData): string {
   const body = buildPortfolioStatementBody(data);
   return `<!doctype html>
