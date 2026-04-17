@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Trash2 } from "lucide-react";
 import { INVESTOR_TYPES, INVESTOR_TYPE_LABELS } from "@/lib/constants";
 
 interface Props {
@@ -28,6 +28,7 @@ export function AdminEditInvestorForm({ investorId, userId, initial }: Props) {
   const router = useRouter();
   const [form, setForm] = useState(initial);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const handleSave = async () => {
@@ -89,9 +90,37 @@ export function AdminEditInvestorForm({ investorId, userId, initial }: Props) {
       </div>
       <Input label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
       <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={loading} size="sm" className="bg-ekush-orange hover:bg-ekush-orange-dark text-white">
+        <Button onClick={handleSave} disabled={loading || deleting} size="sm" className="bg-ekush-orange hover:bg-ekush-orange-dark text-white">
           {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
           Save Changes
+        </Button>
+        <Button
+          onClick={async () => {
+            if (!window.confirm(`Are you sure you want to permanently delete investor "${form.name}"? This will remove the user account and all related data (holdings, transactions, documents, nominees, etc.). This action cannot be undone.`)) return;
+            setDeleting(true);
+            setMessage(null);
+            try {
+              const res = await fetch(`/api/admin/investors/${investorId}`, { method: "DELETE" });
+              if (res.ok) {
+                router.push("/admin/investors");
+                router.refresh();
+              } else {
+                const data = await res.json().catch(() => ({}));
+                setMessage({ type: "error", text: data.error || "Delete failed." });
+              }
+            } catch {
+              setMessage({ type: "error", text: "Network error." });
+            } finally {
+              setDeleting(false);
+            }
+          }}
+          disabled={loading || deleting}
+          size="sm"
+          variant="outline"
+          className="border-red-400 text-red-600 hover:bg-red-50"
+        >
+          {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Trash2 className="w-4 h-4 mr-1" />}
+          Delete Investor
         </Button>
         {message && (
           <span className={`text-[12px] ${message.type === "success" ? "text-green-600" : "text-red-500"}`}>
