@@ -146,13 +146,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create a KYC record in PENDING state — capture full snapshot of OCR-derived fields
+    // Create a KYC record in PENDING state — store snapshot in documentUrl
+    // (KycRecord has no dedicated JSON column; documentUrl is the only
+    // available nullable text field)
     await prisma.kycRecord.create({
       data: {
         investorId,
         type: "REGISTRATION",
         status: "PENDING",
-        data: JSON.stringify({
+        documentUrl: JSON.stringify({
           name, email, phone, bankName, accountNumber, dividendOption,
           applicant: {
             nidNumber, fatherName, motherName, presentAddress, permanentAddress, tinNumber,
