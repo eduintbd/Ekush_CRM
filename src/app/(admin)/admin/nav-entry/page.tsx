@@ -173,7 +173,12 @@ export default async function NavEntryPage({
                     const fund = fundById.get(r.fundId);
                     const nav = Number(r.nav);
                     const face = Number(fund?.faceValue || FACE_VALUE);
-                    const investorReturn = face > 0 ? ((nav - face) / face) * 100 : 0;
+                    // Prefer the authoritative xlsx-sourced Investor Return; fall
+                    // back to the price-only NAV computation only if the stored
+                    // value is missing (legacy rows).
+                    const investorReturn = r.investorReturn != null
+                      ? Number(r.investorReturn)
+                      : (face > 0 ? ((nav - face) / face) * 100 : 0);
                     const entryLoad = Number(fund?.entryLoad || 0);
                     const exitLoad = Number(fund?.exitLoad || 0);
                     // Prefer stored values; fall back to computed values

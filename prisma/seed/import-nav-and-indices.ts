@@ -94,6 +94,9 @@ async function importNavXlsx() {
     const fundName = String(row[1] ?? "").trim();
     const date = parseExcelDate(row[2]);
     const nav = parseNumber(row[3]);
+    // Column 4 = "Investor Return" — the authoritative cumulative
+    // dividend-adjusted total return %. Stored as-is.
+    const investorReturn = parseNumber(row[4]);
     const buy = parseNumber(row[5]);
     const sell = parseNumber(row[6]);
 
@@ -118,8 +121,8 @@ async function importNavXlsx() {
 
     await prisma.navRecord.upsert({
       where: { fundId_date: { fundId, date } },
-      update: { nav, buyUnit: buy, sellUnit: sell },
-      create: { fundId, date, nav, buyUnit: buy, sellUnit: sell },
+      update: { nav, investorReturn, buyUnit: buy, sellUnit: sell },
+      create: { fundId, date, nav, investorReturn, buyUnit: buy, sellUnit: sell },
     });
 
     if (existing) updated++;

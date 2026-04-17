@@ -26,6 +26,7 @@ interface FundBlock {
 
 interface IndexBlock {
   code: string;
+  returnType?: "price-return" | "total-return";
   returns: Partial<Record<PeriodId, number>>;
   series: Array<{ date: string; price: number }>;
 }
@@ -222,6 +223,12 @@ export function PerformanceComparison() {
           Anchored at 0% on {chart.windowStartLabel || "—"}
         </p>
       </div>
+
+      <p className="text-[10.5px] text-text-muted mb-2 leading-relaxed">
+        Methodology: Ekush fund returns are total-return (dividend-adjusted) sourced from the
+        fund&rsquo;s Investor Return column. DSEX and DS30 are price-return indices and exclude
+        index-constituent dividends &mdash; the two are not directly comparable.
+      </p>
 
       <div className="flex-1 min-h-[260px]">
         {chart.rows.length === 0 ? (

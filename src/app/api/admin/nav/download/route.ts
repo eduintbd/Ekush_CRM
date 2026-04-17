@@ -50,18 +50,21 @@ export async function GET(req: NextRequest) {
     "fund_code",
     "nav_as_on",
     "nav_per_unit",
-    "investor_return_percent",
+    "investor_return_percent_total_return",
     "buy_unit",
     "sell_unit",
-    "dsex",
-    "ds30",
+    "dsex_price_return",
+    "ds30_price_return",
   ];
 
   const rows = records.map((r) => {
     const fund = fundById.get(r.fundId);
     const nav = Number(r.nav);
     const face = Number(fund?.faceValue || FACE_VALUE);
-    const investorReturn = face > 0 ? ((nav - face) / face) * 100 : 0;
+    // Authoritative xlsx-sourced IR if present; fall back to NAV-only for legacy rows.
+    const investorReturn = r.investorReturn != null
+      ? Number(r.investorReturn)
+      : (face > 0 ? ((nav - face) / face) * 100 : 0);
     const entryLoad = Number(fund?.entryLoad || 0);
     const exitLoad = Number(fund?.exitLoad || 0);
     const buyUnit = nav * (1 + entryLoad);
@@ -72,11 +75,11 @@ export async function GET(req: NextRequest) {
       fund_code: fund?.code || "",
       nav_as_on: r.date.toISOString().split("T")[0],
       nav_per_unit: nav.toFixed(4),
-      investor_return_percent: investorReturn.toFixed(2),
+      investor_return_percent_total_return: investorReturn.toFixed(2),
       buy_unit: buyUnit.toFixed(4),
       sell_unit: sellUnit.toFixed(4),
-      dsex: r.dsex != null ? Number(r.dsex).toFixed(2) : "",
-      ds30: r.ds30 != null ? Number(r.ds30).toFixed(2) : "",
+      dsex_price_return: r.dsex != null ? Number(r.dsex).toFixed(2) : "",
+      ds30_price_return: r.ds30 != null ? Number(r.ds30).toFixed(2) : "",
     };
   });
 

@@ -76,12 +76,20 @@ export async function GET() {
   const rawRecords = await prisma.navRecord.findMany({
     where: { fundId: { in: funds.map((f) => f.id) } },
     orderBy: { date: "asc" },
-    select: { fundId: true, date: true, nav: true, dsex: true, ds30: true },
+    select: {
+      fundId: true,
+      date: true,
+      nav: true,
+      investorReturn: true,
+      dsex: true,
+      ds30: true,
+    },
   });
 
-  // Per-fund NAV series with investor return %. User spec: investor return
-  // = (nav - faceValue) / faceValue * 100, matching the /admin/nav-entry
-  // table column. Period return = end.IR − start.IR.
+  // Per-fund series. investorReturn comes from the upstream xlsx (dividend-
+  // adjusted total return %). For rows missing the stored value we fall
+  // back to the price-only NAV computation so legacy rows still render —
+  // but the stored value is authoritative when present.
   interface FundPoint { date: Date; nav: number; investorReturn: number }
   const fundSeries = new Map<string, FundPoint[]>();
   for (const f of funds) fundSeries.set(f.code, []);
@@ -96,7 +104,9 @@ export async function GET() {
     if (!fund) continue;
     const face = Number(fund.faceValue || FACE_VALUE);
     const nav = Number(r.nav);
-    const investorReturn = face > 0 ? ((nav - face) / face) * 100 : 0;
+    const investorReturn = r.investorReturn != null
+      ? Number(r.investorReturn)
+      : (face > 0 ? ((nav - face) / face) * 100 : 0);
     fundSeries.get(fund.code)!.push({ date: r.date, nav, investorReturn });
 
     const k = startOfDayUtc(r.date).getTime();
@@ -133,15 +143,25 @@ export async function GET() {
     const end = series[series.length - 1];
     const returns: ReturnMap = {};
     for (const p of PERIOD_IDS) {
+      // Since-Inception is just the latest IR — no period math.
+      if (p === "sinceInception") {
+        returns[p] = end.investorReturn;
+        continue;
+      }
       const ps = periodStart(asOf, p, inception);
       if (!ps) continue;
       const start = nearestByDate(series, ps);
       if (!start || start.date > end.date) continue;
-      if (p !== "sinceInception" && start.date.getTime() > ps.getTime() + 90 * 86400_000) {
+      if (start.date.getTime() > ps.getTime() + 90 * 86400_000) {
         // Too far from the requested period-start to be meaningful (>90d gap)
         continue;
       }
-      returns[p] = end.investorReturn - start.investorReturn;
+      // Compound period return: ((1 + endIR/100) / (1 + startIR/100) - 1) * 100.
+      // Subtraction (endIR - startIR) is mathematically wrong on cumulative
+      // returns and was the source of the dashboard discrepancy.
+      const denom = 1 + start.investorReturn / 100;
+      if (denom === 0) continue;
+      returns[p] = ((1 + end.investorReturn / 100) / denom - 1) * 100;
     }
     return { returns, inception };
   }
@@ -177,14 +197,20 @@ export async function GET() {
     };
   });
 
+  // DSEX and DS30 are price-return indices (no dividend reinvestment in the
+  // published series), whereas Ekush fund returns are total-return (dividend-
+  // adjusted via the upstream "Investor Return" column). Flagging here so the
+  // UI can render a methodology footnote and reviewers don't mix the two.
   const indexBlocks = [
     {
       code: "DSEX",
+      returnType: "price-return" as const,
       returns: indexReturns(dsexSeries),
       series: dsexSeries.map((p) => ({ date: p.date.toISOString(), price: p.price })),
     },
     {
       code: "DS30",
+      returnType: "price-return" as const,
       returns: indexReturns(ds30Series),
       series: ds30Series.map((p) => ({ date: p.date.toISOString(), price: p.price })),
     },
@@ -194,6 +220,7 @@ export async function GET() {
     asOf: asOf.toISOString(),
     periods: PERIOD_IDS,
     funds: fundBlocks,
+    fundReturnType: "total-return",
     indices: indexBlocks,
   });
 }
