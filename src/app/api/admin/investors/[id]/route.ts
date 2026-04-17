@@ -17,9 +17,52 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const { name, email, phone, address, nidNumber, tinNumber, investorType, status, userId } = body;
+  const { name, email, phone, address, nidNumber, tinNumber, investorType, status, userId, investorCode } = body;
 
   try {
+    // Validate investor code on activation; must be unique and in format letter+5-6 digits
+    const currentInvestor = await prisma.investor.findUnique({
+      where: { id: params.id },
+      select: { investorCode: true, userId: true },
+    });
+    if (!currentInvestor) {
+      return NextResponse.json({ error: "Investor not found" }, { status: 404 });
+    }
+
+    let finalInvestorCode: string | undefined;
+    const codeProvided = typeof investorCode === "string" && investorCode.trim().length > 0;
+    const codeChanged = codeProvided && investorCode.trim().toUpperCase() !== currentInvestor.investorCode;
+
+    if (status === "ACTIVE" && currentInvestor.investorCode.startsWith("PENDING-")) {
+      if (!codeProvided) {
+        return NextResponse.json(
+          { error: "Investor code is required to activate this account." },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (codeChanged) {
+      const normalized = investorCode.trim().toUpperCase();
+      if (!/^[A-Z]\d{5,6}$/.test(normalized)) {
+        return NextResponse.json(
+          { error: "Investor code must be one letter followed by 5–6 digits (e.g. A00730)." },
+          { status: 400 },
+        );
+      }
+      const codeClash = await prisma.investor.findFirst({
+        where: { investorCode: normalized, NOT: { id: params.id } },
+        select: { id: true },
+      });
+      if (codeClash) {
+        return NextResponse.json(
+          { error: `Investor code ${normalized} is already assigned to another investor.` },
+          { status: 400 },
+        );
+      }
+      finalInvestorCode = normalized;
+    }
+
     await prisma.$transaction([
       prisma.investor.update({
         where: { id: params.id },
@@ -29,6 +72,7 @@ export async function PATCH(
           nidNumber: nidNumber || null,
           tinNumber: tinNumber || null,
           investorType,
+          ...(finalInvestorCode ? { investorCode: finalInvestorCode } : {}),
         },
       }),
       prisma.user.update({

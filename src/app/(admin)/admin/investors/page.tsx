@@ -18,14 +18,18 @@ export default async function AdminInvestorsPage({
   const page = Math.max(1, parseInt(searchParams.page || "1"));
   const query = (searchParams.q || "").trim();
 
+  // PENDING investors live on the dashboard as "Pending KYC" and are hidden
+  // here until an admin approves them and assigns a real investor code.
+  const baseFilter = { user: { status: { not: "PENDING" } } };
   const where = query
     ? {
+        ...baseFilter,
         OR: [
           { investorCode: { contains: query, mode: "insensitive" as const } },
           { name: { contains: query, mode: "insensitive" as const } },
         ],
       }
-    : {};
+    : baseFilter;
 
   const [investors, total] = await withRetry(() =>
     Promise.all([

@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AdminEditInvestorForm } from "@/components/admin/edit-investor-form";
+import { AdminRegistrationPreview } from "@/components/admin/admin-registration-preview";
 
 export const dynamic = "force-dynamic";
 
@@ -105,8 +106,9 @@ export default async function AdminInvestorDetailPage({
 
       {/* Profile edit */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-[14px]">Profile (Admin Edit)</CardTitle>
+          <AdminRegistrationPreview investorId={investor.id} />
         </CardHeader>
         <CardContent>
           <AdminEditInvestorForm
@@ -121,6 +123,7 @@ export default async function AdminInvestorDetailPage({
               tinNumber: investor.tinNumber || "",
               investorType: investor.investorType,
               status: investor.user.status,
+              investorCode: investor.investorCode,
             }}
           />
         </CardContent>
@@ -293,20 +296,30 @@ export default async function AdminInvestorDetailPage({
             {investor.bankAccounts.length === 0 ? (
               <p className="text-[12px] text-text-muted">No bank accounts</p>
             ) : (
-              investor.bankAccounts.map((b) => (
-                <div key={b.id} className="flex items-center gap-3 p-2 bg-page-bg rounded-md">
-                  {b.chequeLeafUrl && (
-                    <a href={b.chequeLeafUrl} target="_blank" rel="noopener noreferrer">
-                      <img src={b.chequeLeafUrl} alt="Cheque" className="w-14 h-10 object-cover rounded border" />
-                    </a>
-                  )}
-                  <div className="flex-1">
-                    <p className="text-[12px] font-medium">{b.bankName}</p>
-                    <p className="text-[11px] text-text-body">A/C: {b.accountNumber}{b.branchName ? ` · ${b.branchName}` : ""}</p>
+              investor.bankAccounts.map((b) => {
+                const chequeDoc = investor.documents.find((d) => d.type === "CHEQUE_LEAF_PHOTO");
+                const chequeUrl = b.chequeLeafUrl || chequeDoc?.filePath;
+                return (
+                  <div key={b.id} className="flex items-center gap-3 p-2 bg-page-bg rounded-md">
+                    {chequeUrl && (
+                      <a href={chequeUrl} target="_blank" rel="noopener noreferrer">
+                        <img src={chequeUrl} alt="Cheque" className="w-14 h-10 object-cover rounded border" />
+                      </a>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-[12px] font-medium">{b.bankName}</p>
+                      <p className="text-[11px] text-text-body">A/C: {b.accountNumber}{b.branchName ? ` · ${b.branchName}` : ""}</p>
+                    </div>
+                    {chequeUrl && (
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <a href={chequeUrl} target="_blank" rel="noopener noreferrer" className="text-ekush-orange hover:underline">View</a>
+                        <a href={chequeUrl} download className="text-blue-600 hover:underline">Download</a>
+                      </div>
+                    )}
+                    {b.isPrimary && <Badge variant="active">Primary</Badge>}
                   </div>
-                  {b.isPrimary && <Badge variant="active">Primary</Badge>}
-                </div>
-              ))
+                );
+              })
             )}
           </CardContent>
         </Card>
@@ -319,12 +332,35 @@ export default async function AdminInvestorDetailPage({
             {investor.nominees.length === 0 ? (
               <p className="text-[12px] text-text-muted">No nominees</p>
             ) : (
-              investor.nominees.map((n) => (
-                <div key={n.id} className="p-2 bg-page-bg rounded-md">
-                  <p className="text-[12px] font-medium">{n.name} <span className="text-text-body text-[11px]">({n.relationship || "—"})</span></p>
-                  <p className="text-[11px] text-text-body">Share: {Number(n.share)}% {n.nidNumber ? `· NID: ${n.nidNumber}` : ""}</p>
-                </div>
-              ))
+              investor.nominees.map((n) => {
+                const nomineeDocs = investor.documents.filter((d) =>
+                  d.type.startsWith("NOMINEE_")
+                );
+                return (
+                  <div key={n.id} className="p-2 bg-page-bg rounded-md space-y-2">
+                    <div>
+                      <p className="text-[12px] font-medium">
+                        {n.name || "(name not set)"}{" "}
+                        <span className="text-text-body text-[11px]">({n.relationship || "—"})</span>
+                      </p>
+                      <p className="text-[11px] text-text-body">
+                        Share: {Number(n.share)}%{n.nidNumber ? ` · NID: ${n.nidNumber}` : ""}
+                      </p>
+                    </div>
+                    {nomineeDocs.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {nomineeDocs.map((d) => (
+                          <div key={d.id} className="text-[11px] bg-white border border-input-border rounded px-2 py-1 flex items-center gap-2">
+                            <span className="text-text-body">{d.type.replace("NOMINEE_", "").replace(/_/g, " ")}</span>
+                            <a href={d.filePath} target="_blank" rel="noopener noreferrer" className="text-ekush-orange hover:underline">View</a>
+                            <a href={d.filePath} download={d.fileName} className="text-blue-600 hover:underline">Download</a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </CardContent>
         </Card>
@@ -347,9 +383,23 @@ export default async function AdminInvestorDetailPage({
                     <span className="text-text-body ml-2">({d.type})</span>
                     <span className="text-text-muted ml-2">{formatDate(d.createdAt)}</span>
                   </div>
-                  <a href={d.filePath} target="_blank" rel="noopener noreferrer" className="text-ekush-orange hover:underline">
-                    Download
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={d.filePath}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-ekush-orange hover:underline"
+                    >
+                      View
+                    </a>
+                    <a
+                      href={d.filePath}
+                      download={d.fileName}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Download
+                    </a>
+                  </div>
                 </div>
               ))}
             </div>

@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatBDT } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatBDT, formatDate } from "@/lib/utils";
 import { Users, ArrowLeftRight, AlertCircle, TrendingUp, FileText, Bell, Clock } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +18,14 @@ export default async function AdminDashboard() {
   let openTickets = 0;
   let pendingKyc = 0;
   let activeInvestors = 0;
+  let pendingInvestors: Array<{
+    id: string;
+    investorCode: string;
+    name: string;
+    investorType: string;
+    createdAt: Date;
+    user: { email: string | null; phone: string | null; status: string };
+  }> = [];
 
   try {
     // Run queries sequentially (more stable with Supabase pooler than 10 in parallel)
@@ -26,6 +37,12 @@ export default async function AdminDashboard() {
     openTickets = await prisma.serviceRequest.count({ where: { status: { in: ["OPEN", "IN_PROGRESS"] } } });
     pendingKyc = await prisma.kycRecord.count({ where: { status: "PENDING" } });
     activeInvestors = await prisma.user.count({ where: { status: "ACTIVE" } });
+    pendingInvestors = await prisma.investor.findMany({
+      where: { user: { status: "PENDING" } },
+      include: { user: { select: { email: true, phone: true, status: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
   } catch (err) {
     console.error("Admin dashboard query error:", err);
   }
@@ -35,6 +52,65 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-[20px] font-semibold text-text-dark font-rajdhani">Admin Dashboard</h1>
+
+      {/* Pending KYC / New Registrations */}
+      <Card className="shadow-card rounded-[10px] border border-amber-300">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-[15px] font-semibold font-rajdhani text-text-dark">
+            Pending KYC / New Registrations ({pendingInvestors.length})
+          </CardTitle>
+          <span className="text-[12px] text-text-body">
+            Review documents &amp; assign investor code to approve
+          </span>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-0 hover:bg-transparent bg-amber-50">
+                <TableHead>Registered</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Temp Code</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pendingInvestors.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-text-muted py-6">
+                    No pending registrations. New sign-ups will appear here.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pendingInvestors.map((inv) => (
+                  <TableRow key={inv.id}>
+                    <TableCell className="text-[12px]">{formatDate(inv.createdAt)}</TableCell>
+                    <TableCell className="font-medium text-text-dark">{inv.name}</TableCell>
+                    <TableCell className="font-mono text-[11px] text-text-body">{inv.investorCode}</TableCell>
+                    <TableCell className="text-[12px]">{inv.investorType}</TableCell>
+                    <TableCell>
+                      <Badge variant="pending">{inv.user.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-[12px] text-text-body">
+                      {inv.user.email || inv.user.phone || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/admin/investors/${inv.id}`}
+                        className="text-ekush-orange hover:underline text-sm"
+                      >
+                        Review
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
