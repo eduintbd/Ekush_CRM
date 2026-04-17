@@ -145,54 +145,61 @@ export default async function ProfilePage() {
           <AddBankForm investorName={investor.name} />
         </CardHeader>
         <CardContent>
-          {investor.bankAccounts.length === 0 ? (
+          {investor.bankAccounts.filter((ba) => ba.status !== "REJECTED").length === 0 ? (
             <p className="text-text-body text-sm">No bank accounts linked. Add one above.</p>
           ) : (
             <div className="space-y-3">
-              {investor.bankAccounts.map((ba) => (
-                <div key={ba.id} className="flex items-center justify-between p-4 bg-page-bg rounded-[10px]">
-                  <div className="flex items-center gap-3">
-                    {ba.chequeLeafUrl && (
-                      <a href={ba.chequeLeafUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                        <img src={ba.chequeLeafUrl} alt="Cheque leaf" className="w-16 h-10 object-cover rounded border border-gray-200 hover:opacity-80 transition-opacity" />
-                      </a>
-                    )}
-                    <div>
-                      <p className="font-medium text-[14px] text-text-dark">
-                        {ba.bankName === "Pending Review" ? (
-                          <>
-                            Pending Review
-                            <span className="ml-2 text-[11px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending verification</span>
-                          </>
-                        ) : ba.bankName?.startsWith("Verified") ? (
-                          <>
-                            <span className="text-green-600">Verified</span>
-                            <span className="ml-2 text-[11px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Approved by admin</span>
-                          </>
-                        ) : (
-                          ba.bankName
+              {investor.bankAccounts
+                .filter((ba) => ba.status !== "REJECTED")
+                .map((ba) => {
+                  const isPending = ba.status === "PENDING_APPROVAL";
+                  return (
+                    <div key={ba.id} className="flex items-center justify-between p-4 bg-page-bg rounded-[10px]">
+                      <div className="flex items-center gap-3">
+                        {ba.chequeLeafUrl && (
+                          <a href={ba.chequeLeafUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                            <img src={ba.chequeLeafUrl} alt="Cheque leaf" className="w-16 h-10 object-cover rounded border border-gray-200 hover:opacity-80 transition-opacity" />
+                          </a>
                         )}
-                      </p>
-                      {ba.bankName !== "Pending Review" && !ba.bankName?.startsWith("Verified") && (
-                        <p className="text-[12px] text-text-body">{ba.branchName} - A/C: {ba.accountNumber}</p>
-                      )}
-                      {ba.bankName?.startsWith("Verified") && (
-                        <p className="text-[11px] text-green-600 mt-1">Your cheque leaf has been verified. Bank details will be updated by admin shortly.</p>
-                      )}
-                      {ba.routingNumber && !ba.bankName?.startsWith("Verified") && ba.bankName !== "Pending Review" && (
-                        <p className="text-[12px] text-text-muted">Routing: {ba.routingNumber}</p>
-                      )}
-                      {ba.chequeLeafUrl && ba.bankName === "Pending Review" && (
-                        <p className="text-[11px] text-text-muted mt-1">Cheque leaf uploaded - details will be verified by admin</p>
-                      )}
+                        <div>
+                          <p className="font-medium text-[14px] text-text-dark">
+                            {isPending ? (
+                              <>
+                                {ba.bankName === "Pending Review" ? "New bank (cheque uploaded)" : ba.bankName}
+                                <span className="ml-2 text-[11px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                  Pending admin approval
+                                </span>
+                              </>
+                            ) : (
+                              ba.bankName
+                            )}
+                          </p>
+                          {!isPending && (
+                            <p className="text-[12px] text-text-body">
+                              {ba.branchName ? `${ba.branchName} - ` : ""}A/C: {ba.accountNumber}
+                            </p>
+                          )}
+                          {isPending && (
+                            <p className="text-[11px] text-text-muted mt-1">
+                              Admin will review and fill in / confirm the bank details. Once approved it will appear here as a secondary account you can use for SIP.
+                            </p>
+                          )}
+                          {ba.routingNumber && !isPending && (
+                            <p className="text-[12px] text-text-muted">Routing: {ba.routingNumber}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!isPending && (
+                          <Badge variant={ba.isPrimary ? "active" : "pending"}>
+                            {ba.isPrimary ? "Primary" : "Secondary"}
+                          </Badge>
+                        )}
+                        <DeleteButton id={ba.id} action="delete_bank" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {ba.isPrimary && <Badge variant="active">Primary</Badge>}
-                    <DeleteButton id={ba.id} action="delete_bank" />
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
             </div>
           )}
         </CardContent>

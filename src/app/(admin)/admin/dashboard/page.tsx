@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatBDT, formatDate } from "@/lib/utils";
 import { Users, ArrowLeftRight, AlertCircle, TrendingUp, FileText, Bell, Clock } from "lucide-react";
 import Link from "next/link";
+import { CollapsibleCard } from "@/components/admin/collapsible-card";
+import { PendingBankRow } from "@/components/admin/pending-bank-row";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,16 @@ export default async function AdminDashboard() {
     createdAt: Date;
     user: { email: string | null; phone: string | null; status: string };
   }> = [];
+  let pendingBanks: Array<{
+    id: string;
+    bankName: string;
+    accountNumber: string;
+    branchName: string | null;
+    routingNumber: string | null;
+    chequeLeafUrl: string | null;
+    createdAt: Date;
+    investor: { name: string; investorCode: string };
+  }> = [];
 
   try {
     // Run queries sequentially (more stable with Supabase pooler than 10 in parallel)
@@ -43,6 +55,12 @@ export default async function AdminDashboard() {
       orderBy: { createdAt: "desc" },
       take: 50,
     });
+    pendingBanks = await prisma.bankAccount.findMany({
+      where: { status: "PENDING_APPROVAL" },
+      include: { investor: { select: { name: true, investorCode: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
   } catch (err) {
     console.error("Admin dashboard query error:", err);
   }
@@ -54,63 +72,100 @@ export default async function AdminDashboard() {
       <h1 className="text-[20px] font-semibold text-text-dark font-rajdhani">Admin Dashboard</h1>
 
       {/* Pending KYC / New Registrations */}
-      <Card className="shadow-card rounded-[10px] border border-amber-300">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-[15px] font-semibold font-rajdhani text-text-dark">
-            Pending KYC / New Registrations ({pendingInvestors.length})
-          </CardTitle>
-          <span className="text-[12px] text-text-body">
-            Review documents &amp; assign investor code to approve
-          </span>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-0 hover:bg-transparent bg-amber-50">
-                <TableHead>Registered</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Temp Code</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead></TableHead>
+      <CollapsibleCard
+        title={`Pending KYC / New Registrations (${pendingInvestors.length})`}
+        subtitle="Review documents & assign investor code to approve"
+        defaultOpen={pendingInvestors.length > 0}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow className="border-0 hover:bg-transparent bg-amber-50">
+              <TableHead>Registered</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Temp Code</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pendingInvestors.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-text-muted py-6">
+                  No pending registrations. New sign-ups will appear here.
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pendingInvestors.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-text-muted py-6">
-                    No pending registrations. New sign-ups will appear here.
+            ) : (
+              pendingInvestors.map((inv) => (
+                <TableRow key={inv.id}>
+                  <TableCell className="text-[12px]">{formatDate(inv.createdAt)}</TableCell>
+                  <TableCell className="font-medium text-text-dark">{inv.name}</TableCell>
+                  <TableCell className="font-mono text-[11px] text-text-body">{inv.investorCode}</TableCell>
+                  <TableCell className="text-[12px]">{inv.investorType}</TableCell>
+                  <TableCell>
+                    <Badge variant="pending">{inv.user.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-[12px] text-text-body">
+                    {inv.user.email || inv.user.phone || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/admin/investors/${inv.id}`}
+                      className="text-ekush-orange hover:underline text-sm"
+                    >
+                      Review
+                    </Link>
                   </TableCell>
                 </TableRow>
-              ) : (
-                pendingInvestors.map((inv) => (
-                  <TableRow key={inv.id}>
-                    <TableCell className="text-[12px]">{formatDate(inv.createdAt)}</TableCell>
-                    <TableCell className="font-medium text-text-dark">{inv.name}</TableCell>
-                    <TableCell className="font-mono text-[11px] text-text-body">{inv.investorCode}</TableCell>
-                    <TableCell className="text-[12px]">{inv.investorType}</TableCell>
-                    <TableCell>
-                      <Badge variant="pending">{inv.user.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-[12px] text-text-body">
-                      {inv.user.email || inv.user.phone || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/admin/investors/${inv.id}`}
-                        className="text-ekush-orange hover:underline text-sm"
-                      >
-                        Review
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CollapsibleCard>
+
+      {/* Pending Bank Account Approvals */}
+      <CollapsibleCard
+        title={`Pending Bank Account Approvals (${pendingBanks.length})`}
+        subtitle="Review cheque / details, fill gaps, then approve as secondary account"
+        defaultOpen={pendingBanks.length > 0}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow className="border-0 hover:bg-transparent bg-amber-50">
+              <TableHead>Submitted</TableHead>
+              <TableHead>Investor</TableHead>
+              <TableHead>Cheque</TableHead>
+              <TableHead>Details</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pendingBanks.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-text-muted py-6">
+                  No pending bank account requests.
+                </TableCell>
+              </TableRow>
+            ) : (
+              pendingBanks.map((b) => (
+                <PendingBankRow
+                  key={b.id}
+                  id={b.id}
+                  investorName={b.investor.name}
+                  investorCode={b.investor.investorCode}
+                  chequeLeafUrl={b.chequeLeafUrl}
+                  bankName={b.bankName}
+                  accountNumber={b.accountNumber}
+                  branchName={b.branchName}
+                  routingNumber={b.routingNumber}
+                  createdAt={b.createdAt.toISOString()}
+                />
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CollapsibleCard>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

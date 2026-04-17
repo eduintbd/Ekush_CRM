@@ -40,14 +40,19 @@ export async function POST(req: NextRequest) {
   // If first bank account, make it primary
   const existingCount = await prisma.bankAccount.count({ where: { investorId } });
 
-  // Create bank account with cheque leaf — bank details will be filled by admin after review
+  // Create bank account with cheque leaf — bank details will be filled by
+  // admin after review. Additional accounts (after the first) are PENDING_APPROVAL
+  // until an admin reviews and marks them ACTIVE; only then they show as
+  // secondary accounts in the investor portal.
+  const isFirst = existingCount === 0;
   const bankAccount = await prisma.bankAccount.create({
     data: {
       investorId,
       bankName: "Pending Review",
       accountNumber: "Pending Review",
       chequeLeafUrl,
-      isPrimary: existingCount === 0,
+      isPrimary: isFirst,
+      status: isFirst ? "ACTIVE" : "PENDING_APPROVAL",
     },
   });
 

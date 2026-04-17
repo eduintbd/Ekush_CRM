@@ -394,6 +394,8 @@ model BankAccount {
   routingNumber String?
   chequeLeafUrl String?
   isPrimary     Boolean @default(false)
+  // ACTIVE | PENDING_APPROVAL | REJECTED
+  status        String  @default("ACTIVE")
 
   investor Investor  @relation(fields: [investorId], references: [id], onDelete: Cascade)
   sipPlans SipPlan[]

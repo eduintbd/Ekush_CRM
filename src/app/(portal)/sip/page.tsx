@@ -26,6 +26,7 @@ interface BankAccount {
   accountNumber: string;
   routingNumber: string | null;
   isPrimary: boolean;
+  status: string;
 }
 
 export default function SipPage() {
@@ -53,12 +54,16 @@ export default function SipPage() {
       .then((r) => r.json())
       .then((data: BankAccount[]) => {
         setBankAccounts(data);
-        const primary = data.find((b) => b.isPrimary) || data[0];
+        const active = data.filter((b) => b.status === "ACTIVE");
+        const primary = active.find((b) => b.isPrimary) || active[0];
         if (primary) setSelectedBankId(primary.id);
       })
       .catch(() => {});
 
-  const selectedBank = bankAccounts.find((b) => b.id === selectedBankId);
+  const activeBanks = bankAccounts.filter((b) => b.status === "ACTIVE");
+  const pendingBanks = bankAccounts.filter((b) => b.status === "PENDING_APPROVAL");
+  const hasPending = pendingBanks.length > 0;
+  const selectedBank = activeBanks.find((b) => b.id === selectedBankId);
 
   const handleSaveNewBank = async () => {
     if (bankMode === "cheque" && chequeFile) {
@@ -233,55 +238,80 @@ export default function SipPage() {
               {/* ── Bank Account ────────────────────────────── */}
               <div className="md:col-span-2">
                 <label className="text-sm font-medium text-text-label block mb-2">Bank Account</label>
-                {selectedBank ? (
+                {activeBanks.length > 0 ? (
                   <div className="bg-page-bg rounded-[10px] p-4">
-                    <p className="text-[13px] text-text-body mb-2">Your bank account details for SIP debit:</p>
-                    <div className="bg-white rounded-[5px] border border-input-border p-3 space-y-1 mb-3">
-                      <div className="flex justify-between text-[13px]">
-                        <span className="text-text-body">A/C Name</span>
-                        <span className="text-text-dark font-medium">{selectedBank.bankName}</span>
-                      </div>
-                      <div className="flex justify-between text-[13px]">
-                        <span className="text-text-body">A/C Number</span>
-                        <span className="text-text-dark font-medium">{selectedBank.accountNumber}</span>
-                      </div>
-                      <div className="flex justify-between text-[13px]">
-                        <span className="text-text-body">Bank Name</span>
-                        <span className="text-text-dark font-medium">{selectedBank.bankName}</span>
-                      </div>
-                      {selectedBank.branchName && (
-                        <div className="flex justify-between text-[13px]">
-                          <span className="text-text-body">Branch</span>
-                          <span className="text-text-dark font-medium">{selectedBank.branchName}</span>
-                        </div>
-                      )}
-                      {selectedBank.routingNumber && (
-                        <div className="flex justify-between text-[13px]">
-                          <span className="text-text-body">Routing Number</span>
-                          <span className="text-text-dark font-medium">{selectedBank.routingNumber}</span>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-[13px] text-text-body mb-2">Do you want to change this account for SIP?</p>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button" size="sm" variant="outline"
-                        className={`rounded-[5px] text-[12px] transition-colors ${!showBankChange ? "bg-green-500 text-white border-green-500" : "border-green-500 text-green-600 hover:bg-green-50"}`}
-                        onClick={() => setShowBankChange(false)}
-                      >
-                        {!showBankChange ? "✓ " : ""}No, use this account
-                      </Button>
-                      <Button
-                        type="button" size="sm" variant="outline"
-                        className={`rounded-[5px] text-[12px] transition-colors ${showBankChange ? "bg-ekush-orange text-white border-ekush-orange" : "border-ekush-orange text-ekush-orange hover:bg-orange-50"}`}
-                        onClick={() => setShowBankChange(true)}
-                      >
-                        Yes, change account
-                      </Button>
+                    <p className="text-[13px] text-text-body mb-2">
+                      {activeBanks.length > 1
+                        ? "Select the bank account for SIP debit:"
+                        : "Your bank account details for SIP debit:"}
+                    </p>
+                    <div className="space-y-2 mb-3">
+                      {activeBanks.map((b) => (
+                        <label
+                          key={b.id}
+                          className={`block bg-white rounded-[5px] border p-3 cursor-pointer transition-colors ${
+                            selectedBankId === b.id
+                              ? "border-ekush-orange ring-1 ring-ekush-orange"
+                              : "border-input-border hover:border-ekush-orange/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="sip-bank"
+                              checked={selectedBankId === b.id}
+                              onChange={() => setSelectedBankId(b.id)}
+                              className="accent-ekush-orange"
+                            />
+                            <div className="flex-1 space-y-0.5">
+                              <div className="flex items-center gap-2 text-[13px]">
+                                <span className="text-text-dark font-semibold">{b.bankName}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${b.isPrimary ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
+                                  {b.isPrimary ? "Primary" : "Secondary"}
+                                </span>
+                              </div>
+                              <div className="text-[12px] text-text-body">
+                                A/C: {b.accountNumber}
+                                {b.branchName ? ` · ${b.branchName}` : ""}
+                                {b.routingNumber ? ` · Routing ${b.routingNumber}` : ""}
+                              </div>
+                            </div>
+                          </div>
+                        </label>
+                      ))}
                     </div>
 
+                    {hasPending && (
+                      <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-[5px] text-[12px] text-amber-800">
+                        <p className="font-medium mb-0.5">A bank change request is awaiting admin approval.</p>
+                        <p>Once approved, the new account will appear here as a secondary account you can choose for SIP.</p>
+                      </div>
+                    )}
+
+                    {!hasPending && (
+                      <>
+                        <p className="text-[13px] text-text-body mb-2">Do you want to change this account for SIP?</p>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button" size="sm" variant="outline"
+                            className={`rounded-[5px] text-[12px] transition-colors ${!showBankChange ? "bg-green-500 text-white border-green-500" : "border-green-500 text-green-600 hover:bg-green-50"}`}
+                            onClick={() => setShowBankChange(false)}
+                          >
+                            {!showBankChange ? "✓ " : ""}No, use this account
+                          </Button>
+                          <Button
+                            type="button" size="sm" variant="outline"
+                            className={`rounded-[5px] text-[12px] transition-colors ${showBankChange ? "bg-ekush-orange text-white border-ekush-orange" : "border-ekush-orange text-ekush-orange hover:bg-orange-50"}`}
+                            onClick={() => setShowBankChange(true)}
+                          >
+                            Yes, change account
+                          </Button>
+                        </div>
+                      </>
+                    )}
+
                     {/* Change bank dialog */}
-                    {showBankChange && (
+                    {!hasPending && showBankChange && (
                       <div className="mt-4 border-t border-input-border pt-4 space-y-3">
                         <div className="flex rounded-lg border overflow-hidden">
                           <button type="button" onClick={() => setBankMode("cheque")}

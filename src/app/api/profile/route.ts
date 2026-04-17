@@ -64,8 +64,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Bank name and account number required" }, { status: 400 });
     }
 
-    // If first bank account, make it primary
+    // If first bank account, make it primary and active. Additional accounts
+    // are PENDING_APPROVAL until an admin reviews them and marks them ACTIVE —
+    // only then they show as secondary accounts in the portal + SIP page.
     const existingCount = await prisma.bankAccount.count({ where: { investorId } });
+    const isFirst = existingCount === 0;
 
     const newBank = await prisma.bankAccount.create({
       data: {
@@ -74,7 +77,8 @@ export async function PATCH(req: NextRequest) {
         branchName: branchName || null,
         accountNumber,
         routingNumber: routingNumber || null,
-        isPrimary: existingCount === 0,
+        isPrimary: isFirst,
+        status: isFirst ? "ACTIVE" : "PENDING_APPROVAL",
       },
     });
 
