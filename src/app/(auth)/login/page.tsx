@@ -99,27 +99,26 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full h-[50px] text-[15px]"
-              disabled={loading}
-            >
-              {loading ? "Logging in..." : "Log in"}
-            </Button>
-          </form>
-
-          <div className="mt-5 text-center space-y-3">
-            <p className="text-[13px] text-text-body">
-              Do you want to register?{" "}
-              <button
+            <div className="flex gap-3">
+              <Button
+                type="submit"
+                className="flex-1 h-[50px] text-[15px]"
+                disabled={loading}
+              >
+                {loading ? "Logging in..." : "Log In"}
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setSignupGateOpen(true)}
-                className="text-ekush-orange hover:underline font-semibold"
+                className="flex-1 h-[50px] text-[15px] bg-white border-2 border-ekush-orange text-ekush-orange hover:bg-ekush-orange hover:text-white"
               >
-                Lets sign-up
-              </button>
-            </p>
-            <a href="#" className="text-[13px] text-ekush-orange hover:underline font-medium block">
+                Sign Up
+              </Button>
+            </div>
+          </form>
+
+          <div className="mt-5 text-center">
+            <a href="#" className="text-[13px] text-ekush-orange hover:underline font-medium">
               Forgot Password?
             </a>
           </div>
