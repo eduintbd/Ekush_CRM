@@ -4,14 +4,30 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Append connection_limit to the DB URL so each serverless isolate keeps a
-// small pool (default is num_cpus*2+1 which overwhelms Supabase's 15-slot
-// session-mode pooler on concurrent invocations).
+// Ensure the Supabase pooler URL uses transaction mode (port 6543) with
+// pgbouncer=true and connection_limit=1 so concurrent serverless
+// invocations don't exhaust the 15-slot session-mode pool.
 function buildDatasourceUrl(): string {
-  const url = process.env.DATABASE_URL || "";
-  if (url.includes("connection_limit")) return url;
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}connection_limit=3`;
+  let url = process.env.DATABASE_URL || "";
+
+  // Switch session-mode port (5432) → transaction-mode port (6543)
+  url = url.replace(
+    /pooler\.supabase\.com:5432/,
+    "pooler.supabase.com:6543",
+  );
+
+  // Ensure pgbouncer param is present
+  if (!url.includes("pgbouncer=true")) {
+    const sep = url.includes("?") ? "&" : "?";
+    url = `${url}${sep}pgbouncer=true`;
+  }
+
+  // Cap to 1 connection per isolate
+  if (!url.includes("connection_limit")) {
+    url = `${url}&connection_limit=1`;
+  }
+
+  return url;
 }
 
 export const prisma =
