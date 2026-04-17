@@ -4,11 +4,21 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Append connection_limit to the DB URL so each serverless isolate keeps a
+// small pool (default is num_cpus*2+1 which overwhelms Supabase's 15-slot
+// session-mode pooler on concurrent invocations).
+function buildDatasourceUrl(): string {
+  const url = process.env.DATABASE_URL || "";
+  if (url.includes("connection_limit")) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}connection_limit=3`;
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === "production" ? ["error"] : [],
-    datasourceUrl: process.env.DATABASE_URL,
+    datasourceUrl: buildDatasourceUrl(),
   });
 
 // Always cache in globalThis to reuse across serverless invocations

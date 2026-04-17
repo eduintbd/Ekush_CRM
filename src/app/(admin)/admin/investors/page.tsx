@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, withRetry } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -27,24 +27,26 @@ export default async function AdminInvestorsPage({
       }
     : {};
 
-  const [investors, total] = await Promise.all([
-    prisma.investor.findMany({
-      where,
-      include: {
-        user: { select: { status: true, email: true, phone: true } },
-        holdings: {
-          select: {
-            id: true,
-            fund: { select: { code: true } },
+  const [investors, total] = await withRetry(() =>
+    Promise.all([
+      prisma.investor.findMany({
+        where,
+        include: {
+          user: { select: { status: true, email: true, phone: true } },
+          holdings: {
+            select: {
+              id: true,
+              fund: { select: { code: true } },
+            },
           },
         },
-      },
-      orderBy: { investorCode: "asc" },
-      take: PAGE_SIZE,
-      skip: (page - 1) * PAGE_SIZE,
-    }),
-    prisma.investor.count({ where }),
-  ]);
+        orderBy: { investorCode: "asc" },
+        take: PAGE_SIZE,
+        skip: (page - 1) * PAGE_SIZE,
+      }),
+      prisma.investor.count({ where }),
+    ])
+  );
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
