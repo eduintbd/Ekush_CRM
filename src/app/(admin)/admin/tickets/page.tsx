@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Clock, MessageSquare, X } from "lucide-react";
+import { Loader2, MessageSquare, X, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface Ticket {
@@ -47,6 +47,22 @@ export default function AdminTicketsPage() {
         body: JSON.stringify({ status }),
       });
       fetchTickets();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const deleteTicket = async (id: string) => {
+    if (!window.confirm("Delete this ticket permanently? This cannot be undone.")) return;
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/support/tickets/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchTickets();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Delete failed.");
+      }
     } finally {
       setActionLoading(null);
     }
@@ -128,6 +144,16 @@ export default function AdminTicketsPage() {
                           Close
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteTicket(t.id)}
+                        disabled={actionLoading === t.id}
+                        className="border-red-400 text-red-600 hover:bg-red-50"
+                        aria-label="Delete ticket"
+                      >
+                        {actionLoading === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      </Button>
                     </div>
                   </div>
                 </div>

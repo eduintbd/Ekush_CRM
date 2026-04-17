@@ -79,6 +79,7 @@ model Investor {
   serviceRequests  ServiceRequest[]
   sipPlans         SipPlan[]
   investmentGoals  InvestmentGoal[]
+  mailLogs         MailLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -538,6 +539,42 @@ model ApprovalQueue {
 
   @@index([status])
   @@map("approval_queue")
+}
+
+// ─── Mail (SMTP settings + delivery logs) ────────────────────────
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   // JSON or plain text
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+// MailLog: one row per outgoing email. Template = EFUF_PORTFOLIO |
+// EGF_PORTFOLIO | ESRF_PORTFOLIO | TAX_CERT | WELCOME | CUSTOM.
+// status = SENT | FAILED | OPENED. trackingId is used for the (future)
+// open-tracking pixel endpoint.
+model MailLog {
+  id           String    @id @default(cuid())
+  investorId   String?
+  toEmail      String
+  subject      String
+  template     String
+  status       String    @default("SENT")
+  errorMessage String?
+  openedAt     DateTime?
+  trackingId   String    @unique @default(cuid())
+  sentById     String?
+  createdAt    DateTime  @default(now())
+
+  investor Investor? @relation(fields: [investorId], references: [id], onDelete: SetNull)
+
+  @@index([investorId])
+  @@index([status])
+  @@index([template])
+  @@map("mail_logs")
 }
 
 // ─── Audit Log ───────────────────────────────────────────────────

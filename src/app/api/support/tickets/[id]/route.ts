@@ -94,3 +94,36 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const session = await getSession();
+  const role = (session?.user as any)?.role;
+  const adminRoles = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPPORT", "SUPER_ADMIN"];
+  if (!session || !adminRoles.includes(role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const existing = await prisma.serviceRequest.findUnique({ where: { id: params.id } });
+  if (!existing) {
+    return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+  }
+
+  // Remove child comments first, then the ticket itself
+  await prisma.ticketComment.deleteMany({ where: { serviceRequestId: params.id } });
+  await prisma.serviceRequest.delete({ where: { id: params.id } });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: (session.user as any).id,
+      action: "DELETE_TICKET",
+      entity: "ServiceRequest",
+      entityId: params.id,
+      newValue: JSON.stringify({ trackingNumber: existing.trackingNumber, type: existing.type }),
+    },
+  });
+
+  return NextResponse.json({ success: true });
+}

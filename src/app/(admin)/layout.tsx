@@ -44,7 +44,7 @@ export default async function AdminLayout({
             <Link href="/admin/fund-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Fund Reports</Link>
             <Link href="/admin/comparisons" className="text-text-dark hover:text-ekush-orange transition-colors">Comparisons</Link>
             <Link href="/admin/tickets" className="text-text-dark hover:text-ekush-orange transition-colors">Tickets</Link>
-            <Link href="/admin/content" className="text-text-dark hover:text-ekush-orange transition-colors">Content</Link>
+            <Link href="/admin/content" className="text-text-dark hover:text-ekush-orange transition-colors">Mail</Link>
             <Link href="/admin/audit-log" className="text-text-dark hover:text-ekush-orange transition-colors">Audit Log</Link>
             <Link href="/dashboard" className="text-ekush-orange hover:text-ekush-orange-dark transition-colors">Portal</Link>
             <AdminLogoutButton userName={session.user.name || session.user.email || undefined} />
