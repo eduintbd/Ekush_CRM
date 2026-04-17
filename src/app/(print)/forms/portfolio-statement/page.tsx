@@ -5,30 +5,64 @@ import { formatBDT } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function PortfolioStatementPage() {
+export default async function PortfolioStatementPage({
+  searchParams,
+}: {
+  searchParams: { investorCode?: string; fundCode?: string };
+}) {
   let session;
   try { session = await getSession(); } catch { redirect("/login"); }
   if (!session) redirect("/login");
 
   let investor: any = null;
   let holdings: any[] = [];
+  let filterFundCode: string | null = null;
 
   try {
-    const userId = (session.user as any)?.id;
-    let investorId = (session.user as any)?.investorId;
-    if (!investorId && userId) {
-      const u = await prisma.user.findUnique({ where: { id: userId }, select: { investor: { select: { id: true } } } });
-      investorId = u?.investor?.id;
-    }
-    if (!investorId) redirect("/dashboard");
+    let investorId: string | undefined;
+    
+    // Admin preview mode: allow specifying investorCode and fundCode
+    if (searchParams.investorCode) {
+      const user = (session.user as any);
+      const isAdmin = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"].includes(user?.role);
+      
+      if (!isAdmin) {
+        return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Unauthorized</div>;
+      }
+      
+      investor = await prisma.investor.findUnique({
+        where: { investorCode: searchParams.investorCode },
+      });
+      
+      if (!investor) {
+        return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Investor not found</div>;
+      }
+      
+      investorId = investor.id;
+      filterFundCode = searchParams.fundCode || null;
+    } else {
+      // Regular user mode: use session investorId
+      const userId = (session.user as any)?.id;
+      investorId = (session.user as any)?.investorId;
+      if (!investorId && userId) {
+        const u = await prisma.user.findUnique({ where: { id: userId }, select: { investor: { select: { id: true } } } });
+        investorId = u?.investor?.id;
+      }
+      if (!investorId) redirect("/dashboard");
 
-    investor = await withRetry(() => prisma.investor.findUnique({ where: { id: investorId } }));
-    if (!investor) redirect("/dashboard");
+      investor = await withRetry(() => prisma.investor.findUnique({ where: { id: investorId } }));
+      if (!investor) redirect("/dashboard");
+    }
 
     holdings = await withRetry(() => prisma.fundHolding.findMany({
       where: { investorId },
       include: { fund: true },
     }));
+    
+    // Filter by fund if specified
+    if (filterFundCode) {
+      holdings = holdings.filter((h) => h.fund.code === filterFundCode);
+    }
   } catch (err) {
     console.error("Portfolio statement error:", err);
     return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Could not load data. Please refresh.</div>;

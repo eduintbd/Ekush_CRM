@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Eye, EyeOff, Loader2, Save, Send, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Loader2, Save, Send, RefreshCw, FileText } from "lucide-react";
 import { CollapsibleCard } from "@/components/admin/collapsible-card";
 import { TEMPLATE_OPTIONS } from "@/lib/mail/templates";
 
@@ -265,6 +265,7 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [template, setTemplate] = useState("EFUF_PORTFOLIO");
   const [skipZero, setSkipZero] = useState(true);
+  const [codeFilter, setCodeFilter] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: number; failed: number; skipped: number; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -284,6 +285,7 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
 
   const eligible = rows.filter((r) => {
     if (!r.email) return false;
+    if (codeFilter && !r.investorCode.toLowerCase().includes(codeFilter.toLowerCase())) return false;
     if (template === "EFUF_PORTFOLIO") return !skipZero || r.funds.EFUF?.hasPortfolio;
     if (template === "EGF_PORTFOLIO") return !skipZero || r.funds.EGF?.hasPortfolio;
     if (template === "ESRF_PORTFOLIO") return !skipZero || r.funds.ESRF?.hasPortfolio;
@@ -343,6 +345,16 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
             ))}
           </select>
         </div>
+        <div>
+          <label className="text-[12px] font-medium text-text-body block mb-1">Filter by Code</label>
+          <input
+            type="text"
+            placeholder="e.g., A00055"
+            value={codeFilter}
+            onChange={(e) => setCodeFilter(e.target.value)}
+            className="h-9 rounded-[10px] border border-input-border bg-white px-3 text-sm"
+          />
+        </div>
         <label className="flex items-center gap-2 text-[12px] pt-5">
           <input type="checkbox" checked={skipZero} onChange={(e) => setSkipZero(e.target.checked)} />
           Skip investors with zero market value in the selected fund
@@ -377,7 +389,12 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
               </th>
               <th className="p-2 text-left">Code</th>
               <th className="p-2 text-left">Name</th>
-              <th className="p-2 text-center">Tax Cert.</th>
+              {!["EFUF_PORTFOLIO", "EGF_PORTFOLIO", "ESRF_PORTFOLIO"].includes(template) && (
+                <th className="p-2 text-center">Tax Cert.</th>
+              )}
+              {["EFUF_PORTFOLIO", "EGF_PORTFOLIO", "ESRF_PORTFOLIO"].includes(template) && (
+                <th className="p-2 text-center">PDF</th>
+              )}
               <th className="p-2 text-right">EFUF MV</th>
               <th className="p-2 text-right">EGF MV</th>
               <th className="p-2 text-right">ESRF MV</th>
@@ -405,7 +422,21 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
                   </td>
                   <td className="p-2 font-mono text-[11px]">{r.investorCode}</td>
                   <td className="p-2 font-medium text-text-dark">{r.name}</td>
-                  <td className="p-2 text-center">{r.hasTaxCertificate ? "✓" : "—"}</td>
+                  {!["EFUF_PORTFOLIO", "EGF_PORTFOLIO", "ESRF_PORTFOLIO"].includes(template) && (
+                    <td className="p-2 text-center">{r.hasTaxCertificate ? "✓" : "—"}</td>
+                  )}
+                  {["EFUF_PORTFOLIO", "EGF_PORTFOLIO", "ESRF_PORTFOLIO"].includes(template) && (
+                    <td className="p-2 text-center">
+                      <a
+                        href={`/print/forms/portfolio-statement?investorCode=${r.investorCode}&fundCode=${relevantFundCode}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded text-[11px] font-medium"
+                      >
+                        <FileText className="w-3.5 h-3.5" /> PDF
+                      </a>
+                    </td>
+                  )}
                   <td className={`p-2 text-right ${r.funds.EFUF?.hasPortfolio ? "text-text-dark" : "text-text-muted"}`}>
                     {r.funds.EFUF?.hasPortfolio ? r.funds.EFUF.marketValue.toLocaleString("en-IN", { maximumFractionDigits: 0 }) : "—"}
                   </td>

@@ -15,9 +15,9 @@ export async function GET() {
   }
 
   const investors = await prisma.investor.findMany({
-    where: { user: { status: { not: "PENDING" } } },
+    where: { holdings: { some: {} } }, // Only investors with at least one holding
     include: {
-      user: { select: { email: true, phone: true } },
+      user: { select: { email: true, phone: true, status: true } },
       holdings: {
         include: { fund: { select: { code: true, name: true, currentNav: true } } },
       },

@@ -129,11 +129,12 @@ export default async function AdminInvestorDetailPage({
         </CardContent>
       </Card>
 
-      {/* Holdings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-[14px]">Fund Holdings</CardTitle>
-        </CardHeader>
+      {/* Holdings — Only show if investor is not pending */}
+      {investor.user.status !== "PENDING" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[14px]">Fund Holdings</CardTitle>
+          </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -175,12 +176,14 @@ export default async function AdminInvestorDetailPage({
           </Table>
         </CardContent>
       </Card>
+      )}
 
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-[14px]">Recent Transactions (last 20)</CardTitle>
-        </CardHeader>
+      {/* Recent Transactions — Only show if investor is not pending */}
+      {investor.user.status !== "PENDING" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[14px]">Recent Transactions (last 20)</CardTitle>
+          </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -218,13 +221,15 @@ export default async function AdminInvestorDetailPage({
           </Table>
         </CardContent>
       </Card>
+      )}
 
-      {/* SIP Plans + Dividends */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[14px]">SIP Plans</CardTitle>
-          </CardHeader>
+      {/* SIP Plans + Dividends — Only show if investor is not pending */}
+      {investor.user.status !== "PENDING" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-[14px]">SIP Plans</CardTitle>
+            </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -285,6 +290,7 @@ export default async function AdminInvestorDetailPage({
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Bank accounts + Nominees */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
