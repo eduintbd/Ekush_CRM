@@ -377,7 +377,8 @@ export default function RegisterPage() {
   ];
 
   async function runNidOcrInto(file: File, target: "applicant" | "nominee") {
-    setOcrStatus("Reading NID — this may take a moment...");
+    const label = target === "applicant" ? "Applicant" : "Nominee";
+    setOcrStatus(`Reading ${label} NID — this may take a moment...`);
     const text = await runOCR(file);
     const nid = extractDigits(text, 10, 17);
     const father = extractAfterLabel(text, FATHER_LABELS);
@@ -393,9 +394,9 @@ export default function RegisterPage() {
     if (present) found.push("Address: found");
 
     if (found.length > 0) {
-      setOcrStatus(`Extracted: ${found.join(" | ")}`);
+      setOcrStatus(`${label} — ${found.join(" | ")}`);
     } else {
-      setOcrStatus("Could not extract fields — use Edit in the preview to fill manually.");
+      setOcrStatus(`${label} NID: could not extract — use Edit in the preview to fill manually.`);
     }
     setTimeout(() => setOcrStatus(""), 8000);
 
@@ -434,6 +435,8 @@ export default function RegisterPage() {
       await runNidOcrInto(file, target);
     } catch (e) {
       console.error("OCR failed", e);
+      setOcrStatus(`${target === "applicant" ? "Applicant" : "Nominee"} NID reading failed — use Edit in preview.`);
+      setTimeout(() => setOcrStatus(""), 5000);
     } finally {
       setOcrBusy(null);
     }
@@ -624,6 +627,15 @@ export default function RegisterPage() {
             <div className="space-y-6">
               <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani">Upload Documents</h2>
 
+              {ocrStatus && (
+                <div className="px-3 py-2 rounded-md bg-blue-50 border border-blue-200 text-[12px] text-blue-800 animate-pulse">
+                  {ocrStatus}
+                </div>
+              )}
+              <p className="text-[11px] text-text-body -mt-3">
+                Data from NID, BO, and E-TIN uploads is auto-extracted and printed onto the registration form. Use the <strong>Edit</strong> button in the preview to correct or fill any field manually.
+              </p>
+
               {/* Principal Applicant */}
               <div>
                 <h3 className="text-[14px] font-semibold text-text-dark mb-3">Principal Applicant&apos;s Information</h3>
@@ -646,14 +658,6 @@ export default function RegisterPage() {
                   <FileUpload label="Digital Signature" file={signature} onFile={setSignature} accept="image/*" />
                 </div>
 
-                {ocrStatus && (
-                  <div className="mt-2 px-3 py-2 rounded-md bg-blue-50 border border-blue-200 text-[12px] text-blue-800 animate-pulse">
-                    {ocrStatus}
-                  </div>
-                )}
-                <p className="text-[11px] text-text-body mt-2">
-                  NID details (number, parents&apos; names, address) will be auto-extracted and printed onto the form. You can also use the <strong>Edit</strong> button in the preview to correct or fill any field manually.
-                </p>
               </div>
 
               {/* Nominee */}
