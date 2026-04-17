@@ -638,6 +638,121 @@ function DeliveryReport({ reloadKey }: { reloadKey: number }) {
   );
 }
 
+// ───────────────────────── Notification Digest ──────────────────────────
+
+function NotificationDigest({ onSent }: { onSent: () => void }) {
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/notifications/settings")
+      .then((r) => r.json())
+      .then((d) => setText((d.recipients || []).join("\n")))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    setMessage(null);
+    const recipients = text
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    try {
+      const res = await fetch("/api/admin/notifications/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipients }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setText((data.recipients || []).join("\n"));
+        setMessage({
+          type: "success",
+          text: `Saved ${data.recipients?.length || 0} recipient(s).`,
+        });
+      } else {
+        setMessage({ type: "error", text: data.error || "Save failed." });
+      }
+    } finally { setSaving(false); }
+  };
+
+  const sendNow = async () => {
+    setTesting(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/cron/notifications");
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        if (data.skipped === "no-recipients") {
+          setMessage({ type: "error", text: "No recipients saved yet." });
+        } else if (data.skipped === "no-activity") {
+          setMessage({ type: "success", text: "No new activity since the last digest — nothing sent." });
+        } else if (data.mail?.ok) {
+          const c = data.counts || {};
+          setMessage({
+            type: "success",
+            text: `Digest sent — ${c.registrations ?? 0} reg · ${c.buys ?? 0} buy · ${c.sells ?? 0} sell · ${c.sips ?? 0} SIP.`,
+          });
+          onSent();
+        } else {
+          setMessage({ type: "error", text: data.mail?.error || "Send failed." });
+        }
+      } else {
+        setMessage({ type: "error", text: data.error || "Digest run failed." });
+      }
+    } catch (err) {
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Digest run failed." });
+    } finally { setTesting(false); }
+  };
+
+  return (
+    <div className="p-5 space-y-4">
+      <p className="text-[12px] text-text-body">
+        Two automated digest emails go out daily at <strong>10:00 AM</strong> and{" "}
+        <strong>4:00 PM Bangladesh time</strong>. Each batches the latest registrations,
+        buy / sell requests, and new SIP plans since the previous digest.
+      </p>
+      <div>
+        <label className="text-[12px] font-medium text-text-label block mb-1">
+          Recipients (one email per line)
+        </label>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          disabled={loading}
+          className="w-full rounded-[10px] border border-input-border bg-input-bg px-3 py-2 text-sm min-h-[110px] font-mono"
+          placeholder={"one@ekushwml.com\nanother@ekushwml.com"}
+        />
+      </div>
+      <div className="flex items-center gap-3 flex-wrap">
+        <Button onClick={save} disabled={saving || loading} size="sm">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+          Save Recipients
+        </Button>
+        <Button onClick={sendNow} disabled={testing} size="sm" variant="outline">
+          {testing ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
+          Send Digest Now
+        </Button>
+      </div>
+      {message && (
+        <div
+          className={`text-[12px] rounded-[5px] border p-2 ${
+            message.type === "success"
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-red-50 border-red-200 text-red-700"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ───────────────────────── Page ──────────────────────────
 
 export default function AdminMailPage() {
@@ -656,6 +771,10 @@ export default function AdminMailPage() {
 
       <CollapsibleCard title="Mail Settings" subtitle="SMTP server / SSL-TLS" defaultOpen={false}>
         <MailSettings />
+      </CollapsibleCard>
+
+      <CollapsibleCard title="Activity Digest" subtitle="Twice-daily Ekush group notification" defaultOpen={false}>
+        <NotificationDigest onSent={() => setReloadKey((k) => k + 1)} />
       </CollapsibleCard>
 
       <CollapsibleCard title="Mailing Center" subtitle="Pick investors and send an email template" defaultOpen={true}>
