@@ -131,13 +131,9 @@ export function InvestmentGrowth() {
   return (
     <div className="bg-white rounded-[10px] shadow-card p-6 h-full flex flex-col">
       <div className="flex items-start justify-between gap-4 mb-3">
-        <div>
-          <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">Growth of {selectedAmountLabel}</h3>
-          <p className="text-[11px] text-text-body mt-0.5">
-            Hypothetical value if invested in {fundBlock?.name ?? fund} from {chart.startLabel} to{" "}
-            {new Date(data.asOf).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-          </p>
-        </div>
+        <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">
+          Growth of {selectedAmountLabel}
+        </h3>
         {chart.endValue != null && (
           <div className="text-right shrink-0">
             <p className="text-[11px] text-text-body">Current value</p>
@@ -224,7 +220,11 @@ export function InvestmentGrowth() {
         )}
       </div>
 
-      <p className="text-[10.5px] text-text-muted mt-3 leading-relaxed">
+      <p className="text-[11px] text-text-body mt-3">
+        Hypothetical value if invested in {fundBlock?.name ?? fund} from {chart.startLabel} to{" "}
+        {new Date(data.asOf).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}.
+      </p>
+      <p className="text-[10.5px] text-text-muted mt-1 leading-relaxed">
         Hypothetical illustration based on historical NAV data. Past performance does not guarantee future
         results. Investments are subject to market risk.
       </p>
