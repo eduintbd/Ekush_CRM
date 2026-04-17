@@ -242,6 +242,8 @@ model NavRecord {
   nav      Float
   buyUnit  Float?
   sellUnit Float?
+  dsex     Float?
+  ds30     Float?
 
   fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
 

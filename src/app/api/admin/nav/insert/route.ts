@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { fundId, date, nav, buyUnit, sellUnit } = body;
+  const { fundId, date, nav, buyUnit, sellUnit, dsex, ds30 } = body;
 
   if (!fundId || !date || nav === undefined || nav === null) {
     return NextResponse.json(
@@ -27,19 +27,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid NAV value" }, { status: 400 });
   }
 
-  const buyNum = buyUnit !== undefined && buyUnit !== null && buyUnit !== ""
-    ? parseFloat(String(buyUnit))
-    : null;
-  const sellNum = sellUnit !== undefined && sellUnit !== null && sellUnit !== ""
-    ? parseFloat(String(sellUnit))
-    : null;
+  const parseOptionalPositive = (raw: unknown, label: string): number | null | { error: string } => {
+    if (raw === undefined || raw === null || raw === "") return null;
+    const n = parseFloat(String(raw));
+    if (isNaN(n) || n <= 0) return { error: `Invalid ${label} value` };
+    return n;
+  };
 
-  if (buyNum !== null && (isNaN(buyNum) || buyNum <= 0)) {
-    return NextResponse.json({ error: "Invalid Buy Unit value" }, { status: 400 });
+  const buyParsed = parseOptionalPositive(buyUnit, "Buy Unit");
+  const sellParsed = parseOptionalPositive(sellUnit, "Sell Unit");
+  const dsexParsed = parseOptionalPositive(dsex, "DSEX");
+  const ds30Parsed = parseOptionalPositive(ds30, "DS30");
+  for (const p of [buyParsed, sellParsed, dsexParsed, ds30Parsed]) {
+    if (p && typeof p === "object" && "error" in p) {
+      return NextResponse.json({ error: p.error }, { status: 400 });
+    }
   }
-  if (sellNum !== null && (isNaN(sellNum) || sellNum <= 0)) {
-    return NextResponse.json({ error: "Invalid Sell Unit value" }, { status: 400 });
-  }
+  const buyNum = buyParsed as number | null;
+  const sellNum = sellParsed as number | null;
+  const dsexNum = dsexParsed as number | null;
+  const ds30Num = ds30Parsed as number | null;
 
   const navDate = new Date(date);
   navDate.setHours(0, 0, 0, 0);
@@ -49,16 +56,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fund not found" }, { status: 404 });
   }
 
-  // Upsert NAV record with buy/sell unit values
   const record = await prisma.navRecord.upsert({
     where: { fundId_date: { fundId: fund.id, date: navDate } },
-    update: { nav: navNum, buyUnit: buyNum, sellUnit: sellNum },
+    update: { nav: navNum, buyUnit: buyNum, sellUnit: sellNum, dsex: dsexNum, ds30: ds30Num },
     create: {
       fundId: fund.id,
       date: navDate,
       nav: navNum,
       buyUnit: buyNum,
       sellUnit: sellNum,
+      dsex: dsexNum,
+      ds30: ds30Num,
     },
   });
 
@@ -88,6 +96,8 @@ export async function POST(req: NextRequest) {
         nav: navNum,
         buyUnit: buyNum,
         sellUnit: sellNum,
+        dsex: dsexNum,
+        ds30: ds30Num,
       }),
     },
   });

@@ -22,6 +22,8 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
   const [nav, setNav] = useState("");
   const [buyUnit, setBuyUnit] = useState("");
   const [sellUnit, setSellUnit] = useState("");
+  const [dsex, setDsex] = useState("");
+  const [ds30, setDs30] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -50,7 +52,7 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
       const res = await fetch("/api/admin/nav/insert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fundId, date, nav, buyUnit, sellUnit }),
+        body: JSON.stringify({ fundId, date, nav, buyUnit, sellUnit, dsex, ds30 }),
       });
 
       if (res.ok) {
@@ -58,6 +60,8 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
         setNav("");
         setBuyUnit("");
         setSellUnit("");
+        setDsex("");
+        setDs30("");
         router.refresh();
         setTimeout(() => setMessage(null), 3000);
       } else {
@@ -80,7 +84,7 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
             Insert New NAV Entry
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-3 items-end">
           <div className="lg:col-span-2">
             <label className="text-[11px] text-text-body block mb-1">Fund Name</label>
             <select
@@ -134,6 +138,28 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
               value={sellUnit}
               onChange={(e) => setSellUnit(e.target.value)}
               placeholder="auto"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-ekush-orange font-mono"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] text-text-body block mb-1">DSEX</label>
+            <input
+              type="number"
+              step="0.01"
+              value={dsex}
+              onChange={(e) => setDsex(e.target.value)}
+              placeholder="e.g., 4958.99"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-ekush-orange font-mono"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] text-text-body block mb-1">DS30</label>
+            <input
+              type="number"
+              step="0.01"
+              value={ds30}
+              onChange={(e) => setDs30(e.target.value)}
+              placeholder="e.g., 1912.72"
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-ekush-orange font-mono"
             />
           </div>

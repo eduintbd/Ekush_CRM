@@ -157,12 +157,14 @@ export default async function NavEntryPage({
                   <TableHead className="text-right">Investor Return</TableHead>
                   <TableHead className="text-right">Buy Unit</TableHead>
                   <TableHead className="text-right">Sell Unit</TableHead>
+                  <TableHead className="text-right">DSEX</TableHead>
+                  <TableHead className="text-right">DS30</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {records.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-text-muted py-8">
+                    <TableCell colSpan={8} className="text-center text-text-muted py-8">
                       No NAV records found
                     </TableCell>
                   </TableRow>
@@ -200,6 +202,12 @@ export default async function NavEntryPage({
                         </TableCell>
                         <TableCell className="text-right text-[13px] font-mono">
                           {sellUnit.toFixed(4)}
+                        </TableCell>
+                        <TableCell className="text-right text-[13px] font-mono text-text-body">
+                          {r.dsex != null ? Number(r.dsex).toFixed(2) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right text-[13px] font-mono text-text-body">
+                          {r.ds30 != null ? Number(r.ds30).toFixed(2) : "—"}
                         </TableCell>
                       </TableRow>
                     );
