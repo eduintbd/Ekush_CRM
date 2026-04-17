@@ -164,6 +164,8 @@ function MailSettings() {
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [testTo, setTestTo] = useState("");
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/mail/settings")
@@ -205,6 +207,26 @@ function MailSettings() {
     } finally { setLoading(false); }
   };
 
+  const sendTest = async () => {
+    setTesting(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/mail/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: testTo }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setMessage({ type: "success", text: `Test email sent to ${data.recipient}.` });
+      } else {
+        setMessage({ type: "error", text: data.error || "Test send failed." });
+      }
+    } catch (err) {
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Test send failed." });
+    } finally { setTesting(false); }
+  };
+
   return (
     <div className="p-5 space-y-4">
       <p className="text-[12px] text-text-body">
@@ -232,18 +254,50 @@ function MailSettings() {
         <Input label="From Name" value={form.fromName} onChange={(e) => setForm({ ...form, fromName: e.target.value })} placeholder="Ekush WML" />
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <Button onClick={save} disabled={loading} size="sm">
           {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
           Save Settings
         </Button>
         {configured && <Badge variant="success">Configured</Badge>}
-        {message && (
-          <span className={`text-[12px] ${message.type === "success" ? "text-green-600" : "text-red-500"}`}>
-            {message.text}
-          </span>
-        )}
       </div>
+
+      {configured && (
+        <div className="border-t pt-3 space-y-2">
+          <p className="text-[12px] font-medium text-text-dark">Send a test email</p>
+          <p className="text-[11.5px] text-text-body">
+            Validates host/port/auth by sending a single message. Leave blank to send to
+            the configured From address.
+          </p>
+          <div className="flex items-end gap-2 flex-wrap">
+            <div className="flex-1 min-w-[220px]">
+              <Input
+                label="Recipient (optional)"
+                type="email"
+                value={testTo}
+                onChange={(e) => setTestTo(e.target.value)}
+                placeholder={form.fromEmail || form.user || "you@example.com"}
+              />
+            </div>
+            <Button onClick={sendTest} disabled={testing} size="sm" variant="outline">
+              {testing ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
+              Send Test
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {message && (
+        <div
+          className={`text-[12px] rounded-[5px] border p-2 ${
+            message.type === "success"
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-red-50 border-red-200 text-red-700"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
     </div>
   );
 }
