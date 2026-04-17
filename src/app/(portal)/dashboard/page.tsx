@@ -1,7 +1,6 @@
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { ActionCard } from "@/components/dashboard/action-card";
-import { NavCarousel } from "@/components/dashboard/nav-carousel";
+import { InvestmentGrowth } from "@/components/dashboard/investment-growth";
 import { PerformanceComparison } from "@/components/dashboard/performance-comparison";
 import { ErrorBoundary } from "@/components/error-boundary";
 import {
@@ -16,34 +15,8 @@ import {
   Target,
 } from "lucide-react";
 
-async function getFunds() {
-  return prisma.fund.findMany({ orderBy: { code: "asc" } });
-}
-
-async function getNavHistoryByFund() {
-  const records = await prisma.navRecord.findMany({
-    select: { fundId: true, date: true, nav: true },
-    orderBy: { date: "asc" },
-  });
-  const map = new Map<string, { date: string; nav: number }[]>();
-  for (const r of records) {
-    if (!map.has(r.fundId)) map.set(r.fundId, []);
-    map.get(r.fundId)!.push({ date: r.date.toISOString(), nav: r.nav });
-  }
-  return map;
-}
-
 export default async function DashboardPage() {
   const session = await getSession();
-
-  let funds: Awaited<ReturnType<typeof getFunds>> = [];
-  let navByFund = new Map<string, { date: string; nav: number }[]>();
-
-  try {
-    [funds, navByFund] = await Promise.all([getFunds(), getNavHistoryByFund()]);
-  } catch (err) {
-    console.error("Dashboard data fetch error:", err);
-  }
 
   // Only show the pending-verification banner for self-registered accounts that
   // still hold a placeholder investor code (PENDING-XXXXX). Real investors
@@ -74,15 +47,7 @@ export default async function DashboardPage() {
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ErrorBoundary fallback={<div className="bg-white rounded-[10px] shadow-card p-6 text-center text-text-muted text-sm">Chart unavailable</div>}>
-            <NavCarousel
-              funds={funds.map((f) => ({
-                id: f.id,
-                code: f.code,
-                name: f.name,
-                currentNav: Number(f.currentNav),
-                data: navByFund.get(f.id) ?? [],
-              }))}
-            />
+            <InvestmentGrowth />
           </ErrorBoundary>
           <ErrorBoundary fallback={<div className="bg-white rounded-[10px] shadow-card p-6 text-center text-text-muted text-sm">Chart unavailable</div>}>
             <PerformanceComparison />

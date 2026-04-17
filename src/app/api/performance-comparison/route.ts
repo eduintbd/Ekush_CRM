@@ -18,7 +18,7 @@ const PERIOD_IDS = [
 ] as const;
 type PeriodId = (typeof PERIOD_IDS)[number];
 
-const FUND_CODES = ["EFUF", "EGF"] as const;
+const FUND_CODES = ["EFUF", "EGF", "ESRF"] as const;
 
 function startOfDayUtc(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
