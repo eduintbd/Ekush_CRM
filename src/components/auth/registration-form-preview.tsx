@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { X, Printer } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { X, Printer, Pencil } from "lucide-react";
 
 export interface PersonInfo {
   nidNumber: string;
@@ -78,6 +78,8 @@ export function RegistrationFormPreview({
     };
   }, [open]);
 
+  const [editMode, setEditMode] = useState(false);
+
   if (!open) return null;
 
   const today = new Date();
@@ -110,6 +112,8 @@ export function RegistrationFormPreview({
           .reg-preview .reg-page:last-child { page-break-after: auto; break-after: auto; }
         }
         .reg-field { border-bottom: 1px solid #333; min-height: 18px; padding: 2px 4px; }
+        .reg-field[contenteditable="true"] { background: #fffbe6; outline: 1px dashed #d97706; cursor: text; }
+        .reg-field[contenteditable="true"]:focus { outline: 2px solid #d97706; background: #fff; }
         .reg-box { border: 1px solid #333; }
         .reg-section-title { background: #333; color: #fff; padding: 6px 10px; font-weight: 700; font-size: 12pt; letter-spacing: 0.5px; }
         .reg-sub-title { background: #e5e5e5; padding: 4px 10px; font-weight: 700; font-size: 10.5pt; }
@@ -122,7 +126,17 @@ export function RegistrationFormPreview({
           <h2 className="text-[15px] font-semibold text-text-dark font-rajdhani">Registration Form Preview</h2>
           <div className="flex gap-2">
             <button
-              onClick={() => window.print()}
+              onClick={() => setEditMode((p) => !p)}
+              className={`flex items-center gap-1 px-4 py-2 rounded-md text-[13px] font-medium transition-colors ${
+                editMode
+                  ? "bg-amber-500 text-white hover:bg-amber-600"
+                  : "bg-white border border-gray-300 text-text-dark hover:bg-gray-50"
+              }`}
+            >
+              <Pencil className="w-4 h-4" /> {editMode ? "Editing — click fields" : "Edit"}
+            </button>
+            <button
+              onClick={() => { setEditMode(false); window.print(); }}
               className="flex items-center gap-1 px-4 py-2 bg-ekush-orange text-white rounded-md text-[13px] font-medium hover:bg-ekush-orange-dark"
             >
               <Printer className="w-4 h-4" /> Print / Save as PDF
@@ -191,22 +205,22 @@ export function RegistrationFormPreview({
             </div>
 
             <div className="reg-sub-title">PERSONAL INFORMATION</div>
-            <LabeledField label="Name (in BLOCK LETTER)" value={data.profile.name.toUpperCase()} />
-            <LabeledField label="Father&rsquo;s / Husband&rsquo;s Name" value={data.applicant.fatherName} />
-            <LabeledField label="Mother&rsquo;s Name" value={data.applicant.motherName} />
-            <LabeledField label="NID / Passport Number" value={data.applicant.nidNumber} />
+            <LabeledField editable={editMode} label="Name (in BLOCK LETTER)" value={data.profile.name.toUpperCase()} />
+            <LabeledField editable={editMode} label="Father&rsquo;s / Husband&rsquo;s Name" value={data.applicant.fatherName} />
+            <LabeledField editable={editMode} label="Mother&rsquo;s Name" value={data.applicant.motherName} />
+            <LabeledField editable={editMode} label="NID / Passport Number" value={data.applicant.nidNumber} />
 
             <div className="reg-sub-title mt-3">CONTACT INFORMATION</div>
-            <LabeledField label="Contact Number/s" value={data.profile.phone} />
-            <LabeledField label="Email Address" value={data.profile.email} />
-            <LabeledField label="Present Address" value={data.applicant.presentAddress} />
-            <LabeledField label="Permanent Address" value={data.applicant.permanentAddress} />
+            <LabeledField editable={editMode} label="Contact Number/s" value={data.profile.phone} />
+            <LabeledField editable={editMode} label="Email Address" value={data.profile.email} />
+            <LabeledField editable={editMode} label="Present Address" value={data.applicant.presentAddress} />
+            <LabeledField editable={editMode} label="Permanent Address" value={data.applicant.permanentAddress} />
 
             <div className="reg-sub-title mt-3">FINANCIAL AND INVESTMENT-RELATED INFORMATION</div>
-            <LabeledField label="Investor&rsquo;s Bank Account&rsquo;s Name" value={data.profile.name} />
-            <LabeledField label="Account Number" value={data.bank.accountNumber} />
-            <LabeledField label="Bank Name" value={data.bank.bankName} />
-            <LabeledField label="Branch Name" value={data.bank.branchName} />
+            <LabeledField editable={editMode} label="Investor&rsquo;s Bank Account&rsquo;s Name" value={data.profile.name} />
+            <LabeledField editable={editMode} label="Account Number" value={data.bank.accountNumber} />
+            <LabeledField editable={editMode} label="Bank Name" value={data.bank.bankName} />
+            <LabeledField editable={editMode} label="Branch Name" value={data.bank.branchName} />
 
             <div className="flex items-center gap-6 my-2">
               <span className="reg-label">Dividend Option:</span>
@@ -220,8 +234,8 @@ export function RegistrationFormPreview({
               </div>
             </div>
 
-            <LabeledField label="BO Account Number" value={data.bank.boAccountNo} />
-            <LabeledField label="TAX Identification Number (TIN)" value={data.tinNumber} />
+            <LabeledField editable={editMode} label="BO Account Number" value={data.bank.boAccountNo} />
+            <LabeledField editable={editMode} label="TAX Identification Number (TIN)" value={data.tinNumber} />
           </div>
         </div>
 
@@ -249,14 +263,14 @@ export function RegistrationFormPreview({
             </div>
 
             <div className="reg-sub-title">PERSONAL INFORMATION</div>
-            <LabeledField label="Name (in BLOCK LETTER)" value={(data.nominee.name || "").toUpperCase()} />
-            <LabeledField label="Father&rsquo;s / Husband&rsquo;s Name" value={data.nominee.fatherName} />
-            <LabeledField label="Mother&rsquo;s Name" value={data.nominee.motherName} />
-            <LabeledField label="NID / Passport Number" value={data.nominee.nidNumber} />
+            <LabeledField editable={editMode} label="Name (in BLOCK LETTER)" value={(data.nominee.name || "").toUpperCase()} />
+            <LabeledField editable={editMode} label="Father&rsquo;s / Husband&rsquo;s Name" value={data.nominee.fatherName} />
+            <LabeledField editable={editMode} label="Mother&rsquo;s Name" value={data.nominee.motherName} />
+            <LabeledField editable={editMode} label="NID / Passport Number" value={data.nominee.nidNumber} />
 
             <div className="reg-sub-title mt-3">CONTACT INFORMATION</div>
-            <LabeledField label="Present Address" value={data.nominee.presentAddress} />
-            <LabeledField label="Permanent Address" value={data.nominee.permanentAddress} />
+            <LabeledField editable={editMode} label="Present Address" value={data.nominee.presentAddress} />
+            <LabeledField editable={editMode} label="Permanent Address" value={data.nominee.permanentAddress} />
 
             <div className="reg-sub-title mt-3">RELATIONSHIP</div>
             <div className="my-2" style={{ fontSize: "10pt" }}>
@@ -419,11 +433,17 @@ export function RegistrationFormPreview({
   );
 }
 
-function LabeledField({ label, value }: { label: string; value: string }) {
+function LabeledField({ label, value, editable }: { label: string; value: string; editable?: boolean }) {
   return (
     <div className="grid my-1" style={{ gridTemplateColumns: "40% 60%" }}>
       <div className="reg-label py-1" dangerouslySetInnerHTML={{ __html: label }} />
-      <div className="reg-field" style={{ whiteSpace: "pre-wrap" }}>{value || "\u00A0"}</div>
+      <div
+        className="reg-field"
+        style={{ whiteSpace: "pre-wrap" }}
+        contentEditable={editable || false}
+        suppressContentEditableWarning
+        dangerouslySetInnerHTML={{ __html: value || "\u00A0" }}
+      />
     </div>
   );
 }
