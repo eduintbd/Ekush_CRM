@@ -310,6 +310,26 @@ export default function RegisterPage() {
     return text;
   }
 
+  // Primary extraction path: Claude Vision via /api/ocr/extract.
+  // Returns structured fields or null if the endpoint is unavailable / fails.
+  async function extractViaAI(
+    file: File,
+    type: "nid" | "bo" | "tin",
+  ): Promise<Record<string, string | null> | null> {
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      fd.set("type", type);
+      const res = await fetch("/api/ocr/extract", { method: "POST", body: fd });
+      if (!res.ok) return null;
+      const json = await res.json();
+      if (!json?.success || !json.data) return null;
+      return json.data as Record<string, string | null>;
+    } catch {
+      return null;
+    }
+  }
+
   function toAsciiDigits(s: string): string {
     return s.replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d)));
   }
@@ -443,12 +463,30 @@ export default function RegisterPage() {
   async function runNidOcrInto(file: File, target: "applicant" | "nominee") {
     const label = target === "applicant" ? "Applicant" : "Nominee";
     setOcrStatus(`Reading ${label} NID — this may take a moment...`);
-    const text = await runOCR(file);
-    const nid = extractDigits(text, 10, 17);
-    const father = extractAfterLabel(text, FATHER_LABELS);
-    const mother = extractAfterLabel(text, MOTHER_LABELS);
-    const present = extractAddress(text, PRESENT_ADDR_LABELS);
-    const permanent = extractAddress(text, PERM_ADDR_LABELS);
+
+    // Try Claude Vision first; fall back to Tesseract if unavailable
+    let nid = "";
+    let father = "";
+    let mother = "";
+    let present = "";
+    let permanent = "";
+    let text = "";
+
+    const ai = await extractViaAI(file, "nid");
+    if (ai) {
+      nid = (ai.nidNumber || "").toString().replace(/\D/g, "");
+      father = (ai.fatherName || "").toString().trim();
+      mother = (ai.motherName || "").toString().trim();
+      present = (ai.presentAddress || "").toString().trim();
+      permanent = (ai.permanentAddress || "").toString().trim();
+    } else {
+      text = await runOCR(file);
+      nid = extractDigits(text, 10, 17);
+      father = extractAfterLabel(text, FATHER_LABELS);
+      mother = extractAfterLabel(text, MOTHER_LABELS);
+      present = extractAddress(text, PRESENT_ADDR_LABELS);
+      permanent = extractAddress(text, PERM_ADDR_LABELS);
+    }
 
     // Build a summary of what was found
     const found: string[] = [];
@@ -483,7 +521,8 @@ export default function RegisterPage() {
       setApplicantInfo(merge);
     } else {
       setNomineeInfo(merge);
-      const nm = extractName(text);
+      // Prefer AI-extracted English name, then Bengali, then heuristic from raw text
+      const nm = (ai?.nameEnglish || ai?.nameBengali || extractName(text) || "").toString().trim();
       if (nm) setNomineeName((prev) => prev || nm);
     }
   }
@@ -518,8 +557,14 @@ export default function RegisterPage() {
     setOcrBusy("bo");
     setOcrStatus("Reading BO acknowledgement...");
     try {
-      const text = await runOCR(file);
-      const boId = extractBoId(text);
+      let boId = "";
+      const ai = await extractViaAI(file, "bo");
+      if (ai?.boAccountNumber) {
+        boId = ai.boAccountNumber.toString().replace(/\D/g, "").slice(0, 16);
+      } else {
+        const text = await runOCR(file);
+        boId = extractBoId(text);
+      }
       if (boId) {
         setBank((b) => ({ ...b, boAccountNo: b.boAccountNo || boId }));
         setOcrStatus(`Extracted BO: ${boId}`);
@@ -542,8 +587,14 @@ export default function RegisterPage() {
     setOcrBusy("tin");
     setOcrStatus("Reading E-TIN certificate...");
     try {
-      const text = await runOCR(file);
-      const tin = extractTin(text);
+      let tin = "";
+      const ai = await extractViaAI(file, "tin");
+      if (ai?.tinNumber) {
+        tin = ai.tinNumber.toString().replace(/\D/g, "").slice(0, 12);
+      } else {
+        const text = await runOCR(file);
+        tin = extractTin(text);
+      }
       if (tin) {
         setTinNumber((prev) => prev || tin);
         setOcrStatus(`Extracted TIN: ${tin}`);
