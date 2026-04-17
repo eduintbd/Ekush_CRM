@@ -3,7 +3,8 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail/smtp";
 import { portfolioStatementEmail, TEMPLATE_OPTIONS } from "@/lib/mail/templates";
-import { generatePortfolioStatementPDF } from "@/lib/pdf";
+import { generateInvestmentUpdatePDF } from "@/lib/pdf";
+import { getPortfolioBannerDataUrl } from "@/lib/pdf-assets";
 
 const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
 
@@ -50,13 +51,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fund code required for this template" }, { status: 400 });
   }
 
+  // Resolve the fund once — we need entryLoad / exitLoad / currentNav / name
+  // for the Investment Update PDF. The selected template pins the fund.
+  const fund = await prisma.fund.findUnique({ where: { code: fundCode } });
+  if (!fund) {
+    return NextResponse.json({ error: `Fund ${fundCode} not found` }, { status: 404 });
+  }
+
   const investors = await prisma.investor.findMany({
     where: { id: { in: investorIds } },
     include: {
       user: { select: { email: true } },
-      holdings: { include: { fund: { select: { code: true, name: true, currentNav: true } } } },
+      holdings: {
+        where: { fundId: fund.id },
+        include: { fund: { select: { code: true, name: true, currentNav: true } } },
+      },
     },
   });
+
+  // Sum of gross dividends per investor for this fund (for "Dividend Received")
+  const dividendAgg = await prisma.dividend.groupBy({
+    by: ["investorId"],
+    where: { fundId: fund.id, investorId: { in: investorIds } },
+    _sum: { grossDividend: true },
+  });
+  const dividendByInvestor = new Map<string, number>(
+    dividendAgg.map((d) => [d.investorId, Number(d._sum.grossDividend || 0)]),
+  );
+
+  const bannerDataUrl = getPortfolioBannerDataUrl() ?? undefined;
 
   const results: Array<{ investorId: string; investorCode: string; status: "SENT" | "FAILED" | "SKIPPED"; error?: string }> = [];
   const adminId = (session.user as any).id as string;
@@ -84,55 +107,44 @@ export async function POST(req: NextRequest) {
       fundCode,
     });
 
-    // Build the portfolio-statement PDF for this investor, scoped to the
-    // selected fund (matches what /forms/portfolio-statement renders).
-    const fundHoldings = inv.holdings.filter((h) => h.fund.code === fundCode);
-    let totalCost = 0;
-    let totalMarket = 0;
-    let totalGain = 0;
-    const pdfHoldings = fundHoldings.map((h) => {
-      const units = Number(h.totalCurrentUnits);
-      const avgCost = Number(h.avgCost);
-      const nav = Number(h.fund.currentNav);
-      const costValue = Number(h.totalCostValueCurrent);
-      const marketValue = units * nav;
-      const gain = marketValue - costValue;
-      const returnPct =
-        Number(h.annualizedReturn) || (costValue > 0 ? (gain / costValue) * 100 : 0);
-      totalCost += costValue;
-      totalMarket += marketValue;
-      totalGain += gain;
-      return {
-        fundCode: h.fund.code,
-        fundName: h.fund.name,
-        totalUnits: units,
-        avgCost,
-        nav,
-        costValue,
-        marketValue,
-        gain,
-        gainPercent: returnPct,
-      };
-    });
+    // Build the Investment Update PDF for this investor, matching the HTML
+    // template at /forms/investment-update. Holdings query was already
+    // scoped to the selected fund, so there is at most one row here.
+    const h = inv.holdings[0];
+    const totalUnits = h ? Number(h.totalCurrentUnits) : 0;
+    const avgCost = h ? Number(h.avgCost) : 0;
+    const costValue = h ? Number(h.totalCostValueCurrent) : 0;
+    const realizedGain = h ? Number(h.totalRealizedGain) : 0;
+    const nav = Number(fund.currentNav);
+    const marketValue = totalUnits * nav;
+    const dividendTotal = dividendByInvestor.get(inv.id) ?? 0;
 
     const today = new Date();
-    const doc = generatePortfolioStatementPDF({
+    const dateStr = today.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    const doc = generateInvestmentUpdatePDF({
       investorName: inv.name,
       investorCode: inv.investorCode,
-      investorType: inv.investorType ?? "—",
-      generatedDate: today.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
-      dateRange: { from: "Opening", to: "As of " + today.toLocaleDateString("en-GB") },
-      holdings: pdfHoldings,
-      totalCost,
-      totalMarket,
-      totalGain,
+      fundName: fund.name,
+      fundCode: fund.code,
+      totalUnits,
+      avgCost,
+      costValue,
+      marketValue,
+      realizedGain,
+      dividendTotal,
+      nav,
+      entryLoad: Number(fund.entryLoad),
+      exitLoad: Number(fund.exitLoad),
+      dateStr,
+      bannerPngDataUrl: bannerDataUrl,
     });
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
-    const pdfName = `Portfolio-${fundCode}-${inv.investorCode}.pdf`;
+    const pdfName = `Investment-Update-${fundCode}-${inv.investorCode}.pdf`;
 
     const r = await sendMail({
       to: inv.user.email,

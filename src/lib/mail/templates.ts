@@ -32,9 +32,9 @@ export function portfolioStatementEmail(v: PortfolioStatementVars): {
 }
 
 export const TEMPLATE_OPTIONS = [
-  { id: "EFUF_PORTFOLIO", label: "EFUF Portfolio Statement", fundCode: "EFUF", fundName: "EKUSH FIRST UNIT FUND" },
-  { id: "EGF_PORTFOLIO", label: "EGF Portfolio Statement", fundCode: "EGF", fundName: "EKUSH GROWTH FUND" },
-  { id: "ESRF_PORTFOLIO", label: "ESRF Portfolio Statement", fundCode: "ESRF", fundName: "EKUSH STABLE RETURN FUND" },
+  { id: "EFUF_PORTFOLIO", label: "EFUF Investment Update", fundCode: "EFUF", fundName: "EKUSH FIRST UNIT FUND" },
+  { id: "EGF_PORTFOLIO", label: "EGF Investment Update", fundCode: "EGF", fundName: "EKUSH GROWTH FUND" },
+  { id: "ESRF_PORTFOLIO", label: "ESRF Investment Update", fundCode: "ESRF", fundName: "EKUSH STABLE RETURN FUND" },
   { id: "TAX_CERT", label: "Tax Certificate (template pending)", fundCode: null, fundName: null },
   { id: "WELCOME", label: "Welcome Email (template pending)", fundCode: null, fundName: null },
 ];
