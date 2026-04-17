@@ -248,30 +248,34 @@ export default function RegisterPage() {
   // ---------- OCR helpers ----------
   const [ocrStatus, setOcrStatus] = useState("");
 
+  // Scale up small images for better OCR (no destructive thresholding —
+  // B&W conversion was stripping Bangla glyphs)
   async function preprocessImage(file: File): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
+        // Scale so the longest edge is ~2400px (Tesseract likes high-res)
         const scale = Math.max(1, 2400 / Math.max(img.width, img.height));
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext("2d")!;
-        ctx.imageSmoothingEnabled = true;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        // Grayscale + adaptive threshold for cleaner text
+        // Convert to grayscale only (no thresholding) so Bangla glyphs survive
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const d = imageData.data;
         for (let i = 0; i < d.length; i += 4) {
-          const gray = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-          const bw = gray > 140 ? 255 : 0;
-          d[i] = d[i + 1] = d[i + 2] = bw;
+          const gray = Math.round(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
+          d[i] = d[i + 1] = d[i + 2] = gray;
         }
         ctx.putImageData(imageData, 0, 0);
-        canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob failed"))), "image/png");
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))),
+          "image/png",
+        );
         URL.revokeObjectURL(img.src);
       };
-      img.onerror = () => reject(new Error("Failed to load image"));
+      img.onerror = () => reject(new Error("Image load failed"));
       img.src = URL.createObjectURL(file);
     });
   }
@@ -280,20 +284,30 @@ export default function RegisterPage() {
     // @ts-ignore — types provided by the package once installed
     const mod: any = await import("tesseract.js");
     const Tesseract: any = mod.default ?? mod;
-    // Preprocess for cleaner text extraction
+
     let blob: Blob;
     try {
       blob = await preprocessImage(file);
     } catch {
       blob = file;
     }
-    // Run both languages; Bangla first to prioritize Bangla text
-    const [benResult, engResult] = await Promise.all([
-      Tesseract.recognize(blob, "ben").catch(() => ({ data: { text: "" } })),
-      Tesseract.recognize(blob, "eng").catch(() => ({ data: { text: "" } })),
-    ]);
-    const combined = ((benResult.data?.text || "") + "\n" + (engResult.data?.text || "")).trim();
-    return combined;
+
+    // Run ben+eng together in a single pass (avoids the memory issues
+    // of two parallel Tesseract WASM instances in the same tab)
+    let text = "";
+    try {
+      const result = await Tesseract.recognize(blob, "ben+eng");
+      text = (result.data?.text as string) || "";
+    } catch (e1) {
+      // Fallback: try eng only (ben lang data may fail to download)
+      try {
+        const result = await Tesseract.recognize(blob, "eng");
+        text = (result.data?.text as string) || "";
+      } catch {
+        text = "";
+      }
+    }
+    return text;
   }
 
   function toAsciiDigits(s: string): string {
@@ -396,9 +410,15 @@ export default function RegisterPage() {
     if (found.length > 0) {
       setOcrStatus(`${label} — ${found.join(" | ")}`);
     } else {
-      setOcrStatus(`${label} NID: could not extract — use Edit in the preview to fill manually.`);
+      // Show a snippet of the raw OCR text so the user knows it tried
+      const snippet = text.replace(/\s+/g, " ").trim().slice(0, 120);
+      setOcrStatus(
+        snippet
+          ? `${label} NID: could not match fields. Raw text: "${snippet}…" — use Edit in the preview.`
+          : `${label} NID: OCR returned empty — the image may be too small or blurry. Use Edit in the preview.`,
+      );
     }
-    setTimeout(() => setOcrStatus(""), 8000);
+    setTimeout(() => setOcrStatus(""), 12000);
 
     // Keep existing non-empty values when new OCR pass doesn't find them
     const merge = (prev: PersonInfo): PersonInfo => ({
