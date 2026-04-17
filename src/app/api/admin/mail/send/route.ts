@@ -3,8 +3,12 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail/smtp";
 import { portfolioStatementEmail, TEMPLATE_OPTIONS } from "@/lib/mail/templates";
-import { generateInvestmentUpdatePDF } from "@/lib/pdf";
-import { getPortfolioBannerDataUrl } from "@/lib/pdf-assets";
+import { getLogoDataUrl } from "@/lib/pdf-assets";
+import {
+  buildPortfolioStatementFullHtml,
+  type PortfolioStatementRow,
+} from "@/lib/mail/portfolio-statement-html";
+import { renderHtmlBatchToPdfs } from "@/lib/html-to-pdf";
 
 const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
 
@@ -51,8 +55,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fund code required for this template" }, { status: 400 });
   }
 
-  // Resolve the fund once — we need entryLoad / exitLoad / currentNav / name
-  // for the Investment Update PDF. The selected template pins the fund.
+  // Resolve the fund once — selected template pins which fund the PDF is
+  // scoped to (same behaviour as the /forms/portfolio-statement?fundCode=…
+  // preview page).
   const fund = await prisma.fund.findUnique({ where: { code: fundCode } });
   if (!fund) {
     return NextResponse.json({ error: `Fund ${fundCode} not found` }, { status: 404 });
@@ -69,36 +74,93 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Sum of gross dividends per investor for this fund (for "Dividend Received")
-  const dividendAgg = await prisma.dividend.groupBy({
-    by: ["investorId"],
-    where: { fundId: fund.id, investorId: { in: investorIds } },
-    _sum: { grossDividend: true },
-  });
-  const dividendByInvestor = new Map<string, number>(
-    dividendAgg.map((d) => [d.investorId, Number(d._sum.grossDividend || 0)]),
-  );
+  // Embed the logo as a data URL so Puppeteer doesn't need network access to
+  // our domain when rendering from setContent.
+  const logoDataUrl = getLogoDataUrl() ?? undefined;
 
-  const bannerDataUrl = getPortfolioBannerDataUrl() ?? undefined;
-
-  const results: Array<{ investorId: string; investorCode: string; status: "SENT" | "FAILED" | "SKIPPED"; error?: string }> = [];
+  const results: Array<{
+    investorId: string;
+    investorCode: string;
+    status: "SENT" | "FAILED" | "SKIPPED";
+    error?: string;
+  }> = [];
   const adminId = (session.user as any).id as string;
+  const today = new Date();
+  const dateStr = today.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  // Build one HTML doc per investor we intend to mail. Investors that fail
+  // pre-checks (no email, zero MV) are recorded here but skipped so we
+  // don't spend a Puppeteer page on them.
+  interface PreparedMail {
+    investor: (typeof investors)[number];
+    subject: string;
+    html: string;
+    pdfHtml: string;
+  }
+  const prepared: PreparedMail[] = [];
 
   for (const inv of investors) {
     if (!inv.user.email) {
-      results.push({ investorId: inv.id, investorCode: inv.investorCode, status: "SKIPPED", error: "No email on file" });
+      results.push({
+        investorId: inv.id,
+        investorCode: inv.investorCode,
+        status: "SKIPPED",
+        error: "No email on file",
+      });
       continue;
     }
 
-    // Default rule: skip if market value in this fund is zero
-    if (skipZeroMV) {
-      const h = inv.holdings.find((x) => x.fund.code === fundCode);
-      const mv = h ? Number(h.totalCurrentUnits) * Number(h.fund.currentNav) : 0;
-      if (mv <= 0) {
-        results.push({ investorId: inv.id, investorCode: inv.investorCode, status: "SKIPPED", error: "Zero market value" });
-        continue;
-      }
+    const h = inv.holdings[0];
+    const units = h ? Number(h.totalCurrentUnits) : 0;
+    const nav = Number(fund.currentNav);
+    const marketValue = units * nav;
+
+    if (skipZeroMV && marketValue <= 0) {
+      results.push({
+        investorId: inv.id,
+        investorCode: inv.investorCode,
+        status: "SKIPPED",
+        error: "Zero market value",
+      });
+      continue;
     }
+
+    const avgCost = h ? Number(h.avgCost) : 0;
+    const costValue = h ? Number(h.totalCostValueCurrent) : 0;
+    const gain = marketValue - costValue;
+    const returnPct =
+      h && Number(h.annualizedReturn)
+        ? Number(h.annualizedReturn)
+        : costValue > 0
+          ? (gain / costValue) * 100
+          : 0;
+
+    const row: PortfolioStatementRow = {
+      fundCode: fund.code,
+      units,
+      avgCost,
+      nav,
+      costValue,
+      marketValue,
+      gain,
+      returnPct,
+    };
+
+    const pdfHtml = buildPortfolioStatementFullHtml({
+      dateStr,
+      investorName: inv.name,
+      investorCode: inv.investorCode,
+      rows: [row],
+      totalCost: costValue,
+      totalMarket: marketValue,
+      totalGain: gain,
+      totalReturn: costValue > 0 ? (gain / costValue) * 100 : 0,
+      logoDataUrl,
+    });
 
     const { subject, html } = portfolioStatementEmail({
       investorName: inv.name,
@@ -107,47 +169,37 @@ export async function POST(req: NextRequest) {
       fundCode,
     });
 
-    // Build the Investment Update PDF for this investor, matching the HTML
-    // template at /forms/investment-update. Holdings query was already
-    // scoped to the selected fund, so there is at most one row here.
-    const h = inv.holdings[0];
-    const totalUnits = h ? Number(h.totalCurrentUnits) : 0;
-    const avgCost = h ? Number(h.avgCost) : 0;
-    const costValue = h ? Number(h.totalCostValueCurrent) : 0;
-    const realizedGain = h ? Number(h.totalRealizedGain) : 0;
-    const nav = Number(fund.currentNav);
-    const marketValue = totalUnits * nav;
-    const dividendTotal = dividendByInvestor.get(inv.id) ?? 0;
+    prepared.push({ investor: inv, subject, html, pdfHtml });
+  }
 
-    const today = new Date();
-    const dateStr = today.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+  // Render all PDFs in one browser launch to amortise the ~3-5s cold start.
+  let pdfBuffers: Buffer[] = [];
+  if (prepared.length > 0) {
+    try {
+      pdfBuffers = await renderHtmlBatchToPdfs(prepared.map((p) => p.pdfHtml));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "PDF render failed";
+      return NextResponse.json(
+        {
+          error: `Could not render PDFs: ${msg}`,
+          sent: 0,
+          failed: 0,
+          skipped: results.filter((r) => r.status === "SKIPPED").length,
+          total: investors.length,
+          results,
+        },
+        { status: 500 },
+      );
+    }
+  }
 
-    const doc = generateInvestmentUpdatePDF({
-      investorName: inv.name,
-      investorCode: inv.investorCode,
-      fundName: fund.name,
-      fundCode: fund.code,
-      totalUnits,
-      avgCost,
-      costValue,
-      marketValue,
-      realizedGain,
-      dividendTotal,
-      nav,
-      entryLoad: Number(fund.entryLoad),
-      exitLoad: Number(fund.exitLoad),
-      dateStr,
-      bannerPngDataUrl: bannerDataUrl,
-    });
-    const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
-    const pdfName = `Investment-Update-${fundCode}-${inv.investorCode}.pdf`;
+  for (let i = 0; i < prepared.length; i++) {
+    const { investor: inv, subject, html } = prepared[i];
+    const pdfBuffer = pdfBuffers[i];
+    const pdfName = `Portfolio-Statement-${fundCode}-${inv.investorCode}.pdf`;
 
     const r = await sendMail({
-      to: inv.user.email,
+      to: inv.user.email!,
       subject,
       html,
       attachments: [{ filename: pdfName, content: pdfBuffer, contentType: "application/pdf" }],
@@ -156,7 +208,7 @@ export async function POST(req: NextRequest) {
     const log = await prisma.mailLog.create({
       data: {
         investorId: inv.id,
-        toEmail: inv.user.email,
+        toEmail: inv.user.email!,
         subject,
         template,
         status: r.ok ? "SENT" : "FAILED",
@@ -172,16 +224,17 @@ export async function POST(req: NextRequest) {
       error: r.ok ? undefined : r.error,
     });
 
-    // If SMTP isn't configured we bail early — no point hitting the rest
     if (!r.ok && r.error.startsWith("SMTP is not configured")) {
-      // Delete the bogus log entry to avoid noise
       await prisma.mailLog.delete({ where: { id: log.id } });
-      return NextResponse.json({
-        error: "SMTP is not configured. Save valid credentials in Mail Settings first.",
-        sent: 0,
-        failed: 0,
-        skipped: 0,
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "SMTP is not configured. Save valid credentials in Mail Settings first.",
+          sent: 0,
+          failed: 0,
+          skipped: 0,
+        },
+        { status: 400 },
+      );
     }
   }
 

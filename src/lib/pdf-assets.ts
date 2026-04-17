@@ -1,20 +1,26 @@
 import fs from "fs";
 import path from "path";
 
-let cached: string | null = null;
-
-// Load /public/banner_for_portfolio.png once and cache it as a
-// data-URL so jsPDF's addImage can embed it without additional
-// filesystem reads on each mail-send iteration.
-export function getPortfolioBannerDataUrl(): string | null {
-  if (cached !== null) return cached;
+function loadPublicPngAsDataUrl(filename: string): string | null {
   try {
-    const abs = path.join(process.cwd(), "public", "banner_for_portfolio.png");
+    const abs = path.join(process.cwd(), "public", filename);
     const buf = fs.readFileSync(abs);
-    cached = `data:image/png;base64,${buf.toString("base64")}`;
-    return cached;
+    return `data:image/png;base64,${buf.toString("base64")}`;
   } catch {
-    cached = "";
     return null;
   }
+}
+
+let bannerCache: string | null | undefined;
+export function getPortfolioBannerDataUrl(): string | null {
+  if (bannerCache !== undefined) return bannerCache;
+  bannerCache = loadPublicPngAsDataUrl("banner_for_portfolio.png");
+  return bannerCache;
+}
+
+let logoCache: string | null | undefined;
+export function getLogoDataUrl(): string | null {
+  if (logoCache !== undefined) return logoCache;
+  logoCache = loadPublicPngAsDataUrl("logo.png");
+  return logoCache;
 }
