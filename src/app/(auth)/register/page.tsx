@@ -329,17 +329,49 @@ export default function RegisterPage() {
   }
 
   function extractAfterLabel(text: string, labels: string[]): string {
-    const lower = text.toLowerCase();
+    const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean);
     for (const label of labels) {
       const l = label.toLowerCase();
-      let idx = lower.indexOf(l);
-      while (idx >= 0) {
-        let after = text.slice(idx + label.length);
-        after = after.replace(/^[:\-\s,]+/, "");
-        const line = after.split(/[\r\n]/)[0].trim();
-        // reject numeric-only or too-short matches, try next occurrence
-        if (line.length > 2 && !/^[\d\s]+$/.test(line)) return line;
-        idx = lower.indexOf(l, idx + 1);
+      for (let i = 0; i < lines.length; i++) {
+        const lineLower = lines[i].toLowerCase();
+        const idx = lineLower.indexOf(l);
+        if (idx < 0) continue;
+
+        // Try same-line text after the label
+        let sameLine = lines[i].slice(idx + label.length).replace(/^[:\-\s,]+/, "").trim();
+        // Strip trailing "নাম" (meaning "name") that BD NIDs append
+        sameLine = sameLine.replace(/\s*নাম\s*$/, "").trim();
+        if (sameLine.length > 2 && !/^[\d\s]+$/.test(sameLine)) return sameLine;
+
+        // Value is on the NEXT line (BD NID format: label on one line, value below)
+        if (i + 1 < lines.length) {
+          let nextLine = lines[i + 1].replace(/\s*নাম\s*$/, "").trim();
+          if (nextLine.length > 2 && !/^[\d\s]+$/.test(nextLine)) return nextLine;
+        }
+      }
+    }
+    return "";
+  }
+
+  // For address: grab everything after the label until the next section
+  function extractAddress(text: string, labels: string[]): string {
+    const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean);
+    for (const label of labels) {
+      const l = label.toLowerCase();
+      for (let i = 0; i < lines.length; i++) {
+        if (!lines[i].toLowerCase().includes(l)) continue;
+        // Same-line remainder
+        let rest = lines[i].slice(lines[i].toLowerCase().indexOf(l) + label.length).replace(/^[:\-\s,]+/, "").trim();
+        // Grab subsequent lines until we hit another known section or run out
+        const addrLines: string[] = rest.length > 2 ? [rest] : [];
+        for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+          const jl = lines[j].toLowerCase();
+          // Stop at next section label
+          if (["পিতা", "মাতা", "নাম", "date", "birth", "জন্ম", "blood", "রক্ত"].some((s) => jl.includes(s))) break;
+          if (lines[j].length > 2) addrLines.push(lines[j]);
+        }
+        const addr = addrLines.join(", ").trim();
+        if (addr.length > 3) return addr;
       }
     }
     return "";
@@ -352,10 +384,19 @@ export default function RegisterPage() {
   }
 
   function extractBoId(text: string): string {
+    // Same-line: "BO ID: 1234567890123456"
     const labeled = text.match(/(?:BO\s*(?:ID|A\/?C|Account)[^\d]{0,20})(\d[\d\s\-]{12,})/i);
     if (labeled) {
       const digits = labeled[1].replace(/\D/g, "");
       if (digits.length >= 12) return digits.slice(0, 16);
+    }
+    // Next-line: "BO ID\n1234567890123456"
+    const lines = text.split(/[\r\n]+/);
+    for (let i = 0; i < lines.length; i++) {
+      if (/BO\s*(ID|A\/?C|Account)/i.test(lines[i]) && i + 1 < lines.length) {
+        const digits = toAsciiDigits(lines[i + 1]).replace(/\D/g, "");
+        if (digits.length >= 12) return digits.slice(0, 16);
+      }
     }
     const clean = toAsciiDigits(text).replace(/[\s\-_.]/g, "");
     const m16 = clean.match(/(?<!\d)\d{16}(?!\d)/);
@@ -364,10 +405,19 @@ export default function RegisterPage() {
   }
 
   function extractTin(text: string): string {
+    // Same-line: "TIN 556416175550"
     const labeled = text.match(/(?:e[-\s]?TIN|TIN|Tax\s*Identification\s*Number)[^\d]{0,20}(\d[\d\s\-]{8,})/i);
     if (labeled) {
       const digits = labeled[1].replace(/\D/g, "");
       if (digits.length >= 9) return digits.slice(0, 12);
+    }
+    // Next-line: "TIN\n556416175550"
+    const lines = text.split(/[\r\n]+/);
+    for (let i = 0; i < lines.length; i++) {
+      if (/e[-\s]?TIN|TIN/i.test(lines[i]) && i + 1 < lines.length) {
+        const digits = toAsciiDigits(lines[i + 1]).replace(/\D/g, "");
+        if (digits.length >= 9) return digits.slice(0, 12);
+      }
     }
     const clean = toAsciiDigits(text).replace(/[\s\-_.]/g, "");
     const m12 = clean.match(/(?<!\d)\d{12}(?!\d)/);
@@ -397,8 +447,8 @@ export default function RegisterPage() {
     const nid = extractDigits(text, 10, 17);
     const father = extractAfterLabel(text, FATHER_LABELS);
     const mother = extractAfterLabel(text, MOTHER_LABELS);
-    const present = extractAfterLabel(text, PRESENT_ADDR_LABELS);
-    const permanent = extractAfterLabel(text, PERM_ADDR_LABELS);
+    const present = extractAddress(text, PRESENT_ADDR_LABELS);
+    const permanent = extractAddress(text, PERM_ADDR_LABELS);
 
     // Build a summary of what was found
     const found: string[] = [];
