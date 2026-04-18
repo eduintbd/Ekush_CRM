@@ -1,6 +1,8 @@
 import Link from "next/link";
 
-const BANNER_IMAGE = "/Gemini_Generated_Image_ozsmqfozsmqfozsm.png";
+// Photo lives at public/images/tax-rebate-banner.png and is served at /images/tax-rebate-banner.png.
+// If the file is missing, the navy fallback color (bg-navy) shows through — no placeholder is imported.
+const BANNER_IMAGE = "/images/tax-rebate-banner.png";
 
 // Buy Units route — must mirror QuickActions.tsx
 const BUY_UNITS_HREF = "/transactions/buy";
@@ -16,6 +18,7 @@ export default function TaxRebateBanner() {
         backgroundSize: "cover",
         backgroundPosition: "right center",
         backgroundRepeat: "no-repeat",
+        backgroundColor: "#0F1E3D",
       }}
     >
       {/* Per-component scoped styles — keyframes + reduced-motion override */}
@@ -30,10 +33,10 @@ export default function TaxRebateBanner() {
         }
       `}</style>
 
-      {/* Gradient overlay — desktop. Hidden on mobile so the mobile variant below takes over. */}
+      {/* Gradient overlay — desktop. */}
       <div
         aria-hidden
-        className="hidden md:block absolute inset-0 pointer-events-none"
+        className="hidden md:block absolute inset-0 pointer-events-none z-[1]"
         style={{
           background:
             "linear-gradient(to right, rgba(15,30,61,0.90) 0%, rgba(15,30,61,0.75) 30%, rgba(15,30,61,0.35) 50%, rgba(15,30,61,0) 65%)",
@@ -42,7 +45,7 @@ export default function TaxRebateBanner() {
       {/* Gradient overlay — mobile (denser middle band so text stays legible). */}
       <div
         aria-hidden
-        className="block md:hidden absolute inset-0 pointer-events-none"
+        className="block md:hidden absolute inset-0 pointer-events-none z-[1]"
         style={{
           background:
             "linear-gradient(to right, rgba(15,30,61,0.90) 0%, rgba(15,30,61,0.75) 45%, rgba(15,30,61,0.35) 60%, rgba(15,30,61,0) 75%)",
@@ -50,8 +53,8 @@ export default function TaxRebateBanner() {
       />
 
       {/* Text column — left side, vertically centered */}
-      <div className="relative z-10 flex h-full min-h-[220px] md:min-h-[180px] items-center">
-        <div className="pl-6 md:pl-7 pr-4 py-5 max-w-[58%]">
+      <div className="relative z-[2] flex min-h-[220px] md:min-h-[180px] items-center">
+        <div className="pl-6 md:pl-7 pr-4 py-4 max-w-[58%]">
           {/* Eyebrow pill */}
           <span
             className="inline-block rounded-md text-[10px] md:text-[11px] font-medium"
@@ -68,7 +71,7 @@ export default function TaxRebateBanner() {
           {/* Headline */}
           <h3
             className="text-white font-semibold text-[18px] md:text-[22px] leading-[1.2]"
-            style={{ marginBottom: "6px" }}
+            style={{ marginBottom: "4px" }}
           >
             ৭৫,০০০ টাকা পর্যন্ত{" "}
             <span style={{ color: "#F5B800", fontWeight: 700 }}>কর সাশ্রয়</span>{" "}
@@ -78,7 +81,7 @@ export default function TaxRebateBanner() {
           {/* Subheadline */}
           <p
             className="text-white/90 text-[11px] md:text-[12px] leading-[1.4]"
-            style={{ maxWidth: "400px", marginBottom: "12px" }}
+            style={{ maxWidth: "400px", marginBottom: "10px" }}
           >
             একুশ ম্যানেজড ফান্ডে ৫ লক্ষ টাকা বিনিয়োগ করে চলতি অর্থবছরে আয়কর রিবেট গ্রহণ করুন।
           </p>
