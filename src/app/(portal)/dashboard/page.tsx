@@ -70,7 +70,8 @@ export default async function DashboardPage() {
       </div>
 
       {/* Performance charts — NAV carousel + peer comparison */}
-      <div>
+      {/* Right padding clears the resized chat panel (~323px + 24px right offset). */}
+      <div className="lg:pr-[360px]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ErrorBoundary fallback={<div className="bg-white rounded-[10px] shadow-card p-6 text-center text-text-muted text-sm">Chart unavailable</div>}>
             <InvestmentGrowth />
