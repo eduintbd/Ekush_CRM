@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail/smtp";
 import { portfolioStatementEmail, TEMPLATE_OPTIONS } from "@/lib/mail/templates";
 import { getPortfolioBannerDataUrl } from "@/lib/pdf-assets";
-import { buildPortfolioStatementSingleFundFullHtml } from "@/lib/mail/portfolio-statement-single-fund-html";
+import { buildPortfolioStatementFullHtml } from "@/lib/mail/portfolio-statement-html";
 import { renderHtmlBatchToPdfs } from "@/lib/html-to-pdf";
 
 const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
@@ -71,20 +71,19 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Embed the banner as a data URL so Puppeteer doesn't need network access
-  // to our domain when rendering from setContent.
-  const bannerDataUrl = getPortfolioBannerDataUrl() ?? undefined;
-
-  // Dividend totals per investor for the selected fund — used on the
-  // single-fund PDF ("Dividend Received" box).
-  const dividendSums = await prisma.dividend.groupBy({
+  // Dividend total per investor for this fund (Investment Results → Dividend Received)
+  const dividendAgg = await prisma.dividend.groupBy({
     by: ["investorId"],
     where: { fundId: fund.id, investorId: { in: investorIds } },
     _sum: { grossDividend: true },
   });
   const dividendByInvestor = new Map<string, number>(
-    dividendSums.map((d) => [d.investorId, Number(d._sum.grossDividend || 0)]),
+    dividendAgg.map((d) => [d.investorId, Number(d._sum.grossDividend || 0)]),
   );
+
+  // Embed the banner as a data URL so Puppeteer doesn't need network access
+  // to our domain when rendering via setContent.
+  const bannerDataUrl = getPortfolioBannerDataUrl() ?? undefined;
 
   const results: Array<{
     investorId: string;
@@ -100,9 +99,6 @@ export async function POST(req: NextRequest) {
     year: "numeric",
   });
 
-  // Build one HTML doc per investor we intend to mail. Investors that fail
-  // pre-checks (no email, zero MV) are recorded here but skipped so we
-  // don't spend a Puppeteer page on them.
   interface PreparedMail {
     investor: (typeof investors)[number];
     subject: string;
@@ -123,9 +119,9 @@ export async function POST(req: NextRequest) {
     }
 
     const h = inv.holdings[0];
-    const units = h ? Number(h.totalCurrentUnits) : 0;
+    const totalUnits = h ? Number(h.totalCurrentUnits) : 0;
     const nav = Number(fund.currentNav);
-    const marketValue = units * nav;
+    const marketValue = totalUnits * nav;
 
     if (skipZeroMV && marketValue <= 0) {
       results.push({
@@ -142,13 +138,13 @@ export async function POST(req: NextRequest) {
     const realizedGain = h ? Number(h.totalRealizedGain) : 0;
     const dividendTotal = dividendByInvestor.get(inv.id) ?? 0;
 
-    const pdfHtml = buildPortfolioStatementSingleFundFullHtml({
+    const pdfHtml = buildPortfolioStatementFullHtml({
       dateStr,
       investorName: inv.name,
       investorCode: inv.investorCode,
       fundName: fund.name,
       fundCode: fund.code,
-      totalUnits: units,
+      totalUnits,
       avgCost,
       costValue,
       marketValue,
