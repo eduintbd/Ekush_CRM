@@ -12,12 +12,12 @@ export default function TaxRebateBanner() {
     <section
       role="region"
       aria-label="Tax rebate promotion — invest to save on income tax."
-      className="relative w-full overflow-hidden rounded-2xl bg-navy shadow-[0_4px_14px_rgba(15,30,61,0.20)] aspect-[2.8/1] min-h-[200px] md:min-h-[180px] font-bengali"
+      className="relative w-full overflow-hidden rounded-2xl bg-navy shadow-[0_4px_14px_rgba(15,30,61,0.20)] aspect-[3.3/1] min-h-[200px] md:min-h-[180px] font-bengali"
       style={{
         backgroundImage: `url(${BANNER_IMAGE})`,
         backgroundSize: "cover",
-        // Bias visible window 15% below the top so the model's head stops being clipped.
-        backgroundPosition: "right 15%",
+        // Bias 10% closer to the top so the model's head stops getting clipped by the rounded corner.
+        backgroundPosition: "right 5%",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0F1E3D",
       }}
@@ -55,15 +55,15 @@ export default function TaxRebateBanner() {
 
       {/* Text column — left side, vertically centered */}
       <div className="relative z-[2] flex h-full items-center">
-        <div className="pl-5 md:pl-5 pr-4 py-4 max-w-[58%]">
+        <div className="pl-6 md:pl-6 pr-4 py-4 max-w-[58%]">
           {/* Eyebrow pill */}
           <span
-            className="inline-block rounded-md text-[10px] md:text-[11px] font-medium"
+            className="inline-block rounded-md text-[13px] md:text-[14px] font-medium"
             style={{
               color: "#F5B800",
               border: "1px solid rgba(245,184,0,0.5)",
-              padding: "3px 9px",
-              marginBottom: "8px",
+              padding: "4px 11px",
+              marginBottom: "10px",
             }}
           >
             আয়কর রিবেট · আয়কর আইন ২০২৩
@@ -71,8 +71,8 @@ export default function TaxRebateBanner() {
 
           {/* Headline */}
           <h3
-            className="text-white font-semibold text-[16px] md:text-[20px] leading-[1.2]"
-            style={{ marginBottom: "4px" }}
+            className="text-white font-semibold text-[21px] md:text-[26px] leading-[1.2]"
+            style={{ marginBottom: "6px" }}
           >
             ৭৫,০০০ টাকা পর্যন্ত{" "}
             <span style={{ color: "#F5B800", fontWeight: 700 }}>কর সাশ্রয়</span>{" "}
@@ -81,8 +81,8 @@ export default function TaxRebateBanner() {
 
           {/* Subheadline */}
           <p
-            className="text-white/90 text-[11px] md:text-[12px] leading-[1.4]"
-            style={{ maxWidth: "320px", marginBottom: "10px" }}
+            className="text-white/90 text-[14px] md:text-[16px] leading-[1.4]"
+            style={{ maxWidth: "480px", marginBottom: "12px" }}
           >
             একুশ ম্যানেজড ফান্ডে ৫ লক্ষ টাকা বিনিয়োগ করে চলতি অর্থবছরে আয়কর রিবেট গ্রহণ করুন।
           </p>
@@ -91,26 +91,26 @@ export default function TaxRebateBanner() {
           <div className="flex flex-wrap items-center gap-x-[14px] gap-y-2">
             <Link
               href={BUY_UNITS_HREF}
-              className="inline-flex items-center rounded-md font-semibold text-[12px] md:text-[13px] transition-colors duration-[180ms] hover:bg-[#FFCA28] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-navy"
+              className="inline-flex items-center rounded-md font-semibold text-[15px] md:text-[17px] transition-colors duration-[180ms] hover:bg-[#FFCA28] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-navy"
               style={{
                 backgroundColor: "#F5B800",
                 color: "#0F1E3D",
-                padding: "8px 16px",
+                padding: "10px 20px",
               }}
             >
               বিনিয়োগ শুরু করুন →
             </Link>
 
             <span
-              className="inline-flex items-center gap-2 text-[10.5px] md:text-[11px] font-medium"
+              className="inline-flex items-center gap-2 text-[14px] md:text-[14px] font-medium"
               style={{ color: "#F5B800" }}
             >
               <span
                 aria-hidden
                 className="gold-dot inline-block rounded-full"
                 style={{
-                  width: "5px",
-                  height: "5px",
+                  width: "6px",
+                  height: "6px",
                   backgroundColor: "#F5B800",
                 }}
               />
