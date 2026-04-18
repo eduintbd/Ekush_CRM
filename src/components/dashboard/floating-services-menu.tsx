@@ -45,21 +45,21 @@ export function FloatingServicesMenu() {
   return (
     <div
       ref={containerRef}
-      className="fixed left-0 top-[22%] z-50 flex items-start"
+      className="fixed right-0 top-6 z-50 flex items-start justify-end"
     >
       {!open && (
         <button
           type="button"
           aria-label="Open services menu"
           onClick={() => setOpen(true)}
-          className="bg-white hover:bg-gray-50 text-text-dark border border-gray-200 w-11 h-11 rounded-r-full shadow-lg flex items-center justify-center transition-colors"
+          className="bg-white hover:bg-gray-50 text-text-dark border border-gray-200 w-11 h-11 rounded-l-full shadow-lg flex items-center justify-center transition-colors"
         >
           <LayoutGrid className="w-5 h-5" />
         </button>
       )}
 
       {open && (
-        <div className="bg-white text-text-dark rounded-r-xl shadow-2xl border border-gray-200 p-4 w-[240px] relative">
+        <div className="bg-white text-text-dark rounded-l-xl shadow-2xl border border-gray-200 p-4 w-[323px] relative">
           <div className="flex items-center justify-between mb-3 px-1">
             <p className="text-[13px] font-semibold uppercase tracking-wider text-text-dark">
               Services
