@@ -26,9 +26,9 @@ export function ApprovalsPanel() {
   const fetchApprovals = () => {
     setLoading(true);
     fetch("/api/admin/approvals")
-      .then((r) => r.json())
-      .then(setApprovals)
-      .catch(() => {})
+      .then(async (r) => (r.ok ? r.json() : []))
+      .then((data) => setApprovals(Array.isArray(data) ? data : []))
+      .catch(() => setApprovals([]))
       .finally(() => setLoading(false));
   };
 
