@@ -232,7 +232,7 @@ export function PerformanceComparison() {
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chart.rows} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} minTickGap={40} tickFormatter={(v: string) => v.slice(2)} />
+              <XAxis dataKey="date" tick={{ fontSize: 10 }} minTickGap={40} interval="preserveStartEnd" tickFormatter={(v: string) => v.slice(2)} />
               <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => `${v.toFixed(0)}%`} />
               <Tooltip
                 formatter={(v: unknown) => (typeof v === "number" ? `${v.toFixed(2)}%` : "—")}
