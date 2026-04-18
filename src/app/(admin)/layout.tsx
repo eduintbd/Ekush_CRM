@@ -40,7 +40,7 @@ export default async function AdminLayout({
             <Link href="/admin/investors" className="text-text-dark hover:text-ekush-orange transition-colors">Investors</Link>
             <Link href="/admin/approvals" className="text-text-dark hover:text-ekush-orange transition-colors">Approvals</Link>
             <Link href="/admin/statements" className="text-text-dark hover:text-ekush-orange transition-colors">Statements</Link>
-            <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">NAV Entry</Link>
+            <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">Data Entry</Link>
             <Link href="/admin/fund-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Fund Reports</Link>
             <Link href="/admin/tickets" className="text-text-dark hover:text-ekush-orange transition-colors">Tickets</Link>
             <Link href="/admin/content" className="text-text-dark hover:text-ekush-orange transition-colors">Mail</Link>

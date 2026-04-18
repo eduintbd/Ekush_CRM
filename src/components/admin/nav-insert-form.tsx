@@ -176,7 +176,7 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
             ) : (
               <Plus className="w-4 h-4 mr-1" />
             )}
-            Insert NAV Record
+            Insert
           </Button>
           {message && (
             <span
