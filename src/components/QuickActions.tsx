@@ -64,91 +64,74 @@ function TakaIcon({ size = 24, className, ...rest }: IconProps) {
 
 interface ActionItem {
   href: string;
-  label: string;
+  labelTop: string;
+  labelBottom: string;
   Icon: IconComponent;
 }
 
 const ITEMS: ActionItem[] = [
-  { href: "/transactions/buy", label: "Buy Units", Icon: GoldBarsIcon },
-  { href: "/sip", label: "Start SIP", Icon: CalendarClock as unknown as IconComponent },
-  { href: "/goals", label: "Progress Report", Icon: BarChart3 as unknown as IconComponent },
-  { href: "/transactions/sell", label: "Sell Units", Icon: TakaIcon },
+  { href: "/transactions/buy", labelTop: "Buy", labelBottom: "Units", Icon: GoldBarsIcon },
+  { href: "/sip", labelTop: "Start", labelBottom: "SIP", Icon: CalendarClock as unknown as IconComponent },
+  { href: "/goals", labelTop: "Progress", labelBottom: "Report", Icon: BarChart3 as unknown as IconComponent },
+  { href: "/transactions/sell", labelTop: "Sell", labelBottom: "Units", Icon: TakaIcon },
 ];
 
-export type QuickActionsActiveStyle = "glow" | "invert";
-
-interface QuickActionsProps {
-  activeStyle?: QuickActionsActiveStyle;
-}
-
-export function QuickActions({ activeStyle = "glow" }: QuickActionsProps) {
+export function QuickActions() {
   const pathname = usePathname();
+
+  // On the dashboard root, default Buy Units to active.
+  const isItemActive = (href: string) => {
+    if (pathname === "/dashboard" && href === "/transactions/buy") return true;
+    return pathname === href;
+  };
 
   return (
     <nav aria-label="Quick actions" className="w-full">
       <ul
         className={cn(
-          // Mobile: 2x2 grid, slightly taller cards
-          "grid grid-cols-2 gap-3",
-          // Desktop: 4-up centered row, total ~470px wide
-          "md:flex md:justify-center md:gap-3 md:max-w-[470px] md:mx-auto"
+          // Mobile: 2x2 grid, slightly larger tap targets
+          "grid grid-cols-2 gap-2.5",
+          // Desktop: 4-up centered row, ~390px total
+          "md:flex md:justify-center md:gap-2.5 md:max-w-[400px] md:mx-auto"
         )}
       >
         {ITEMS.map((item) => {
-          const isActive = pathname === item.href;
-
-          // Per-style chrome
-          const baseChrome =
-            "rounded-[12px] border transition-all duration-200 ease-out";
-          let chrome = "";
-          let iconTone = "text-gold";
-          let labelTone = "text-white";
-
-          if (isActive && activeStyle === "invert") {
-            chrome =
-              "bg-white border-gold shadow-[0_2px_6px_rgba(15,30,61,0.10)]";
-            iconTone = "text-navy";
-            labelTone = "text-navy font-bold";
-          } else if (isActive && activeStyle === "glow") {
-            chrome =
-              "bg-navy border-2 border-gold shadow-[0_0_16px_rgba(245,184,0,0.4)]";
-            labelTone = "text-white font-bold";
-          } else {
-            // Inactive — same for both styles
-            chrome =
-              "bg-navy border-transparent hover:bg-navy-dark shadow-[0_3px_8px_rgba(15,30,61,0.18)]";
-          }
+          const isActive = isItemActive(item.href);
 
           return (
-            <li key={item.href} className="md:w-[110px]">
+            <li key={item.href} className="md:w-[90px]">
               <Link
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "group flex flex-col items-center justify-center text-center",
-                  "h-[140px] md:h-[110px] w-full",
-                  "px-3 py-3 gap-2",
+                  // Fixed dimensions so width does not shift between states
+                  "h-[120px] md:h-[90px] w-full",
+                  "px-2.5 py-2.5 gap-1.5",
+                  "rounded-[13px] border border-transparent",
+                  "transition-[background-color,border-color,box-shadow,color] duration-200 ease-out",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2",
-                  baseChrome,
-                  chrome
+                  isActive
+                    ? "bg-navy shadow-[0_4px_10px_rgba(15,30,61,0.18)]"
+                    : "bg-transparent shadow-none"
                 )}
               >
                 <item.Icon
-                  size={30}
-                  className={cn(
-                    "transition-transform duration-200 ease-out",
-                    iconTone,
-                    isActive && activeStyle === "glow" && "scale-110"
-                  )}
+                  size={26}
+                  className="text-gold"
                   aria-hidden
                 />
                 <span
                   className={cn(
-                    "text-[12.5px] leading-tight font-medium",
-                    labelTone
+                    "text-[11.5px] leading-tight font-medium transition-colors duration-200 ease-out",
+                    isActive
+                      ? "text-white"
+                      : "text-brand group-hover:text-gold"
                   )}
                 >
-                  {item.label}
+                  {item.labelTop}
+                  <br />
+                  {item.labelBottom}
                 </span>
               </Link>
             </li>

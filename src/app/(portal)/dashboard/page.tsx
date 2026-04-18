@@ -30,9 +30,9 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Quick Actions — Gold Kinen style navy tiles with gold icons */}
-      {/* Negative margins tighten the spacing inherited from parent space-y-8 (32px) down to ~12px around. */}
-      <div className="!mt-3 -mb-5">
+      {/* Quick Actions — Prime Bank + Gold Kinen hybrid */}
+      {/* !mt-4 overrides parent space-y-8 (32px → 16px); -mb-4 collapses with the next sibling's mt-8 to ~16px. */}
+      <div className="!mt-4 -mb-4">
         <QuickActions />
       </div>
 
