@@ -15,11 +15,12 @@ export default async function PortfolioStatementPage({
   if (!session) redirect("/login");
 
   let investor: any = null;
-  let investorId: string | undefined;
-  let fundCode = searchParams.fundCode || null;
+  let holdings: any[] = [];
+  let filterFundCode: string | null = null;
 
   try {
-    // Admin preview mode
+    let investorId: string | undefined;
+
     if (searchParams.investorCode) {
       const user = (session.user as any);
       const isAdmin = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"].includes(user?.role);
@@ -31,129 +32,83 @@ export default async function PortfolioStatementPage({
       investor = await prisma.investor.findUnique({
         where: { investorCode: searchParams.investorCode },
       });
+
       if (!investor) {
         return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Investor not found</div>;
       }
+
       investorId = investor.id;
+      filterFundCode = searchParams.fundCode || null;
     } else {
       const userId = (session.user as any)?.id;
       investorId = (session.user as any)?.investorId;
       if (!investorId && userId) {
-        const u = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { investor: { select: { id: true } } },
-        });
+        const u = await prisma.user.findUnique({ where: { id: userId }, select: { investor: { select: { id: true } } } });
         investorId = u?.investor?.id;
       }
       if (!investorId) redirect("/dashboard");
 
-      investor = await withRetry(() =>
-        prisma.investor.findUnique({ where: { id: investorId } }),
-      );
+      investor = await withRetry(() => prisma.investor.findUnique({ where: { id: investorId } }));
       if (!investor) redirect("/dashboard");
+    }
+
+    holdings = await withRetry(() => prisma.fundHolding.findMany({
+      where: { investorId },
+      include: { fund: true },
+    }));
+
+    if (filterFundCode) {
+      holdings = holdings.filter((h) => h.fund.code === filterFundCode);
     }
   } catch (err) {
     console.error("Portfolio statement error:", err);
-    return (
-      <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
-        Could not load data. Please refresh.
-      </div>
-    );
+    return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Could not load data. Please refresh.</div>;
   }
-
-  // If no fundCode was provided (e.g. "Download PDF" from /statements), pick
-  // the investor's highest-market-value holding so the page never 404s.
-  let fund: any = null;
-  let holding: any = null;
-  try {
-    if (!fundCode) {
-      const holdings = await withRetry(() =>
-        prisma.fundHolding.findMany({ where: { investorId }, include: { fund: true } }),
-      );
-      if (holdings.length === 0) {
-        return (
-          <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
-            No holdings found.
-          </div>
-        );
-      }
-      const best = holdings
-        .map((h) => ({
-          h,
-          mv: Number(h.totalCurrentUnits) * Number(h.fund.currentNav),
-        }))
-        .sort((a, b) => b.mv - a.mv)[0];
-      holding = best.h;
-      fund = best.h.fund;
-      fundCode = fund.code;
-    } else {
-      fund = await prisma.fund.findUnique({ where: { code: fundCode } });
-      if (!fund) {
-        return (
-          <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
-            Fund {fundCode} not found.
-          </div>
-        );
-      }
-      holding = await prisma.fundHolding.findUnique({
-        where: { investorId_fundId: { investorId: investorId!, fundId: fund.id } },
-      });
-      if (!holding) {
-        return (
-          <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
-            No holdings in fund {fundCode}.
-          </div>
-        );
-      }
-    }
-  } catch (err) {
-    console.error("Portfolio statement data error:", err);
-    return (
-      <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
-        Could not load fund data.
-      </div>
-    );
-  }
-
-  const divAgg = await prisma.dividend.aggregate({
-    where: { investorId, fundId: fund.id },
-    _sum: { grossDividend: true },
-  });
-  const dividendTotal = Number(divAgg._sum.grossDividend || 0);
 
   const today = new Date();
-  const dateStr = today.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+  const dateStr = today.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+  let totalCost = 0;
+  let totalMarket = 0;
+  let totalGain = 0;
+
+  const rows = holdings.map((h) => {
+    const units = Number(h.totalCurrentUnits);
+    const avgCost = Number(h.avgCost);
+    const nav = Number(h.fund.currentNav);
+    const costValue = Number(h.totalCostValueCurrent);
+    const marketValue = units * nav;
+    const gain = marketValue - costValue;
+    const returnPct = Number(h.annualizedReturn) || (costValue > 0 ? (gain / costValue) * 100 : 0);
+    totalCost += costValue;
+    totalMarket += marketValue;
+    totalGain += gain;
+    return {
+      fundCode: h.fund.code,
+      units,
+      avgCost,
+      nav,
+      costValue,
+      marketValue,
+      gain,
+      returnPct,
+    };
   });
 
-  const totalUnits = Number(holding.totalCurrentUnits);
-  const avgCost = Number(holding.avgCost);
-  const costValue = Number(holding.totalCostValueCurrent);
-  const realizedGain = Number(holding.totalRealizedGain);
-  const nav = Number(fund.currentNav);
-  const marketValue = totalUnits * nav;
+  const totalReturn = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+  const fileName = `Portfolio-Statement-${investor.investorCode}.pdf`;
 
-  const fileName = `Portfolio-Statement-${investor.investorCode}-${fund.code}.pdf`;
-
-  // Shared builder — same output the email-attachment PDF uses.
+  // Shared builder — same output the email-attachment PDF renderer uses.
+  // Leaving logoDataUrl undefined so /logo.png resolves at browser render time.
   const body = buildPortfolioStatementBody({
     dateStr,
     investorName: investor.name,
     investorCode: investor.investorCode,
-    fundName: fund.name,
-    fundCode: fund.code,
-    totalUnits,
-    avgCost,
-    costValue,
-    marketValue,
-    realizedGain,
-    dividendTotal,
-    nav,
-    entryLoad: Number(fund.entryLoad),
-    exitLoad: Number(fund.exitLoad),
-    // bannerDataUrl omitted so the browser resolves /banner_for_portfolio.png
+    rows,
+    totalCost,
+    totalMarket,
+    totalGain,
+    totalReturn,
   });
 
   const ORANGE = "#F27023";
