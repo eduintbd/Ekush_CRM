@@ -38,7 +38,6 @@ export default async function AdminLayout({
           <div className="flex items-center gap-5 text-[13px] font-medium flex-wrap">
             <Link href="/admin/dashboard" className="text-text-dark hover:text-ekush-orange transition-colors">Dashboard</Link>
             <Link href="/admin/investors" className="text-text-dark hover:text-ekush-orange transition-colors">Investors</Link>
-            <Link href="/admin/approvals" className="text-text-dark hover:text-ekush-orange transition-colors">Approvals</Link>
             <Link href="/admin/statements" className="text-text-dark hover:text-ekush-orange transition-colors">Statements</Link>
             <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">Data Entry</Link>
             <Link href="/admin/fund-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Fund Reports</Link>

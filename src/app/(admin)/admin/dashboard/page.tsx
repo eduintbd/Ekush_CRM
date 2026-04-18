@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBDT, formatDate } from "@/lib/utils";
-import { Users, ArrowLeftRight, AlertCircle, TrendingUp, FileText, Bell, Clock } from "lucide-react";
+import { Users, ArrowLeftRight, AlertCircle, TrendingUp, FileText, Bell } from "lucide-react";
 import Link from "next/link";
 import { CollapsibleCard } from "@/components/admin/collapsible-card";
+import { ApprovalsPanel } from "@/components/admin/approvals-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,15 @@ export default async function AdminDashboard() {
         </Table>
       </CollapsibleCard>
 
+      {/* Approvals */}
+      <CollapsibleCard
+        title={`Approvals (${pendingApprovals})`}
+        subtitle="Review and approve/reject pending requests (maker-checker)"
+        defaultOpen={pendingApprovals > 0}
+      >
+        <ApprovalsPanel />
+      </CollapsibleCard>
+
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="shadow-card rounded-[10px]">
@@ -175,7 +185,6 @@ export default async function AdminDashboard() {
 
       {/* Quick Links */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <a href="/admin/approvals" className="block"><Card className="shadow-card rounded-[10px] hover:shadow-md transition-shadow"><CardContent className="p-4 flex items-center gap-3"><Clock className="w-5 h-5 text-amber-500" /><span className="text-sm font-medium text-text-dark">Approvals ({pendingApprovals})</span></CardContent></Card></a>
         <a href="/admin/tickets" className="block"><Card className="shadow-card rounded-[10px] hover:shadow-md transition-shadow"><CardContent className="p-4 flex items-center gap-3"><FileText className="w-5 h-5 text-ekush-orange" /><span className="text-sm font-medium text-text-dark">Tickets ({openTickets})</span></CardContent></Card></a>
         <a href="/admin/content" className="block"><Card className="shadow-card rounded-[10px] hover:shadow-md transition-shadow"><CardContent className="p-4 flex items-center gap-3"><Bell className="w-5 h-5 text-green-500" /><span className="text-sm font-medium text-text-dark">Content</span></CardContent></Card></a>
         <a href="/admin/audit-log" className="block"><Card className="shadow-card rounded-[10px] hover:shadow-md transition-shadow"><CardContent className="p-4 flex items-center gap-3"><FileText className="w-5 h-5 text-text-body" /><span className="text-sm font-medium text-text-dark">Audit Log</span></CardContent></Card></a>
