@@ -65,6 +65,9 @@ model Investor {
   riskProfile  String?
   boId         String?
   dividendOption String @default("CASH") // CASH | CIP
+  // Digital signature image URL (optional — wet signature on file is the fallback).
+  // Used on auto-generated DDI forms.
+  signatureUrl String?
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   holdings        FundHolding[]
@@ -80,6 +83,7 @@ model Investor {
   sipPlans         SipPlan[]
   investmentGoals  InvestmentGoal[]
   mailLogs         MailLog[]
+  ddiInstructions  DdiInstruction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -121,6 +125,7 @@ model Fund {
   sipPlans            SipPlan[]
   fundReports         FundReport[]
   dailyUploads        DailyFundUpload[]
+  ddiInstructions     DdiInstruction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -217,12 +222,13 @@ model Transaction {
   uniqueCode      String?
   orderDate       DateTime
   status          String   @default("EXECUTED")
-  paymentMethod   String?
+  paymentMethod   String?  // BANK_TRANSFER | DDI
   paymentRef      String?
   notes           String?
 
-  investor Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
-  fund     Fund     @relation(fields: [fundId], references: [id], onDelete: Cascade)
+  investor       Investor        @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  fund           Fund            @relation(fields: [fundId], references: [id], onDelete: Cascade)
+  ddiInstruction DdiInstruction?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -231,6 +237,37 @@ model Transaction {
   @@index([orderDate])
   @@index([status])
   @@map("transactions")
+}
+
+// ─── DDI Instruction (one-time buy via Direct Debit) ─────────────
+// Created when an investor authorizes Ekush to pull the buy amount
+// from their registered bank account instead of uploading a slip.
+// Links 1:1 to a Transaction. Signature is optional — a null value
+// means "use the wet signature on file at Ekush".
+
+model DdiInstruction {
+  id              String   @id @default(cuid())
+  investorId      String
+  fundId          String
+  transactionId   String?  @unique
+  amount          Float
+  signatureUrl    String?  // snapshot at signing time; null = wet sig on file
+  termsAccepted   Boolean  @default(false)
+  status          String   @default("PENDING_REVIEW") // PENDING_REVIEW | APPROVED | REJECTED | EXECUTED | CANCELLED
+  applicationDate DateTime @default(now())
+  adminNotes      String?
+
+  investor    Investor     @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  fund        Fund         @relation(fields: [fundId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([investorId])
+  @@index([fundId])
+  @@index([status])
+  @@map("ddi_instructions")
 }
 
 // ─── NAV Record ──────────────────────────────────────────────────

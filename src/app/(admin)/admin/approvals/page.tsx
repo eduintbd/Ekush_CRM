@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Loader2, Clock, FileText } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Clock, FileText, Receipt } from "lucide-react";
 
 interface Approval {
   id: string;
@@ -96,9 +96,25 @@ export default function ApprovalsPage() {
                       {a.details && (
                         <div className="mt-2 text-xs text-text-body space-y-0.5">
                           <p>Investor: {a.details.investor?.name} ({a.details.investor?.investorCode})</p>
-                          <p>Fund: {a.details.fund?.code} | Direction: {a.details.direction} | Amount: {Number(a.details.amount).toLocaleString("en-IN")}</p>
+                          <p>
+                            Fund: {a.details.fund?.code} | Direction: {a.details.direction} | Amount: {Number(a.details.amount).toLocaleString("en-IN")}
+                            {a.details.paymentMethod === "DDI" && (
+                              <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-semibold uppercase tracking-wide">
+                                DDI
+                              </span>
+                            )}
+                          </p>
                           <p>Units: {Number(a.details.units).toFixed(4)} @ NAV {Number(a.details.nav).toFixed(4)}</p>
-                          {a.details.paymentRef && (
+                          {a.details.paymentMethod === "DDI" && typeof a.details.paymentRef === "string" && a.details.paymentRef.startsWith("ddi:") ? (
+                            <a
+                              href={`/api/forms/buy-ddi?ddiId=${encodeURIComponent(a.details.paymentRef.slice(4))}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 mt-1 text-ekush-orange hover:underline"
+                            >
+                              <Receipt className="w-3 h-3" /> View DDI form
+                            </a>
+                          ) : a.details.paymentRef ? (
                             <a
                               href={a.details.paymentRef}
                               target="_blank"
@@ -107,7 +123,7 @@ export default function ApprovalsPage() {
                             >
                               <FileText className="w-3 h-3" /> View payment slip
                             </a>
-                          )}
+                          ) : null}
                         </div>
                       )}
                       <p className="text-xs text-text-muted mt-1">Submitted: {new Date(a.createdAt).toLocaleString("en-GB")}</p>
