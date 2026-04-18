@@ -779,45 +779,6 @@ export default function RegisterPage() {
                   <FileUpload label="Digital Signature" file={signature} onFile={setSignature} accept="image/*" />
                 </div>
 
-                <p className="text-[11px] text-text-body mt-3 mb-2">
-                  Fields below auto-fill from NID upload. Please verify or fill manually — these values are printed onto the registration form.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Input
-                    label="NID / Passport Number"
-                    value={applicantInfo.nidNumber}
-                    onChange={(e) => setApplicantInfo({ ...applicantInfo, nidNumber: e.target.value })}
-                    placeholder="e.g. 1493541930"
-                  />
-                  <Input
-                    label="Father's / Husband's Name"
-                    value={applicantInfo.fatherName}
-                    onChange={(e) => setApplicantInfo({ ...applicantInfo, fatherName: e.target.value })}
-                    placeholder="e.g. আব্দুল আউয়াল ভুইয়া"
-                  />
-                  <Input
-                    label="Mother's Name"
-                    value={applicantInfo.motherName}
-                    onChange={(e) => setApplicantInfo({ ...applicantInfo, motherName: e.target.value })}
-                    placeholder="e.g. আফরোজা পান্না"
-                  />
-                  <Input
-                    label="Permanent Address"
-                    value={applicantInfo.permanentAddress}
-                    onChange={(e) => setApplicantInfo({ ...applicantInfo, permanentAddress: e.target.value })}
-                    placeholder="Permanent address"
-                  />
-                  <div className="md:col-span-2">
-                    <label className="text-[14px] font-medium text-text-label">Present Address</label>
-                    <textarea
-                      value={applicantInfo.presentAddress}
-                      onChange={(e) => setApplicantInfo({ ...applicantInfo, presentAddress: e.target.value })}
-                      placeholder="Present address (from NID)"
-                      rows={2}
-                      className="mt-2 flex w-full rounded-[5px] border border-input-border bg-input-bg px-4 py-2 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Nominee */}
@@ -861,40 +822,6 @@ export default function RegisterPage() {
                         <option key={r} value={r}>{r}</option>
                       ))}
                     </select>
-                  </div>
-                  <Input
-                    label="NID / Passport Number"
-                    value={nomineeInfo.nidNumber}
-                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, nidNumber: e.target.value })}
-                    placeholder="NID number"
-                  />
-                  <Input
-                    label="Father's / Husband's Name"
-                    value={nomineeInfo.fatherName}
-                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, fatherName: e.target.value })}
-                    placeholder="Father / Husband name"
-                  />
-                  <Input
-                    label="Mother's Name"
-                    value={nomineeInfo.motherName}
-                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, motherName: e.target.value })}
-                    placeholder="Mother name"
-                  />
-                  <Input
-                    label="Permanent Address"
-                    value={nomineeInfo.permanentAddress}
-                    onChange={(e) => setNomineeInfo({ ...nomineeInfo, permanentAddress: e.target.value })}
-                    placeholder="Permanent address"
-                  />
-                  <div className="md:col-span-2">
-                    <label className="text-[14px] font-medium text-text-label">Present Address</label>
-                    <textarea
-                      value={nomineeInfo.presentAddress}
-                      onChange={(e) => setNomineeInfo({ ...nomineeInfo, presentAddress: e.target.value })}
-                      placeholder="Nominee present address"
-                      rows={2}
-                      className="mt-2 flex w-full rounded-[5px] border border-input-border bg-input-bg px-4 py-2 text-[14px] text-text-dark focus:border-ekush-orange focus:outline-none"
-                    />
                   </div>
                 </div>
               </div>
