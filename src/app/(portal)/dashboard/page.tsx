@@ -31,7 +31,10 @@ export default async function DashboardPage() {
       )}
 
       {/* Quick Actions — Gold Kinen style navy tiles with gold icons */}
-      <QuickActions />
+      {/* Negative margins tighten the spacing inherited from parent space-y-8 (32px) down to ~12px around. */}
+      <div className="!mt-3 -mb-5">
+        <QuickActions />
+      </div>
 
       {/* Performance charts — NAV carousel + peer comparison */}
       <div>
