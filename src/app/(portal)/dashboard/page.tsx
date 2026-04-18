@@ -37,8 +37,8 @@ export default async function DashboardPage() {
         <QuickActions />
       </div>
 
-      {/* Promotional banner — sits between quick actions and the chart row */}
-      <div className="!mt-5 !mb-4">
+      {/* Promotional banner — centered feature card sized to ~62% of the desktop viewport */}
+      <div className="!mt-5 !mb-4 w-[92%] md:w-[80%] lg:w-[62%] lg:max-w-[720px] mx-auto">
         <TaxRebateBanner />
       </div>
 

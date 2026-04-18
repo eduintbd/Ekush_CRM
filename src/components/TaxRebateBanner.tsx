@@ -12,11 +12,11 @@ export default function TaxRebateBanner() {
     <section
       role="region"
       aria-label="Tax rebate promotion — invest to save on income tax."
-      className="relative w-full overflow-hidden rounded-2xl bg-navy shadow-[0_8px_24px_rgba(15,30,61,0.20)] min-h-[240px] md:min-h-[200px] font-bengali"
+      className="relative w-full overflow-hidden rounded-2xl bg-navy shadow-[0_4px_14px_rgba(15,30,61,0.20)] aspect-[2.2/1] min-h-[240px] md:min-h-[200px] font-bengali"
       style={{
         backgroundImage: `url(${BANNER_IMAGE})`,
-        backgroundSize: "auto 100%",
-        backgroundPosition: "right top",
+        backgroundSize: "cover",
+        backgroundPosition: "right center",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0F1E3D",
       }}
@@ -33,13 +33,13 @@ export default function TaxRebateBanner() {
         }
       `}</style>
 
-      {/* Gradient overlay — desktop. */}
+      {/* Gradient overlay — desktop (extended for the narrower feature-card width). */}
       <div
         aria-hidden
         className="hidden md:block absolute inset-0 pointer-events-none z-[1]"
         style={{
           background:
-            "linear-gradient(to right, rgba(15,30,61,0.90) 0%, rgba(15,30,61,0.75) 30%, rgba(15,30,61,0.35) 50%, rgba(15,30,61,0) 65%)",
+            "linear-gradient(to right, rgba(15,30,61,0.90) 0%, rgba(15,30,61,0.75) 35%, rgba(15,30,61,0.35) 55%, rgba(15,30,61,0) 68%)",
         }}
       />
       {/* Gradient overlay — mobile (denser middle band so text stays legible). */}
@@ -53,8 +53,8 @@ export default function TaxRebateBanner() {
       />
 
       {/* Text column — left side, vertically centered */}
-      <div className="relative z-[2] flex min-h-[240px] md:min-h-[200px] items-center">
-        <div className="pl-6 md:pl-7 pr-4 py-4 max-w-[58%]">
+      <div className="relative z-[2] flex h-full items-center">
+        <div className="pl-5 md:pl-5 pr-4 py-4 max-w-[58%]">
           {/* Eyebrow pill */}
           <span
             className="inline-block rounded-md text-[10px] md:text-[11px] font-medium"
@@ -70,7 +70,7 @@ export default function TaxRebateBanner() {
 
           {/* Headline */}
           <h3
-            className="text-white font-semibold text-[18px] md:text-[22px] leading-[1.2]"
+            className="text-white font-semibold text-[16px] md:text-[20px] leading-[1.2]"
             style={{ marginBottom: "4px" }}
           >
             ৭৫,০০০ টাকা পর্যন্ত{" "}
@@ -81,7 +81,7 @@ export default function TaxRebateBanner() {
           {/* Subheadline */}
           <p
             className="text-white/90 text-[11px] md:text-[12px] leading-[1.4]"
-            style={{ maxWidth: "400px", marginBottom: "10px" }}
+            style={{ maxWidth: "320px", marginBottom: "10px" }}
           >
             একুশ ম্যানেজড ফান্ডে ৫ লক্ষ টাকা বিনিয়োগ করে চলতি অর্থবছরে আয়কর রিবেট গ্রহণ করুন।
           </p>
