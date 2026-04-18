@@ -27,11 +27,6 @@ const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: fals
 const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
 const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
 
-const AMOUNT_OPTIONS = [
-  { value: 100_000, label: "₹ 1,00,000" },
-  { value: 10_000_000, label: "₹ 1,00,00,000" },
-];
-
 const PERIOD_OPTIONS: Array<{ id: PeriodId; label: string }> = [
   { id: "YTD", label: "YTD" },
   { id: "3Y", label: "3Y" },
@@ -63,7 +58,7 @@ function findAnchor<T extends { date: string }>(series: T[], target: Date): T | 
 export function InvestmentGrowth() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [amount, setAmount] = useState<number>(100_000);
+  const amount = 100_000;
   const [fund, setFund] = useState<FundCode>("EFUF");
   const [period, setPeriod] = useState<PeriodId>("3Y");
 
@@ -125,38 +120,24 @@ export function InvestmentGrowth() {
   }
 
   const fundBlock = data.funds.find((f) => f.code === fund);
-  const selectedAmountLabel =
-    AMOUNT_OPTIONS.find((a) => a.value === amount)?.label ?? `₹ ${fmtBdt(amount)}`;
 
   return (
     <div className="bg-white rounded-[10px] shadow-card p-6 h-full flex flex-col">
       <div className="flex items-start justify-between gap-4 mb-3">
         <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">
-          Growth of {selectedAmountLabel}
+          Growth of 1 lac taka
         </h3>
         {chart.endValue != null && (
           <div className="text-right shrink-0">
             <p className="text-[11px] text-text-body">Current value</p>
             <p className="text-[18px] font-semibold font-rajdhani text-ekush-orange">
-              ₹ {fmtBdt(chart.endValue)}
+              {fmtBdt(chart.endValue)}
             </p>
           </div>
         )}
       </div>
 
       <div className="flex items-end gap-3 flex-wrap mb-3">
-        <div>
-          <label className="text-[11px] text-text-body block mb-1">Amount</label>
-          <select
-            value={amount}
-            onChange={(e) => setAmount(Number(e.target.value))}
-            className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
-          >
-            {AMOUNT_OPTIONS.map((a) => (
-              <option key={a.value} value={a.value}>{a.label}</option>
-            ))}
-          </select>
-        </div>
         <div>
           <label className="text-[11px] text-text-body block mb-1">Fund</label>
           <select
@@ -204,7 +185,7 @@ export function InvestmentGrowth() {
                 tickFormatter={(v: number) => (v >= 10_000_000 ? `${(v / 10_000_000).toFixed(1)}Cr` : v >= 100_000 ? `${(v / 100_000).toFixed(1)}L` : v.toFixed(0))}
               />
               <Tooltip
-                formatter={(v: unknown) => (typeof v === "number" ? `₹ ${fmtBdt(v)}` : "—")}
+                formatter={(v: unknown) => (typeof v === "number" ? fmtBdt(v) : "—")}
                 labelFormatter={(l: unknown) => (typeof l === "string" ? l : String(l))}
                 contentStyle={{ fontSize: 11 }}
               />
@@ -220,13 +201,10 @@ export function InvestmentGrowth() {
         )}
       </div>
 
-      <p className="text-[11px] text-text-body mt-3">
+      <p className="text-[8px] text-text-body mt-3 leading-relaxed">
         Hypothetical value if invested in {fundBlock?.name ?? fund} from {chart.startLabel} to{" "}
         {new Date(data.asOf).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}.
-      </p>
-      <p className="text-[10.5px] text-text-muted mt-1 leading-relaxed">
-        Hypothetical illustration based on historical NAV data. Past performance does not guarantee future
-        results. Investments are subject to market risk.
+        Past performance does not guarantee future results.
       </p>
     </div>
   );

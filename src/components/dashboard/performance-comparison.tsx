@@ -224,12 +224,6 @@ export function PerformanceComparison() {
         </p>
       </div>
 
-      <p className="text-[10.5px] text-text-muted mb-2 leading-relaxed">
-        Methodology: Ekush fund returns are total-return (dividend-adjusted) sourced from the
-        fund&rsquo;s Investor Return column. DSEX and DS30 are price-return indices and exclude
-        index-constituent dividends &mdash; the two are not directly comparable.
-      </p>
-
       <div className="flex-1 min-h-[260px]">
         {chart.rows.length === 0 ? (
           <div className="h-full flex items-center justify-center text-[12px] text-text-muted">
@@ -253,6 +247,11 @@ export function PerformanceComparison() {
           </ResponsiveContainer>
         )}
       </div>
+
+      <p className="text-[8px] text-text-body mt-3 leading-relaxed">
+        Ekush managed fund returns are total-return (dividend-adjusted) sourced. DSEX and DS30 are
+        price-return indices. this is illustration purpose only and may not be directly comparable.
+      </p>
     </div>
   );
 }
