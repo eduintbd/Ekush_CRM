@@ -3,7 +3,6 @@ import { QuickActions } from "@/components/QuickActions";
 import TaxRebateBanner from "@/components/TaxRebateBanner";
 import { InvestmentGrowth } from "@/components/dashboard/investment-growth";
 import { PerformanceComparison } from "@/components/dashboard/performance-comparison";
-import { FloatingServicesMenu } from "@/components/dashboard/floating-services-menu";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 export default async function DashboardPage() {
@@ -53,8 +52,6 @@ export default async function DashboardPage() {
           </ErrorBoundary>
         </div>
       </div>
-
-      <FloatingServicesMenu />
     </div>
   );
 }
