@@ -3,11 +3,8 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail/smtp";
 import { portfolioStatementEmail, TEMPLATE_OPTIONS } from "@/lib/mail/templates";
-import { getLogoDataUrl } from "@/lib/pdf-assets";
-import {
-  buildPortfolioStatementFullHtml,
-  type PortfolioStatementRow,
-} from "@/lib/mail/portfolio-statement-html";
+import { getPortfolioBannerDataUrl } from "@/lib/pdf-assets";
+import { buildPortfolioStatementSingleFundFullHtml } from "@/lib/mail/portfolio-statement-single-fund-html";
 import { renderHtmlBatchToPdfs } from "@/lib/html-to-pdf";
 
 const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
@@ -74,9 +71,20 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Embed the logo as a data URL so Puppeteer doesn't need network access to
-  // our domain when rendering from setContent.
-  const logoDataUrl = getLogoDataUrl() ?? undefined;
+  // Embed the banner as a data URL so Puppeteer doesn't need network access
+  // to our domain when rendering from setContent.
+  const bannerDataUrl = getPortfolioBannerDataUrl() ?? undefined;
+
+  // Dividend totals per investor for the selected fund — used on the
+  // single-fund PDF ("Dividend Received" box).
+  const dividendSums = await prisma.dividend.groupBy({
+    by: ["investorId"],
+    where: { fundId: fund.id, investorId: { in: investorIds } },
+    _sum: { grossDividend: true },
+  });
+  const dividendByInvestor = new Map<string, number>(
+    dividendSums.map((d) => [d.investorId, Number(d._sum.grossDividend || 0)]),
+  );
 
   const results: Array<{
     investorId: string;
@@ -131,35 +139,25 @@ export async function POST(req: NextRequest) {
 
     const avgCost = h ? Number(h.avgCost) : 0;
     const costValue = h ? Number(h.totalCostValueCurrent) : 0;
-    const gain = marketValue - costValue;
-    const returnPct =
-      h && Number(h.annualizedReturn)
-        ? Number(h.annualizedReturn)
-        : costValue > 0
-          ? (gain / costValue) * 100
-          : 0;
+    const realizedGain = h ? Number(h.totalRealizedGain) : 0;
+    const dividendTotal = dividendByInvestor.get(inv.id) ?? 0;
 
-    const row: PortfolioStatementRow = {
-      fundCode: fund.code,
-      units,
-      avgCost,
-      nav,
-      costValue,
-      marketValue,
-      gain,
-      returnPct,
-    };
-
-    const pdfHtml = buildPortfolioStatementFullHtml({
+    const pdfHtml = buildPortfolioStatementSingleFundFullHtml({
       dateStr,
       investorName: inv.name,
       investorCode: inv.investorCode,
-      rows: [row],
-      totalCost: costValue,
-      totalMarket: marketValue,
-      totalGain: gain,
-      totalReturn: costValue > 0 ? (gain / costValue) * 100 : 0,
-      logoDataUrl,
+      fundName: fund.name,
+      fundCode: fund.code,
+      totalUnits: units,
+      avgCost,
+      costValue,
+      marketValue,
+      realizedGain,
+      dividendTotal,
+      nav,
+      entryLoad: Number(fund.entryLoad),
+      exitLoad: Number(fund.exitLoad),
+      bannerDataUrl,
     });
 
     const { subject, html } = portfolioStatementEmail({

@@ -22,10 +22,12 @@ export interface PortfolioStatementData {
   totalMarket: number;
   totalGain: number;
   totalReturn: number;
-  logoDataUrl?: string; // if omitted, "/logo.png" is used (suitable for the print page)
+  // Full-width banner used as the page header. If omitted, the file served
+  // from /banner_for_portfolio.png is referenced directly — suitable for the
+  // print page; Puppeteer-based email attachment should pass a data URL.
+  bannerDataUrl?: string;
 }
 
-const ORANGE = "#F27023";
 const BORDER_GREY = "#E5E5E5";
 const FONT = "Arial, Helvetica, sans-serif";
 
@@ -47,7 +49,7 @@ function escapeHtml(s: string): string {
 // Returns just the A4 page (no <html>/<head>). Safe to embed inside the
 // print page's server component.
 export function buildPortfolioStatementBody(data: PortfolioStatementData): string {
-  const logoSrc = data.logoDataUrl ?? "/logo.png";
+  const bannerSrc = data.bannerDataUrl ?? "/banner_for_portfolio.png";
 
   const thNumeric =
     "font-family:" + FONT +
@@ -84,15 +86,8 @@ export function buildPortfolioStatementBody(data: PortfolioStatementData): strin
     class="statement-page"
     style="width:210mm;min-height:297mm;background:#fff;font-family:${FONT};color:#000;position:relative;margin:0 auto;"
   >
-    <div style="position:relative;width:100%;height:130px;overflow:hidden;">
-      <svg viewBox="0 0 800 260" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;width:100%;height:100%;" aria-hidden="true">
-        <path d="M0,0 L0,180 C 120,130 260,90 420,120 C 560,145 680,195 800,170 L800,0 Z" fill="#FCD7B8" />
-        <path d="M0,0 L0,150 C 140,105 280,65 440,95 C 580,120 690,170 800,140 L800,0 Z" fill="#F9B582" />
-        <path d="M0,0 L0,120 C 160,80 300,45 460,75 C 600,100 700,150 800,115 L800,0 Z" fill="#F48A46" />
-        <path d="M0,0 L0,95 C 170,50 320,20 480,55 C 620,85 710,135 800,95 L800,0 Z" fill="${ORANGE}" />
-      </svg>
-      <img src="${logoSrc}" alt="Ekush Wealth Management Limited" style="position:absolute;top:25px;right:30px;width:180px;height:auto;z-index:2;" crossorigin="anonymous" />
-    </div>
+    <!-- Banner (full-width; already contains the Ekush logo on the right) -->
+    <img src="${bannerSrc}" alt="" style="display:block;width:100%;height:auto;" crossorigin="anonymous" />
 
     <div style="padding:40px 60px 60px 60px;">
       <p style="font-family:${FONT};font-size:11pt;font-weight:400;color:#000;margin:0;">${escapeHtml(data.dateStr)}</p>

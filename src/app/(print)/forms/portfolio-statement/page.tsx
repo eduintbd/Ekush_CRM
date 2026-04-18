@@ -98,8 +98,9 @@ export default async function PortfolioStatementPage({
   const totalReturn = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
   const fileName = `Portfolio-Statement-${investor.investorCode}.pdf`;
 
-  // Shared builder — same output the email-attachment PDF renderer uses.
-  // Leaving logoDataUrl undefined so /logo.png resolves at browser render time.
+  // Multi-fund builder — investor-facing Download PDF shows all holdings.
+  // bannerDataUrl is omitted so /banner_for_portfolio.png resolves at browser
+  // render time; the admin mail attachment uses a separate single-fund builder.
   const body = buildPortfolioStatementBody({
     dateStr,
     investorName: investor.name,
