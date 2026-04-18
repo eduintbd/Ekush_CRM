@@ -45,7 +45,6 @@ const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: fals
 const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
 const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
 const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
-const Legend = dynamic(() => import("recharts").then((m) => m.Legend), { ssr: false });
 
 const FUND_COLOR = "#F27023";
 const INDEX_COLOR = "#1e3a5f";
@@ -240,7 +239,6 @@ export function PerformanceComparison() {
                 labelFormatter={(l: unknown) => (typeof l === "string" ? l : String(l))}
                 contentStyle={{ fontSize: 11 }}
               />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey={chartFund} stroke={FUND_COLOR} strokeWidth={2} dot={false} connectNulls />
               <Line type="monotone" dataKey={chartIndex} stroke={INDEX_COLOR} strokeWidth={1.5} dot={false} connectNulls />
             </LineChart>
