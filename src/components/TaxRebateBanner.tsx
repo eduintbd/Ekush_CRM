@@ -12,11 +12,11 @@ export default function TaxRebateBanner() {
     <section
       role="region"
       aria-label="Tax rebate promotion — invest to save on income tax."
-      className="relative w-full overflow-hidden rounded-2xl bg-navy shadow-[0_8px_24px_rgba(15,30,61,0.20)] min-h-[220px] md:min-h-[180px] font-bengali"
+      className="relative w-full overflow-hidden rounded-2xl bg-navy shadow-[0_8px_24px_rgba(15,30,61,0.20)] min-h-[240px] md:min-h-[200px] font-bengali"
       style={{
         backgroundImage: `url(${BANNER_IMAGE})`,
-        backgroundSize: "cover",
-        backgroundPosition: "right center",
+        backgroundSize: "auto 100%",
+        backgroundPosition: "right top",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0F1E3D",
       }}
@@ -53,7 +53,7 @@ export default function TaxRebateBanner() {
       />
 
       {/* Text column — left side, vertically centered */}
-      <div className="relative z-[2] flex min-h-[220px] md:min-h-[180px] items-center">
+      <div className="relative z-[2] flex min-h-[240px] md:min-h-[200px] items-center">
         <div className="pl-6 md:pl-7 pr-4 py-4 max-w-[58%]">
           {/* Eyebrow pill */}
           <span
