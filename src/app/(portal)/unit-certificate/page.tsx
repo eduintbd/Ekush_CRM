@@ -154,7 +154,7 @@ function TabBody({
           target="_blank"
           className="inline-flex items-center gap-2 px-4 py-2 bg-ekush-orange text-white text-[13px] font-semibold rounded-md hover:bg-ekush-orange-dark transition-colors"
         >
-          Download Certificate (PDF)
+          Download Certificate
         </Link>
       </div>
     </div>
