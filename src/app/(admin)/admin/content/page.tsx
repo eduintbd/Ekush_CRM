@@ -509,7 +509,21 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
                   <td className="p-2 font-mono text-[11px]">{r.investorCode}</td>
                   <td className="p-2 font-medium text-text-dark">{r.name}</td>
                   {!["EFUF_PORTFOLIO", "EGF_PORTFOLIO", "ESRF_PORTFOLIO"].includes(template) && (
-                    <td className="p-2 text-center">{r.hasTaxCertificate ? "✓" : "—"}</td>
+                    <td className="p-2 text-center">
+                      {r.hasTaxCertificate ? (
+                        <a
+                          href={`/api/admin/tax-cert/pdf?investorId=${r.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded text-[11px] font-medium"
+                          title="Download Tax Certificate PDF"
+                        >
+                          <FileText className="w-3.5 h-3.5" /> PDF
+                        </a>
+                      ) : (
+                        <span className="text-text-muted">—</span>
+                      )}
+                    </td>
                   )}
                   {["EFUF_PORTFOLIO", "EGF_PORTFOLIO", "ESRF_PORTFOLIO"].includes(template) && (
                     <td className="p-2 text-center">
