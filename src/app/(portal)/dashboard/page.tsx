@@ -1,15 +1,9 @@
 import { getSession } from "@/lib/auth";
-import { ActionCard } from "@/components/dashboard/action-card";
+import { QuickActions } from "@/components/QuickActions";
 import { InvestmentGrowth } from "@/components/dashboard/investment-growth";
 import { PerformanceComparison } from "@/components/dashboard/performance-comparison";
 import { FloatingServicesMenu } from "@/components/dashboard/floating-services-menu";
 import { ErrorBoundary } from "@/components/error-boundary";
-import {
-  TrendingUp,
-  Calendar,
-  Coins,
-  Target,
-} from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -36,38 +30,8 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Quick Action Cards — top row above the charts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <ActionCard
-          href="/transactions/buy"
-          label="Buy Units"
-          icon={TrendingUp}
-          iconColor="#2DAAB8"
-          iconBg="#E8F8FA"
-          active
-        />
-        <ActionCard
-          href="/sip"
-          label="Start SIP"
-          icon={Calendar}
-          iconColor="#E85D5D"
-          iconBg="#FDE8E8"
-        />
-        <ActionCard
-          href="/goals"
-          label="Progress Report"
-          icon={Target}
-          iconColor="#EA580C"
-          iconBg="#FFF7ED"
-        />
-        <ActionCard
-          href="/transactions/sell"
-          label="Sell Units"
-          icon={Coins}
-          iconColor="#F27023"
-          iconBg="#FFF0E6"
-        />
-      </div>
+      {/* Quick Actions — Prime Bank style row above the charts */}
+      <QuickActions />
 
       {/* Performance charts — NAV carousel + peer comparison */}
       <div>

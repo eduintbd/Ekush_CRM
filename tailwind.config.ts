@@ -13,6 +13,14 @@ const config: Config = {
         rajdhani: ["Rajdhani", "sans-serif"],
       },
       colors: {
+        brand: {
+          DEFAULT: "#1E4A8C",
+          dark: "#16396B",
+        },
+        gold: {
+          DEFAULT: "#F5B800",
+          dark: "#D99E00",
+        },
         ekush: {
           orange: "#F27023",
           "orange-dark": "#e85d04",
