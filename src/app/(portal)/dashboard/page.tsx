@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { QuickActions } from "@/components/QuickActions";
+import TaxRebateBanner from "@/components/TaxRebateBanner";
 import { InvestmentGrowth } from "@/components/dashboard/investment-growth";
 import { PerformanceComparison } from "@/components/dashboard/performance-comparison";
 import { FloatingServicesMenu } from "@/components/dashboard/floating-services-menu";
@@ -34,6 +35,11 @@ export default async function DashboardPage() {
       {/* !mt-4 overrides parent space-y-8 (32px → 16px); -mb-4 collapses with the next sibling's mt-8 to ~16px. */}
       <div className="!mt-4 -mb-4">
         <QuickActions />
+      </div>
+
+      {/* Promotional banner — sits between quick actions and the chart row */}
+      <div className="!mt-5 !mb-4">
+        <TaxRebateBanner />
       </div>
 
       {/* Performance charts — NAV carousel + peer comparison */}

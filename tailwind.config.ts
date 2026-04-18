@@ -11,6 +11,7 @@ const config: Config = {
       fontFamily: {
         poppins: ["Poppins", "sans-serif"],
         rajdhani: ["Rajdhani", "sans-serif"],
+        bengali: ["var(--font-bengali)", "Noto Sans Bengali", "system-ui", "sans-serif"],
       },
       colors: {
         brand: {

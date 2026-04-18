@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { Noto_Sans_Bengali } from "next/font/google";
 import "./globals.css";
+
+const notoSansBengali = Noto_Sans_Bengali({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin", "bengali"],
+  variable: "--font-bengali",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Ekush WML - Investor Portal",
@@ -12,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={notoSansBengali.variable}>
       <head>
         <link
           rel="preconnect"
