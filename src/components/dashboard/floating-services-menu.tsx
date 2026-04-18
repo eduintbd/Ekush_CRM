@@ -30,25 +30,16 @@ const ITEMS: ServiceItem[] = [
 ];
 
 export function FloatingServicesMenu() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
-    document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
   return (
@@ -56,20 +47,32 @@ export function FloatingServicesMenu() {
       ref={containerRef}
       className="fixed left-0 top-1/2 -translate-y-1/2 z-50 flex items-start"
     >
-      <button
-        type="button"
-        aria-label={open ? "Close services menu" : "Open services menu"}
-        onClick={() => setOpen((v) => !v)}
-        className="bg-[#1860a8] hover:bg-[#144c87] text-white w-11 h-11 rounded-r-full shadow-lg flex items-center justify-center transition-colors"
-      >
-        {open ? <X className="w-5 h-5" /> : <LayoutGrid className="w-5 h-5" />}
-      </button>
+      {!open && (
+        <button
+          type="button"
+          aria-label="Open services menu"
+          onClick={() => setOpen(true)}
+          className="bg-white hover:bg-gray-50 text-text-dark border border-gray-200 w-11 h-11 rounded-r-full shadow-lg flex items-center justify-center transition-colors"
+        >
+          <LayoutGrid className="w-5 h-5" />
+        </button>
+      )}
 
       {open && (
-        <div className="ml-2 bg-[#1860a8] text-white rounded-xl shadow-2xl p-4 w-[240px]">
-          <p className="text-[13px] font-semibold uppercase tracking-wider mb-3 px-1">
-            Services
-          </p>
+        <div className="bg-white text-text-dark rounded-r-xl shadow-2xl border border-gray-200 p-4 w-[240px] relative">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-text-dark">
+              Services
+            </p>
+            <button
+              type="button"
+              aria-label="Close services menu"
+              onClick={() => setOpen(false)}
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4 text-text-body" />
+            </button>
+          </div>
           <ul className="space-y-1">
             {ITEMS.map((item) => {
               const Icon = item.icon;
@@ -77,8 +80,7 @@ export function FloatingServicesMenu() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/15 transition-colors"
+                    className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-gray-100 transition-colors text-text-dark"
                   >
                     <span
                       className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"

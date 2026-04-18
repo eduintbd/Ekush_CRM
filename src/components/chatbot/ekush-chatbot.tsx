@@ -907,7 +907,7 @@ export function EkushChatbot() {
       {!isOpen && (
         <button
           onClick={handleOpen}
-          className="fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-lg hover:scale-110 transition-all overflow-hidden border-2 border-white"
+          className="fixed right-6 top-1/2 -translate-y-1/2 z-50 w-16 h-16 rounded-full shadow-lg hover:scale-110 transition-all overflow-hidden border-2 border-white"
           aria-label="Chat with Ahona"
         >
           <img src="/ahona.png" alt="Ahona" className="w-full h-full object-cover" />
@@ -916,7 +916,7 @@ export function EkushChatbot() {
 
       {/* Chat window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[392px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-visible border border-gray-200">
+        <div className="fixed right-6 top-1/2 -translate-y-1/2 z-50 w-[380px] h-[392px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-visible border border-gray-200">
           {/* Intro form — collect name & mobile before chat */}
           {step !== "chat" ? (
             <div className="flex-1 flex flex-col bg-gray-50 rounded-2xl relative">
