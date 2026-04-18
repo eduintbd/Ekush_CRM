@@ -2,16 +2,12 @@ import { getSession } from "@/lib/auth";
 import { ActionCard } from "@/components/dashboard/action-card";
 import { InvestmentGrowth } from "@/components/dashboard/investment-growth";
 import { PerformanceComparison } from "@/components/dashboard/performance-comparison";
+import { FloatingServicesMenu } from "@/components/dashboard/floating-services-menu";
 import { ErrorBoundary } from "@/components/error-boundary";
 import {
   TrendingUp,
   Calendar,
   Coins,
-  PieChart,
-  FileText,
-  UserPen,
-  Award,
-  Gift,
   Target,
 } from "lucide-react";
 
@@ -40,11 +36,40 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {/* Quick Action Cards — top row above the charts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <ActionCard
+          href="/transactions/buy"
+          label="Buy Units"
+          icon={TrendingUp}
+          iconColor="#2DAAB8"
+          iconBg="#E8F8FA"
+        />
+        <ActionCard
+          href="/sip"
+          label="Start SIP"
+          icon={Calendar}
+          iconColor="#E85D5D"
+          iconBg="#FDE8E8"
+        />
+        <ActionCard
+          href="/goals"
+          label="Progress Report"
+          icon={Target}
+          iconColor="#EA580C"
+          iconBg="#FFF7ED"
+        />
+        <ActionCard
+          href="/transactions/sell"
+          label="Sell Units"
+          icon={Coins}
+          iconColor="#F27023"
+          iconBg="#FFF0E6"
+        />
+      </div>
+
       {/* Performance charts — NAV carousel + peer comparison */}
       <div>
-        <h2 className="text-[16px] font-semibold text-text-dark font-rajdhani mb-4">
-          Performance of Ekush Managed Funds
-        </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ErrorBoundary fallback={<div className="bg-white rounded-[10px] shadow-card p-6 text-center text-text-muted text-sm">Chart unavailable</div>}>
             <InvestmentGrowth />
@@ -55,72 +80,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Quick Action Cards — 4x2 Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <ActionCard
-          href="/goals"
-          label="Set My Goals"
-          icon={Target}
-          iconColor="#EA580C"
-          iconBg="#FFF7ED"
-        />
-        <ActionCard
-          href="/transactions/buy"
-          label="Buy Units"
-          icon={TrendingUp}
-          iconColor="#2DAAB8"
-          iconBg="#E8F8FA"
-        />
-        <ActionCard
-          href="/transactions/sell"
-          label="Sell Units"
-          icon={Coins}
-          iconColor="#F27023"
-          iconBg="#FFF0E6"
-        />
-        <ActionCard
-          href="/sip"
-          label="Start SIP"
-          icon={Calendar}
-          iconColor="#E85D5D"
-          iconBg="#FDE8E8"
-        />
-        <ActionCard
-          href="/statements"
-          label="Investment Summary"
-          icon={PieChart}
-          iconColor="#2DAAB8"
-          iconBg="#E8F8FA"
-        />
-        <ActionCard
-          href="/transactions"
-          label="Transaction History"
-          icon={FileText}
-          iconColor="#7C3AED"
-          iconBg="#F3EFFE"
-        />
-        <ActionCard
-          href="/profile"
-          label="Profile Management"
-          icon={UserPen}
-          iconColor="#0EA5E9"
-          iconBg="#E0F2FE"
-        />
-        <ActionCard
-          href="/tax-certificate"
-          label="Tax Certificate"
-          icon={Award}
-          iconColor="#16A34A"
-          iconBg="#DCFCE7"
-        />
-        <ActionCard
-          href="/dividends"
-          label="Dividend Statement"
-          icon={Gift}
-          iconColor="#DB2777"
-          iconBg="#FCE7F3"
-        />
-      </div>
+      <FloatingServicesMenu />
     </div>
   );
 }
