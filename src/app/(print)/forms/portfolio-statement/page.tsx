@@ -2,8 +2,20 @@ import { getSession } from "@/lib/auth";
 import { prisma, withRetry } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { buildPortfolioStatementBody } from "@/lib/mail/portfolio-statement-html";
+import {
+  buildPortfolioStatementMultiFundBody,
+  type PortfolioStatementMultiFundRow,
+} from "@/lib/mail/portfolio-statement-multi-fund-html";
 
 export const dynamic = "force-dynamic";
+
+// This page powers two flows:
+//  1. Admin preview (?investorCode=…&fundCode=…) — renders the single-fund
+//     Investment Update layout, identical to the email attachment. Keeping
+//     the preview and the mail output on the same builder is intentional.
+//  2. Investor self-view (no investorCode) — renders a multi-fund summary
+//     table with all holdings + totals. That's what the Download PDF button
+//     on /statements points to.
 
 export default async function PortfolioStatementPage({
   searchParams,
@@ -14,13 +26,13 @@ export default async function PortfolioStatementPage({
   try { session = await getSession(); } catch { redirect("/login"); }
   if (!session) redirect("/login");
 
+  const isAdminPreview = Boolean(searchParams.investorCode);
+
   let investor: any = null;
   let investorId: string | undefined;
-  let fundCode = searchParams.fundCode || null;
 
   try {
-    // Admin preview mode
-    if (searchParams.investorCode) {
+    if (isAdminPreview) {
       const user = (session.user as any);
       const isAdmin = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"].includes(user?.role);
 
@@ -29,7 +41,7 @@ export default async function PortfolioStatementPage({
       }
 
       investor = await prisma.investor.findUnique({
-        where: { investorCode: searchParams.investorCode },
+        where: { investorCode: searchParams.investorCode! },
       });
       if (!investor) {
         return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Investor not found</div>;
@@ -61,66 +73,6 @@ export default async function PortfolioStatementPage({
     );
   }
 
-  // If no fundCode was provided (e.g. "Download PDF" from /statements), pick
-  // the investor's highest-market-value holding so the page never 404s.
-  let fund: any = null;
-  let holding: any = null;
-  try {
-    if (!fundCode) {
-      const holdings = await withRetry(() =>
-        prisma.fundHolding.findMany({ where: { investorId }, include: { fund: true } }),
-      );
-      if (holdings.length === 0) {
-        return (
-          <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
-            No holdings found.
-          </div>
-        );
-      }
-      const best = holdings
-        .map((h) => ({
-          h,
-          mv: Number(h.totalCurrentUnits) * Number(h.fund.currentNav),
-        }))
-        .sort((a, b) => b.mv - a.mv)[0];
-      holding = best.h;
-      fund = best.h.fund;
-      fundCode = fund.code;
-    } else {
-      fund = await prisma.fund.findUnique({ where: { code: fundCode } });
-      if (!fund) {
-        return (
-          <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
-            Fund {fundCode} not found.
-          </div>
-        );
-      }
-      holding = await prisma.fundHolding.findUnique({
-        where: { investorId_fundId: { investorId: investorId!, fundId: fund.id } },
-      });
-      if (!holding) {
-        return (
-          <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
-            No holdings in fund {fundCode}.
-          </div>
-        );
-      }
-    }
-  } catch (err) {
-    console.error("Portfolio statement data error:", err);
-    return (
-      <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
-        Could not load fund data.
-      </div>
-    );
-  }
-
-  const divAgg = await prisma.dividend.aggregate({
-    where: { investorId, fundId: fund.id },
-    _sum: { grossDividend: true },
-  });
-  const dividendTotal = Number(divAgg._sum.grossDividend || 0);
-
   const today = new Date();
   const dateStr = today.toLocaleDateString("en-US", {
     month: "long",
@@ -128,33 +80,156 @@ export default async function PortfolioStatementPage({
     year: "numeric",
   });
 
-  const totalUnits = Number(holding.totalCurrentUnits);
-  const avgCost = Number(holding.avgCost);
-  const costValue = Number(holding.totalCostValueCurrent);
-  const realizedGain = Number(holding.totalRealizedGain);
-  const nav = Number(fund.currentNav);
-  const marketValue = totalUnits * nav;
+  // Build the body HTML per flow.
+  let body: string;
+  let fileName: string;
 
-  const fileName = `Portfolio-Statement-${investor.investorCode}-${fund.code}.pdf`;
+  if (isAdminPreview) {
+    // Single-fund path — mirrors the mail attachment exactly.
+    let fundCode = searchParams.fundCode || null;
+    let fund: any = null;
+    let holding: any = null;
 
-  // Shared builder — same output the email-attachment PDF uses.
-  const body = buildPortfolioStatementBody({
-    dateStr,
-    investorName: investor.name,
-    investorCode: investor.investorCode,
-    fundName: fund.name,
-    fundCode: fund.code,
-    totalUnits,
-    avgCost,
-    costValue,
-    marketValue,
-    realizedGain,
-    dividendTotal,
-    nav,
-    entryLoad: Number(fund.entryLoad),
-    exitLoad: Number(fund.exitLoad),
-    // bannerDataUrl omitted so the browser resolves /banner_for_portfolio.png
-  });
+    try {
+      if (!fundCode) {
+        const holdings = await withRetry(() =>
+          prisma.fundHolding.findMany({ where: { investorId }, include: { fund: true } }),
+        );
+        if (holdings.length === 0) {
+          return (
+            <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
+              No holdings found.
+            </div>
+          );
+        }
+        const best = holdings
+          .map((h) => ({ h, mv: Number(h.totalCurrentUnits) * Number(h.fund.currentNav) }))
+          .sort((a, b) => b.mv - a.mv)[0];
+        holding = best.h;
+        fund = best.h.fund;
+        fundCode = fund.code;
+      } else {
+        fund = await prisma.fund.findUnique({ where: { code: fundCode } });
+        if (!fund) {
+          return (
+            <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
+              Fund {fundCode} not found.
+            </div>
+          );
+        }
+        holding = await prisma.fundHolding.findUnique({
+          where: { investorId_fundId: { investorId: investorId!, fundId: fund.id } },
+        });
+        if (!holding) {
+          return (
+            <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
+              No holdings in fund {fundCode}.
+            </div>
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Portfolio statement data error:", err);
+      return (
+        <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
+          Could not load fund data.
+        </div>
+      );
+    }
+
+    const divAgg = await prisma.dividend.aggregate({
+      where: { investorId, fundId: fund.id },
+      _sum: { grossDividend: true },
+    });
+    const dividendTotal = Number(divAgg._sum.grossDividend || 0);
+
+    const totalUnits = Number(holding.totalCurrentUnits);
+    const avgCost = Number(holding.avgCost);
+    const costValue = Number(holding.totalCostValueCurrent);
+    const realizedGain = Number(holding.totalRealizedGain);
+    const nav = Number(fund.currentNav);
+    const marketValue = totalUnits * nav;
+
+    body = buildPortfolioStatementBody({
+      dateStr,
+      investorName: investor.name,
+      investorCode: investor.investorCode,
+      fundName: fund.name,
+      fundCode: fund.code,
+      totalUnits,
+      avgCost,
+      costValue,
+      marketValue,
+      realizedGain,
+      dividendTotal,
+      nav,
+      entryLoad: Number(fund.entryLoad),
+      exitLoad: Number(fund.exitLoad),
+    });
+    fileName = `Portfolio-Statement-${investor.investorCode}-${fund.code}.pdf`;
+  } else {
+    // Multi-fund path — investor Download PDF from /statements.
+    const holdings = await withRetry(() =>
+      prisma.fundHolding.findMany({ where: { investorId }, include: { fund: true } }),
+    );
+
+    if (holdings.length === 0) {
+      return (
+        <div style={{ padding: 40, textAlign: "center", color: "#666" }}>
+          No holdings found.
+        </div>
+      );
+    }
+
+    let totalCost = 0;
+    let totalMarket = 0;
+    let totalGain = 0;
+
+    const rows: PortfolioStatementMultiFundRow[] = holdings.map((h) => {
+      const units = Number(h.totalCurrentUnits);
+      const avgCost = Number(h.avgCost);
+      const nav = Number(h.fund.currentNav);
+      const costValue = Number(h.totalCostValueCurrent);
+      const marketValue = units * nav;
+      const gain = marketValue - costValue;
+      const returnPct =
+        Number(h.annualizedReturn)
+          ? Number(h.annualizedReturn)
+          : costValue > 0
+            ? (gain / costValue) * 100
+            : 0;
+
+      totalCost += costValue;
+      totalMarket += marketValue;
+      totalGain += gain;
+
+      return {
+        fundCode: h.fund.code,
+        fundName: h.fund.name,
+        units,
+        avgCost,
+        nav,
+        costValue,
+        marketValue,
+        gain,
+        returnPct,
+      };
+    });
+
+    const totalReturn = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+
+    body = buildPortfolioStatementMultiFundBody({
+      dateStr,
+      investorName: investor.name,
+      investorCode: investor.investorCode,
+      rows,
+      totalCost,
+      totalMarket,
+      totalGain,
+      totalReturn,
+    });
+    fileName = `Portfolio-Statement-${investor.investorCode}.pdf`;
+  }
 
   const ORANGE = "#F27023";
   const FONT = "Arial, Helvetica, sans-serif";
