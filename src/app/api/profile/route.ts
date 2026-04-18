@@ -68,6 +68,14 @@ export async function PATCH(req: NextRequest) {
     // are PENDING_APPROVAL until an admin reviews them and marks them ACTIVE —
     // only then they show as secondary accounts in the portal + SIP page.
     const existingCount = await prisma.bankAccount.count({ where: { investorId } });
+    // Cap at 2 (primary + secondary). Extra accounts would have no UI slot and
+    // would only add noise to the admin queue.
+    if (existingCount >= 2) {
+      return NextResponse.json(
+        { error: "Maximum of 2 bank accounts already registered." },
+        { status: 400 },
+      );
+    }
     const isFirst = existingCount === 0;
 
     const newBank = await prisma.bankAccount.create({

@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
 
   // If first bank account, make it primary
   const existingCount = await prisma.bankAccount.count({ where: { investorId } });
+  // Cap at 2 (primary + secondary). Matches the SIP page guard.
+  if (existingCount >= 2) {
+    return NextResponse.json(
+      { error: "Maximum of 2 bank accounts already registered." },
+      { status: 400 },
+    );
+  }
 
   // Create bank account with cheque leaf — bank details will be filled by
   // admin after review. Additional accounts (after the first) are PENDING_APPROVAL

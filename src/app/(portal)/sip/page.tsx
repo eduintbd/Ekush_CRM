@@ -288,7 +288,7 @@ export default function SipPage() {
                       </div>
                     )}
 
-                    {!hasPending && (
+                    {!hasPending && activeBanks.length < 2 && (
                       <>
                         <p className="text-[13px] text-text-body mb-2">Do you want to change this account for SIP?</p>
                         <div className="flex gap-2">
@@ -310,8 +310,14 @@ export default function SipPage() {
                       </>
                     )}
 
-                    {/* Change bank dialog */}
-                    {!hasPending && showBankChange && (
+                    {!hasPending && activeBanks.length >= 2 && (
+                      <p className="text-[12px] text-text-muted italic">
+                        You&apos;ve reached the maximum of 2 registered bank accounts. Select one above to use for this SIP.
+                      </p>
+                    )}
+
+                    {/* Change bank dialog — only when the investor hasn't maxed out their 2 accounts */}
+                    {!hasPending && showBankChange && activeBanks.length < 2 && (
                       <div className="mt-4 border-t border-input-border pt-4 space-y-3">
                         <div className="flex rounded-lg border overflow-hidden">
                           <button type="button" onClick={() => setBankMode("cheque")}
