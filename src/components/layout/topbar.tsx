@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogOut,
   PieChart,
+  Receipt,
   User,
   UserPen,
   type LucideIcon,
@@ -33,6 +34,7 @@ const SERVICE_ITEMS: ServiceItem[] = [
   { href: "/statements", label: "Investment Summary", icon: PieChart, iconColor: "#2DAAB8", iconBg: "#E8F8FA" },
   { href: "/transactions", label: "Transaction History", icon: FileText, iconColor: "#7C3AED", iconBg: "#F3EFFE" },
   { href: "/profile", label: "Profile Management", icon: UserPen, iconColor: "#0EA5E9", iconBg: "#E0F2FE" },
+  { href: "/unit-certificate", label: "Unit Certificate", icon: Receipt, iconColor: "#4F46E5", iconBg: "#EEF2FF" },
   { href: "/tax-certificate", label: "Tax Certificate", icon: Award, iconColor: "#16A34A", iconBg: "#DCFCE7" },
   { href: "/dividends", label: "Dividend Statement", icon: Gift, iconColor: "#DB2777", iconBg: "#FCE7F3" },
 ];
