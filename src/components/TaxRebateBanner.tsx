@@ -12,7 +12,7 @@ export default function TaxRebateBanner() {
     <section
       role="region"
       aria-label="Tax rebate promotion — invest to save on income tax."
-      className="relative w-full overflow-hidden rounded-2xl bg-navy shadow-[0_4px_14px_rgba(15,30,61,0.20)] aspect-[3.3/1] min-h-[200px] md:min-h-[180px] font-bengali"
+      className="relative w-full overflow-hidden rounded-2xl bg-navy shadow-[0_4px_14px_rgba(15,30,61,0.20)] aspect-auto md:aspect-[3.3/1] min-h-[200px] md:min-h-[180px] font-bengali"
       style={{
         backgroundImage: `url(${BANNER_IMAGE})`,
         backgroundSize: "cover",
