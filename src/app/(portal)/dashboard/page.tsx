@@ -37,8 +37,8 @@ export default async function DashboardPage() {
         <QuickActions />
       </div>
 
-      {/* Promotional banner — centered feature card sized to ~67% of the desktop viewport */}
-      <div className="!mt-5 !mb-4 w-[92%] md:w-[80%] lg:w-[67%] lg:max-w-[780px] mx-auto">
+      {/* Promotional banner — centered feature card sized to ~90% of the desktop viewport */}
+      <div className="!mt-5 !mb-4 w-[92%] md:w-[88%] lg:w-[90%] lg:max-w-[1100px] mx-auto">
         <TaxRebateBanner />
       </div>
 
