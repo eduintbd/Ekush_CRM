@@ -8,7 +8,6 @@ import { CertificateQR } from "@/components/certificates/CertificateQR";
 export const dynamic = "force-dynamic";
 
 const FUND_CODES = ["EFUF", "EGF", "ESRF"] as const;
-type FundCode = (typeof FUND_CODES)[number];
 
 export default async function UnitCertificatePrintPage({
   searchParams,
@@ -91,15 +90,23 @@ export default async function UnitCertificatePrintPage({
     process.env.NEXTAUTH_URL ||
     "https://ekush.aibd.ai";
 
-  const verificationUrl = buildVerificationUrl(baseUrl, {
-    investorCode: investor.investorCode,
-    investorName: investor.name,
-    fundCode: fund.code,
-    units,
-    costPricePerUnit,
-    totalValue,
-    issueDate: issueDateISO,
-  });
+  let verificationUrl: string | null = null;
+  try {
+    verificationUrl = buildVerificationUrl(baseUrl, {
+      investorCode: investor.investorCode,
+      investorName: investor.name,
+      fundCode: fund.code,
+      units,
+      costPricePerUnit,
+      totalValue,
+      issueDate: issueDateISO,
+    });
+  } catch (err) {
+    console.error("Unit certificate signing failed:", err);
+    return (
+      <Message text="Unit Certificate QR signing is not configured. Set CERTIFICATE_HMAC_SECRET in the environment and redeploy." />
+    );
+  }
 
   const nf = new Intl.NumberFormat("en-IN");
   const nf2 = new Intl.NumberFormat("en-IN", {
