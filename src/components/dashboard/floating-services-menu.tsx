@@ -45,7 +45,7 @@ export function FloatingServicesMenu() {
   return (
     <div
       ref={containerRef}
-      className="fixed left-0 top-1/2 -translate-y-1/2 z-50 flex items-start"
+      className="fixed left-0 top-[22%] z-50 flex items-start"
     >
       {!open && (
         <button

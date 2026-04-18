@@ -16,7 +16,8 @@ export default function TaxRebateBanner() {
       style={{
         backgroundImage: `url(${BANNER_IMAGE})`,
         backgroundSize: "cover",
-        backgroundPosition: "right center",
+        // Bias visible window 10% below the top so the model's head stops being clipped.
+        backgroundPosition: "right 20%",
         backgroundRepeat: "no-repeat",
         backgroundColor: "#0F1E3D",
       }}
