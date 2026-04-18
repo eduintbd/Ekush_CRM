@@ -17,6 +17,10 @@ const config: Config = {
           DEFAULT: "#1E4A8C",
           dark: "#16396B",
         },
+        navy: {
+          DEFAULT: "#0F1E3D",
+          dark: "#0A1530",
+        },
         gold: {
           DEFAULT: "#F5B800",
           dark: "#D99E00",
@@ -29,7 +33,6 @@ const config: Config = {
         page: {
           bg: "#EFF1F7",
         },
-        navy: "#2E4765",
         "text-dark": "#222222",
         "text-body": "#828BB2",
         "text-muted": "#B2B5C0",

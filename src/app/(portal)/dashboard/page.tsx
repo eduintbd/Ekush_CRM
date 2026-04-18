@@ -30,7 +30,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Quick Actions — Prime Bank style row above the charts */}
+      {/* Quick Actions — Gold Kinen style navy tiles with gold icons */}
       <QuickActions />
 
       {/* Performance charts — NAV carousel + peer comparison */}

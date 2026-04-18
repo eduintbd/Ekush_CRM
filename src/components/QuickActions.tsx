@@ -8,45 +8,37 @@ import { cn } from "@/lib/utils";
 
 type IconProps = {
   size?: number;
-  strokeWidth?: number;
   className?: string;
   "aria-hidden"?: boolean;
 };
 
 type IconComponent = (props: IconProps) => ReactElement;
 
-function GoldBarsIcon({ size = 24, strokeWidth = 1.5, className, ...rest }: IconProps) {
+function GoldBarsIcon({ size = 24, className, ...rest }: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
       width={size}
       height={size}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
       className={className}
       {...rest}
     >
       {/* sparkle dots above the stack */}
-      <circle cx="6.5" cy="4" r="0.6" fill="currentColor" stroke="none" />
-      <circle cx="12" cy="2.8" r="0.6" fill="currentColor" stroke="none" />
-      <circle cx="17.5" cy="4" r="0.6" fill="currentColor" stroke="none" />
+      <circle cx="6.5" cy="3.5" r="0.7" />
+      <circle cx="12" cy="2.4" r="0.7" />
+      <circle cx="17.5" cy="3.5" r="0.7" />
       {/* top bar (smallest) */}
-      <path d="M9 8 L15 8 L16 12 L8 12 Z" />
+      <path d="M9 7.5 L15 7.5 L16 11.5 L8 11.5 Z" />
       {/* middle bar */}
-      <path d="M7 13 L17 13 L18 17 L6 17 Z" />
+      <path d="M7 12.5 L17 12.5 L18 16.5 L6 16.5 Z" />
       {/* bottom bar (widest) */}
-      <path d="M5 18 L19 18 L20 22 L4 22 Z" />
+      <path d="M5 17.5 L19 17.5 L20 21.5 L4 21.5 Z" />
     </svg>
   );
 }
 
-function TakaIcon({ size = 24, strokeWidth = 1.5, className, ...rest }: IconProps) {
-  // Use the stroke width to bias the font weight so the symbol visually
-  // tracks the active/inactive heaviness of the lucide icons.
-  const fontWeight = strokeWidth >= 2 ? 800 : 600;
+function TakaIcon({ size = 24, className, ...rest }: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -57,10 +49,10 @@ function TakaIcon({ size = 24, strokeWidth = 1.5, className, ...rest }: IconProp
     >
       <text
         x="12"
-        y="18"
+        y="19"
         textAnchor="middle"
-        fontSize="20"
-        fontWeight={fontWeight}
+        fontSize="22"
+        fontWeight={800}
         fill="currentColor"
         fontFamily="'Noto Sans Bengali', 'SolaimanLipi', system-ui, sans-serif"
       >
@@ -72,72 +64,54 @@ function TakaIcon({ size = 24, strokeWidth = 1.5, className, ...rest }: IconProp
 
 interface ActionItem {
   href: string;
-  labelTop: string;
-  labelBottom: string;
+  label: string;
   Icon: IconComponent;
 }
 
 const ITEMS: ActionItem[] = [
-  { href: "/transactions/buy", labelTop: "Buy", labelBottom: "Units", Icon: GoldBarsIcon },
-  { href: "/sip", labelTop: "Start", labelBottom: "SIP", Icon: CalendarClock as unknown as IconComponent },
-  { href: "/goals", labelTop: "Progress", labelBottom: "Report", Icon: BarChart3 as unknown as IconComponent },
-  { href: "/transactions/sell", labelTop: "Sell", labelBottom: "Units", Icon: TakaIcon },
+  { href: "/transactions/buy", label: "Buy Units", Icon: GoldBarsIcon },
+  { href: "/sip", label: "Start SIP", Icon: CalendarClock as unknown as IconComponent },
+  { href: "/goals", label: "Progress Report", Icon: BarChart3 as unknown as IconComponent },
+  { href: "/transactions/sell", label: "Sell Units", Icon: TakaIcon },
 ];
 
 export function QuickActions() {
   const pathname = usePathname();
 
   return (
-    <nav
-      aria-label="Quick actions"
-      className="bg-white w-full"
-    >
+    <nav aria-label="Quick actions" className="w-full">
       <ul
         className={cn(
-          // Mobile: 2x2 grid, no dividers
-          "grid grid-cols-2 gap-y-6",
-          // Desktop: horizontal row, generous vertical padding
-          "md:flex md:justify-around md:items-center md:gap-0 md:py-8"
+          // Mobile: 2x2 grid, fills the content area
+          "grid grid-cols-2 gap-3",
+          // Desktop: 4-up flex row, centered, capped width to align with charts above
+          "md:flex md:justify-center md:gap-4 md:max-w-[680px] md:mx-auto"
         )}
       >
         {ITEMS.map((item) => {
           const isActive = pathname === item.href;
-          const tone = isActive ? "text-gold" : "text-brand";
-          const hover = isActive ? "" : "hover:text-gold";
           return (
-            <li
-              key={item.href}
-              className={cn(
-                "relative flex justify-center",
-                // Vertical divider on md+, hidden on mobile
-                "md:[&:not(:last-child)]:after:content-[''] md:[&:not(:last-child)]:after:absolute",
-                "md:[&:not(:last-child)]:after:right-0 md:[&:not(:last-child)]:after:top-1/2",
-                "md:[&:not(:last-child)]:after:-translate-y-1/2 md:[&:not(:last-child)]:after:h-[65%]",
-                "md:[&:not(:last-child)]:after:w-px md:[&:not(:last-child)]:after:bg-gray-200",
-                "md:flex-1"
-              )}
-            >
+            <li key={item.href} className="md:w-[150px]">
               <Link
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "group flex flex-col items-center justify-center gap-2 px-4 py-2 rounded-md",
-                  "transition-colors duration-200",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
-                  tone,
-                  hover
+                  "group relative flex flex-col items-center justify-center text-center",
+                  "rounded-[15px] bg-navy hover:bg-navy-dark",
+                  "px-4 py-5 gap-3 h-[135px] w-full md:h-[135px]",
+                  "shadow-[0_4px_12px_rgba(15,30,61,0.18)]",
+                  "transition-colors duration-200 ease-out",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2",
+                  isActive && "ring-1 ring-gold/30"
                 )}
               >
                 <item.Icon
-                  size={28}
-                  strokeWidth={isActive ? 2 : 1.5}
-                  className="transition-colors duration-200"
+                  size={46}
+                  className="text-gold transition-transform duration-200 ease-out group-hover:scale-105"
                   aria-hidden
                 />
-                <span className="text-[13px] font-medium leading-tight text-center transition-colors duration-200">
-                  {item.labelTop}
-                  <br />
-                  {item.labelBottom}
+                <span className="text-[14px] font-semibold leading-tight text-white">
+                  {item.label}
                 </span>
               </Link>
             </li>
