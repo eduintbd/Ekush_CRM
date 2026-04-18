@@ -68,6 +68,10 @@ model Investor {
   // Digital signature image URL (optional — wet signature on file is the fallback).
   // Used on auto-generated DDI forms.
   signatureUrl String?
+  // Timestamp of the one-time welcome email sent on PENDING→ACTIVE approval.
+  // Null means never sent — manual "Send Now" in the admin edit form uses
+  // this flag to show the retry UI.
+  welcomeEmailSentAt DateTime?
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   holdings        FundHolding[]

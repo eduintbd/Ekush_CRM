@@ -48,6 +48,7 @@ export async function sendMail(opts: {
   to: string;
   subject: string;
   html: string;
+  text?: string;
   attachments?: { filename: string; content: Buffer | string; contentType?: string }[];
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const cfg = await getSmtpConfig();
@@ -64,6 +65,7 @@ export async function sendMail(opts: {
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
+      text: opts.text,
       attachments: opts.attachments,
     });
     return { ok: true };

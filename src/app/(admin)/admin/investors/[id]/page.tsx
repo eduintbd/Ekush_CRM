@@ -124,6 +124,9 @@ export default async function AdminInvestorDetailPage({
               investorType: investor.investorType,
               status: investor.user.status,
               investorCode: investor.investorCode,
+              welcomeEmailSentAt: investor.welcomeEmailSentAt
+                ? investor.welcomeEmailSentAt.toISOString()
+                : null,
             }}
           />
         </CardContent>

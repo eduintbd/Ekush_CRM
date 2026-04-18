@@ -20,6 +20,7 @@ interface Props {
     investorType: string;
     status: string;
     investorCode: string;
+    welcomeEmailSentAt: string | null;
   };
 }
 
@@ -35,6 +36,10 @@ export function AdminEditInvestorForm({ investorId, userId, initial }: Props) {
   );
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [welcomeEmailSentAt, setWelcomeEmailSentAt] = useState<string | null>(
+    initial.welcomeEmailSentAt,
+  );
+  const [resendingWelcome, setResendingWelcome] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const isApproving = startedPending && form.status === "ACTIVE";
@@ -61,14 +66,27 @@ export function AdminEditInvestorForm({ investorId, userId, initial }: Props) {
         }),
       });
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const welcome = data?.welcomeEmail as
+          | { status: "SENT" | "FAILED"; error?: string }
+          | undefined;
+        let text: string;
+        if (isApproving && welcome?.status === "SENT") {
+          text = `Investor approved and welcome email sent to ${form.email}.`;
+          setWelcomeEmailSentAt(new Date().toISOString());
+        } else if (isApproving && welcome?.status === "FAILED") {
+          text = `Investor approved, but welcome email failed: ${welcome.error || "unknown error"}. Use "Send Now" below to retry.`;
+        } else if (isApproving) {
+          text = `Investor approved and assigned code ${investorCode}.`;
+        } else {
+          text = "Changes saved.";
+        }
         setMessage({
-          type: "success",
-          text: isApproving
-            ? `Investor approved and assigned code ${investorCode}.`
-            : "Changes saved.",
+          type: welcome?.status === "FAILED" ? "error" : "success",
+          text,
         });
         router.refresh();
-        setTimeout(() => setMessage(null), 4000);
+        setTimeout(() => setMessage(null), 6000);
       } else {
         const data = await res.json().catch(() => ({}));
         setMessage({ type: "error", text: data.error || "Failed to save." });
@@ -133,7 +151,7 @@ export function AdminEditInvestorForm({ investorId, userId, initial }: Props) {
         <div className="bg-green-50 border border-green-200 rounded-md p-3 text-[12px] text-green-800 flex items-start gap-2">
           <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
           <div>
-            About to approve this investor. On Save, the account will become <strong>ACTIVE</strong> with code <strong>{investorCode}</strong> and appear on the Investors page.
+            About to approve this investor. On Save, the account will become <strong>ACTIVE</strong> with code <strong>{investorCode}</strong>, and a welcome email will be sent to <strong>{form.email || "(no email on file)"}</strong> with their investor code as the login credential.
           </div>
         </div>
       )}
@@ -177,6 +195,65 @@ export function AdminEditInvestorForm({ investorId, userId, initial }: Props) {
           </span>
         )}
       </div>
+
+      {/* Welcome email status (only meaningful once the account is active) */}
+      {form.status === "ACTIVE" && (
+        <div className="pt-2 border-t border-gray-100 flex items-center gap-3 flex-wrap text-[12px]">
+          {welcomeEmailSentAt ? (
+            <span className="text-green-700 flex items-center gap-1">
+              <CheckCircle className="w-3.5 h-3.5" />
+              Welcome email sent on{" "}
+              {new Date(welcomeEmailSentAt).toLocaleString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          ) : (
+            <>
+              <span className="text-amber-600">⚠ Welcome email not yet sent.</span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={resendingWelcome || !form.email}
+                onClick={async () => {
+                  setResendingWelcome(true);
+                  setMessage(null);
+                  try {
+                    const res = await fetch(
+                      `/api/admin/investors/${investorId}/welcome-email`,
+                      { method: "POST" },
+                    );
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok) {
+                      setWelcomeEmailSentAt(new Date().toISOString());
+                      setMessage({
+                        type: "success",
+                        text: `Welcome email sent to ${form.email}.`,
+                      });
+                      setTimeout(() => setMessage(null), 4000);
+                    } else {
+                      setMessage({
+                        type: "error",
+                        text: data.error || "Failed to send welcome email.",
+                      });
+                    }
+                  } catch {
+                    setMessage({ type: "error", text: "Network error." });
+                  } finally {
+                    setResendingWelcome(false);
+                  }
+                }}
+              >
+                {resendingWelcome && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                Send Now
+              </Button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendWelcomeEmailForInvestor } from "@/lib/mail/send-welcome";
 
 const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
 const DELETE_ROLES = ["ADMIN", "SUPER_ADMIN"];
@@ -23,11 +24,18 @@ export async function PATCH(
     // Validate investor code on activation; must be unique and in format letter+5-6 digits
     const currentInvestor = await prisma.investor.findUnique({
       where: { id: params.id },
-      select: { investorCode: true, userId: true },
+      select: { investorCode: true, userId: true, welcomeEmailSentAt: true },
     });
     if (!currentInvestor) {
       return NextResponse.json({ error: "Investor not found" }, { status: 404 });
     }
+    const previousUser = await prisma.user.findUnique({
+      where: { id: currentInvestor.userId },
+      select: { status: true },
+    });
+    const wasPending =
+      previousUser?.status === "PENDING" ||
+      currentInvestor.investorCode.startsWith("PENDING-");
 
     let finalInvestorCode: string | undefined;
     const codeProvided = typeof investorCode === "string" && investorCode.trim().length > 0;
@@ -95,7 +103,38 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ success: true });
+    // Auto-send welcome email on PENDING → ACTIVE transition, once per
+    // investor. Failure is logged but does not fail the approval action —
+    // admin can click "Send Now" in the UI to retry.
+    let welcomeEmailStatus: "SENT" | "FAILED" | "SKIPPED" = "SKIPPED";
+    let welcomeEmailError: string | undefined;
+    if (
+      wasPending &&
+      status === "ACTIVE" &&
+      !currentInvestor.welcomeEmailSentAt &&
+      finalInvestorCode &&
+      /^[A-Z]\d{5,6}$/.test(finalInvestorCode)
+    ) {
+      try {
+        const r = await sendWelcomeEmailForInvestor(params.id, {
+          sentById: (session.user as any).id,
+        });
+        welcomeEmailStatus = r.ok ? "SENT" : "FAILED";
+        welcomeEmailError = r.ok ? undefined : r.error;
+      } catch (err) {
+        welcomeEmailStatus = "FAILED";
+        welcomeEmailError = err instanceof Error ? err.message : "Send failed";
+        console.error("Welcome email send error:", err);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      welcomeEmail:
+        welcomeEmailStatus === "SKIPPED"
+          ? undefined
+          : { status: welcomeEmailStatus, error: welcomeEmailError },
+    });
   } catch (err: any) {
     console.error("Admin investor update error:", err);
     return NextResponse.json({ error: err.message || "Update failed" }, { status: 500 });
