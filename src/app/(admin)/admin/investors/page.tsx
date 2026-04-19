@@ -72,6 +72,12 @@ export default async function AdminInvestorsPage({
           <button type="submit" className="px-3 py-2 text-sm bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark transition-colors">
             Search
           </button>
+          <a
+            href="/api/admin/investors/export"
+            className="px-3 py-2 text-sm bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark transition-colors"
+          >
+            Export to Excel
+          </a>
           {query && (
             <Link href="/admin/investors" className="px-3 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50">Clear</Link>
           )}
