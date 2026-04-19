@@ -19,10 +19,15 @@ model User {
   // preferring the investor-code match; email lookups use findFirst.
   email            String?
   phone            String?
+  // Display name for staff users. Investors have their name on the Investor
+  // row; staff accounts don't have an Investor relation so we store it here.
+  fullName         String?
   passwordHash     String
   supabaseId       String?  @unique
+  // Values are constrained by src/lib/roles.ts: SUPER_ADMIN | MAKER | CHECKER
+  // | VIEWER for staff, or INVESTOR for end-user accounts.
   role             String   @default("INVESTOR")
-  status           String   @default("PENDING")
+  status           String   @default("PENDING") // INVITED | ACTIVE | LOCKED | DEACTIVATED | PENDING | SUSPENDED | CLOSED
   twoFactorEnabled Boolean  @default(false)
   twoFactorSecret  String?
   failedLoginCount Int      @default(0)
@@ -30,7 +35,12 @@ model User {
   lastLoginAt      DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  // Who invited this user (staff only; investors self-register).
+  createdById      String?
 
+  createdBy     User?          @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers  User[]         @relation("UserCreatedBy")
+  invitesSent   Invitation[]   @relation("InvitedBy")
   investor      Investor?
   auditLogs     AuditLog[]
   notifications Notification[]
@@ -40,6 +50,29 @@ model User {
   @@index([role])
   @@index([email])
   @@map("users")
+}
+
+// Staff invitations. A Super Admin creates a row with a one-time token
+// (hash is stored here; raw token is emailed). On acceptance, the invitee
+// sets a password and we mark acceptedAt.
+model Invitation {
+  id         String    @id @default(cuid())
+  email      String
+  fullName   String
+  role       String    // SUPER_ADMIN | MAKER | CHECKER | VIEWER
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  note       String?
+  invitedById String?
+
+  invitedBy  User?     @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  createdAt  DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("invitations")
 }
 
 model Session {
@@ -644,12 +677,19 @@ model MailLog {
 model AuditLog {
   id        String  @id @default(cuid())
   userId    String
+  // Snapshot of the user's email and role at the moment of the action —
+  // kept separately from the FK so audit history remains accurate even if
+  // the user is deactivated, renamed, or has their role changed later.
+  userEmail String?
+  userRole  String?
   action    String
   entity    String
   entityId  String?
   oldValue  String? // JSON as text
   newValue  String? // JSON as text
   ipAddress String?
+  userAgent String?
+  metadata  Json?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -657,6 +697,8 @@ model AuditLog {
 
   @@index([entity, entityId])
   @@index([createdAt])
+  @@index([userId])
+  @@index([action])
   @@map("audit_logs")
 }
 

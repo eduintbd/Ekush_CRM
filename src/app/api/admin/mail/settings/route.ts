@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getSmtpConfig, saveSmtpConfig, type SmtpConfig } from "@/lib/mail/smtp";
+import { STAFF_ROLES } from "@/lib/roles";
 
-const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
 export const runtime = "nodejs";
 
 async function guard() {
   const session = await getSession();
   const role = (session?.user as any)?.role;
-  if (!session || !ADMIN_ROLES.includes(role)) return null;
+  if (!session || !STAFF_ROLES.includes(role)) return null;
   return session;
 }
 

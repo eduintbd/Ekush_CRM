@@ -1,15 +1,13 @@
 import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-
-
+import { STAFF_ROLES, canApproveRequest } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const session = await getSession();
   const role = (session?.user as any)?.role;
-  const adminRoles = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
-
-  if (!adminRoles.includes(role)) {
+  
+  if (!STAFF_ROLES.includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -45,11 +43,6 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   const userId = (session?.user as any)?.id;
   const role = (session?.user as any)?.role;
-  const adminRoles = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
-
-  if (!adminRoles.includes(role)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
 
   const body = await req.json();
   const { approvalId, action, notes } = body;
@@ -63,9 +56,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Approval not found" }, { status: 404 });
   }
 
-  // Maker-checker: checker cannot be the same as maker
-  if (approval.makerId === userId) {
-    return NextResponse.json({ error: "Maker-checker violation: you cannot approve your own request" }, { status: 403 });
+  // Role + maker-checker separation in one check: caller must have
+  // APPROVE_REQUEST capability AND must not be the maker (creator).
+  const gate = canApproveRequest(role, userId, approval.makerId);
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.reason }, { status: 403 });
   }
 
   if (action === "approve") {

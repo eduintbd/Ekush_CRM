@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getPortfolioBannerDataUrl } from "@/lib/pdf-assets";
 import { buildTaxCertificateFullHtml } from "@/lib/mail/tax-certificate-html";
 import { renderHtmlToPdf } from "@/lib/html-to-pdf";
+import { STAFF_ROLES } from "@/lib/roles";
 
-const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPPORT", "SUPER_ADMIN"];
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -17,7 +17,7 @@ export const maxDuration = 60;
 export async function GET(req: NextRequest) {
   const session = await getSession();
   const role = (session?.user as any)?.role;
-  if (!session || !ADMIN_ROLES.includes(role)) {
+  if (!session || !STAFF_ROLES.includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

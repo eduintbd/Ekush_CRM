@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Check, X } from "lucide-react";
+import { STAFF_ROLES } from "@/lib/roles";
 
 const SIGNUP_CHECKLIST = [
   "Applicant's and Nominee's National ID Card",
@@ -37,8 +38,7 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.error ?? "Login failed");
       } else {
-        const adminRoles = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPPORT", "SUPER_ADMIN"];
-        const dest = adminRoles.includes(data.role) ? "/admin/dashboard" : "/dashboard";
+                const dest = STAFF_ROLES.includes(data.role) ? "/admin/dashboard" : "/dashboard";
         router.push(dest);
         router.refresh();
       }

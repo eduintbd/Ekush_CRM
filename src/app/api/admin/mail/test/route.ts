@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { sendMail, getSmtpConfig } from "@/lib/mail/smtp";
+import { STAFF_ROLES } from "@/lib/roles";
 
-const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
   const role = (session?.user as any)?.role;
-  if (!session || !ADMIN_ROLES.includes(role)) {
+  if (!session || !STAFF_ROLES.includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

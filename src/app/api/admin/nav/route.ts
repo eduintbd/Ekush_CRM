@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { STAFF_ROLES } from "@/lib/roles";
 
 
 import { prisma } from "@/lib/prisma";
@@ -8,9 +9,8 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   const role = (session?.user as any)?.role;
   const userId = (session?.user as any)?.id;
-  const adminRoles = ["ADMIN", "MANAGER", "SUPER_ADMIN"];
-
-  if (!adminRoles.includes(role)) {
+  
+  if (!STAFF_ROLES.includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

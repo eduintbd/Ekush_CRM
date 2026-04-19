@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { prisma, withRetry } from "@/lib/prisma";
+import { STAFF_ROLES } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { buildPortfolioStatementBody } from "@/lib/mail/portfolio-statement-html";
 import {
@@ -34,7 +35,7 @@ export default async function PortfolioStatementPage({
   try {
     if (isAdminPreview) {
       const user = (session.user as any);
-      const isAdmin = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"].includes(user?.role);
+      const isAdmin = STAFF_ROLES.includes(user?.role);
 
       if (!isAdmin) {
         return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Unauthorized</div>;

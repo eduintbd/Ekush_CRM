@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { STAFF_ROLES } from "@/lib/roles";
 
-const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const session = await getSession();
   const role = (session?.user as any)?.role;
-  if (!session || !ADMIN_ROLES.includes(role)) {
+  if (!session || !STAFF_ROLES.includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

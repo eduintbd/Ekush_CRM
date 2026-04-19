@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { STAFF_ROLES } from "@/lib/roles";
 
 
 import { prisma } from "@/lib/prisma";
@@ -21,8 +22,7 @@ export async function GET() {
   }
 
   // Admin sees all tickets, investor sees own
-  const adminRoles = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPPORT", "SUPER_ADMIN"];
-  const where = adminRoles.includes(role) ? {} : { investorId };
+    const where = STAFF_ROLES.includes(role) ? {} : { investorId };
 
   const tickets = await prisma.serviceRequest.findMany({
     where,

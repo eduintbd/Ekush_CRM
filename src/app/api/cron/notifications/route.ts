@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDigest } from "@/lib/mail/digest";
+import { STAFF_ROLES } from "@/lib/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,8 +23,7 @@ export async function GET(req: NextRequest) {
     const { getSession } = await import("@/lib/auth");
     const session = await getSession();
     const role = (session?.user as any)?.role;
-    const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
-    if (!session || !ADMIN_ROLES.includes(role)) {
+        if (!session || !STAFF_ROLES.includes(role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }

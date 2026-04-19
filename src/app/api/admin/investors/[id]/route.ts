@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendWelcomeEmailForInvestor } from "@/lib/mail/send-welcome";
-
-const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
-const DELETE_ROLES = ["ADMIN", "SUPER_ADMIN"];
+import { STAFF_ROLES, SUPER_ROLES } from "@/lib/roles";
 
 export async function PATCH(
   req: NextRequest,
@@ -13,7 +11,7 @@ export async function PATCH(
   const session = await getSession();
   const role = (session?.user as any)?.role;
 
-  if (!session || !ADMIN_ROLES.includes(role)) {
+  if (!session || !STAFF_ROLES.includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -149,8 +147,8 @@ export async function DELETE(
   const session = await getSession();
   const role = (session?.user as any)?.role;
 
-  if (!session || !DELETE_ROLES.includes(role)) {
-    return NextResponse.json({ error: "Unauthorized — only ADMIN or SUPER_ADMIN can delete investors" }, { status: 401 });
+  if (!session || !SUPER_ROLES.includes(role)) {
+    return NextResponse.json({ error: "Unauthorized — only Super Admin can delete investors" }, { status: 401 });
   }
 
   try {

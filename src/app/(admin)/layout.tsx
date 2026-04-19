@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { AuthProvider } from "@/components/layout/session-provider";
 import Link from "next/link";
 import { AdminLogoutButton } from "@/components/admin/logout-button";
+import { STAFF_ROLES } from "@/lib/roles";
 
 export default async function AdminLayout({
   children,
@@ -16,9 +17,8 @@ export default async function AdminLayout({
   }
 
   const role = session.user.role;
-  const adminRoles = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPPORT", "SUPER_ADMIN"];
 
-  if (!adminRoles.includes(role)) {
+  if (!STAFF_ROLES.includes(role)) {
     redirect("/dashboard");
   }
 

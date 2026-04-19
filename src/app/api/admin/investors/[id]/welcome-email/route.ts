@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { sendWelcomeEmailForInvestor } from "@/lib/mail/send-welcome";
+import { STAFF_ROLES } from "@/lib/roles";
 
-const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
 
 export const runtime = "nodejs";
 
@@ -15,7 +15,7 @@ export async function POST(
 ) {
   const session = await getSession();
   const role = (session?.user as any)?.role;
-  if (!session || !ADMIN_ROLES.includes(role)) {
+  if (!session || !STAFF_ROLES.includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

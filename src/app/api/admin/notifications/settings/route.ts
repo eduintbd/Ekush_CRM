@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getRecipients, saveRecipients } from "@/lib/mail/digest";
+import { STAFF_ROLES } from "@/lib/roles";
 
-const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 async function guard() {
   const session = await getSession();
   const role = (session?.user as any)?.role;
-  if (!session || !ADMIN_ROLES.includes(role)) return null;
+  if (!session || !STAFF_ROLES.includes(role)) return null;
   return session;
 }
 

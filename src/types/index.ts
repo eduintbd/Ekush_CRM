@@ -1,5 +1,6 @@
-export type UserRole = "INVESTOR" | "ADMIN" | "MANAGER" | "COMPLIANCE" | "SUPPORT" | "SUPER_ADMIN";
-export type UserStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "CLOSED";
+// UserRole moved to @/lib/roles — re-exported here so existing imports keep working.
+export type { UserRole } from "@/lib/roles";
+export type UserStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "CLOSED" | "INVITED" | "LOCKED" | "DEACTIVATED";
 export type InvestorType = "INDIVIDUAL" | "COMPANY_ORGANIZATION" | "MUTUAL_FUND" | "PROVIDENT_FUND" | "GRATUITY_FUND";
 export type TransactionChannel = "LS" | "SIP";
 export type TransactionDirection = "BUY" | "SELL";

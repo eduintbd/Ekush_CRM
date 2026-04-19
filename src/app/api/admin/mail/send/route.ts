@@ -1,3 +1,4 @@
+import { STAFF_ROLES } from "@/lib/roles";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +13,7 @@ import { buildPortfolioStatementFullHtml } from "@/lib/mail/portfolio-statement-
 import { buildTaxCertificateFullHtml } from "@/lib/mail/tax-certificate-html";
 import { renderHtmlBatchToPdfs } from "@/lib/html-to-pdf";
 
-const ADMIN_ROLES = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPER_ADMIN"];
+
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,7 +28,7 @@ interface SendRequestBody {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   const role = (session?.user as any)?.role;
-  if (!session || !ADMIN_ROLES.includes(role)) {
+  if (!session || !STAFF_ROLES.includes(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

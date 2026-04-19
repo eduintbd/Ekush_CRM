@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { STAFF_ROLES } from "@/lib/roles";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -39,8 +40,7 @@ export async function middleware(request: NextRequest) {
   // Admin routes — check role from user_metadata
   if (path.startsWith("/admin")) {
     const role = (user.user_metadata?.role as string) ?? "";
-    const adminRoles = ["ADMIN", "MANAGER", "COMPLIANCE", "SUPPORT", "SUPER_ADMIN"];
-    if (!adminRoles.includes(role)) {
+    if (!STAFF_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
