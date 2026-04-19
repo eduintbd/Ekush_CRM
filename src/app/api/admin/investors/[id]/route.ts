@@ -18,7 +18,7 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const { name, email, phone, address, nidNumber, tinNumber, investorType, status, userId, investorCode } = body;
+  const { name, email, phone, address, nidNumber, tinNumber, investorType, status, userId, investorCode, dividendOption } = body;
 
   try {
     // Validate investor code on activation; must be unique and in format letter+5-6 digits
@@ -80,6 +80,7 @@ export async function PATCH(
           nidNumber: nidNumber || null,
           tinNumber: tinNumber || null,
           investorType,
+          ...(dividendOption === "CASH" || dividendOption === "CIP" ? { dividendOption } : {}),
           ...(finalInvestorCode ? { investorCode: finalInvestorCode } : {}),
         },
       }),

@@ -58,6 +58,44 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === "update_bo") {
+    const { boId, dpId, brokerageHouse } = body;
+    await prisma.investor.update({
+      where: { id: investorId },
+      data: {
+        ...(boId !== undefined ? { boId: boId || null } : {}),
+        ...(dpId !== undefined ? { dpId: dpId || null } : {}),
+        ...(brokerageHouse !== undefined ? { brokerageHouse: brokerageHouse || null } : {}),
+      },
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "update_family") {
+    const { fatherName, motherName, spouseName } = body;
+    await prisma.investor.update({
+      where: { id: investorId },
+      data: {
+        ...(fatherName !== undefined ? { fatherName: fatherName || null } : {}),
+        ...(motherName !== undefined ? { motherName: motherName || null } : {}),
+        ...(spouseName !== undefined ? { spouseName: spouseName || null } : {}),
+      },
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "update_dividend_option") {
+    const { dividendOption } = body as { dividendOption?: string };
+    if (dividendOption !== "CASH" && dividendOption !== "CIP") {
+      return NextResponse.json({ error: "dividendOption must be CASH or CIP" }, { status: 400 });
+    }
+    await prisma.investor.update({
+      where: { id: investorId },
+      data: { dividendOption },
+    });
+    return NextResponse.json({ success: true });
+  }
+
   if (action === "add_bank") {
     const { bankName, branchName, accountNumber, routingNumber } = body;
     if (!bankName || !accountNumber) {

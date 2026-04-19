@@ -6,7 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { INVESTOR_TYPE_LABELS } from "@/lib/constants";
 import { User, Phone, Mail, MapPin, CreditCard, Shield, Users, Edit, Briefcase, Heart } from "lucide-react";
-import { EditContactForm, EditPersonalForm, AddBankForm, AddNomineeForm, DeleteButton } from "@/components/profile/edit-forms";
+import {
+  EditContactForm,
+  EditPersonalForm,
+  EditBoAccountForm,
+  EditFamilyForm,
+  EditDividendOptionForm,
+  AddBankForm,
+  AddNomineeForm,
+  DeleteButton,
+} from "@/components/profile/edit-forms";
 
 async function getInvestorProfile(investorId: string) {
   return prisma.investor.findUnique({
@@ -72,7 +81,7 @@ export default async function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* BO / Demat Account + Family Information (on file, read-only) */}
+      {/* BO / Demat Account + Family Information + Dividend Option (editable) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -81,14 +90,11 @@ export default async function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-4">
-              <InfoRow label="BO ID" value={investor.boId || "N/A"} />
-              <InfoRow label="DP ID" value={investor.dpId || "N/A"} />
-              <InfoRow label="Brokerage House" value={investor.brokerageHouse || "N/A"} />
-            </div>
-            <p className="text-[11px] text-text-muted mt-3 italic">
-              These details are maintained by Ekush. Contact support to request changes.
-            </p>
+            <EditBoAccountForm
+              boId={investor.boId || undefined}
+              dpId={investor.dpId || undefined}
+              brokerageHouse={investor.brokerageHouse || undefined}
+            />
           </CardContent>
         </Card>
 
@@ -99,17 +105,27 @@ export default async function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-4">
-              <InfoRow label="Father's Name" value={investor.fatherName || "N/A"} />
-              <InfoRow label="Mother's Name" value={investor.motherName || "N/A"} />
-              <InfoRow label="Spouse's Name" value={investor.spouseName || "N/A"} />
-            </div>
-            <p className="text-[11px] text-text-muted mt-3 italic">
-              Used on registration &amp; DDI forms. Contact support to update.
-            </p>
+            <EditFamilyForm
+              fatherName={investor.fatherName || undefined}
+              motherName={investor.motherName || undefined}
+              spouseName={investor.spouseName || undefined}
+            />
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-[16px] flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-icon-muted" /> Dividend Preference
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EditDividendOptionForm
+            current={(investor.dividendOption === "CIP" ? "CIP" : "CASH") as "CASH" | "CIP"}
+          />
+        </CardContent>
+      </Card>
 
       {/* Editable Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

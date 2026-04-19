@@ -87,6 +87,188 @@ export function EditPersonalForm({ address, nidNumber, tinNumber }: { address?: 
   );
 }
 
+export function EditBoAccountForm({
+  boId,
+  dpId,
+  brokerageHouse,
+}: {
+  boId?: string;
+  dpId?: string;
+  brokerageHouse?: string;
+}) {
+  const router = useRouter();
+  const [form, setForm] = useState({
+    boId: boId || "",
+    dpId: dpId || "",
+    brokerageHouse: brokerageHouse || "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setLoading(true);
+    setSaved(false);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_bo", ...form }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        router.refresh();
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <Input
+        label="BO ID"
+        value={form.boId}
+        onChange={(e) => setForm({ ...form, boId: e.target.value })}
+        placeholder="16-digit BO account number"
+      />
+      <Input
+        label="DP ID"
+        value={form.dpId}
+        onChange={(e) => setForm({ ...form, dpId: e.target.value })}
+        placeholder="Depository Participant ID"
+      />
+      <Input
+        label="Brokerage House"
+        value={form.brokerageHouse}
+        onChange={(e) => setForm({ ...form, brokerageHouse: e.target.value })}
+        placeholder="e.g. Sheltech Brokerage Limited"
+      />
+      <div className="flex items-center gap-2">
+        <Button onClick={handleSave} disabled={loading} size="sm" className="bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+          Save BO/Demat
+        </Button>
+        {saved && <span className="text-xs text-green-600">Saved!</span>}
+      </div>
+    </div>
+  );
+}
+
+export function EditFamilyForm({
+  fatherName,
+  motherName,
+  spouseName,
+}: {
+  fatherName?: string;
+  motherName?: string;
+  spouseName?: string;
+}) {
+  const router = useRouter();
+  const [form, setForm] = useState({
+    fatherName: fatherName || "",
+    motherName: motherName || "",
+    spouseName: spouseName || "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setLoading(true);
+    setSaved(false);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_family", ...form }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        router.refresh();
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <Input label="Father's Name" value={form.fatherName} onChange={(e) => setForm({ ...form, fatherName: e.target.value })} placeholder="Father's full name" />
+      <Input label="Mother's Name" value={form.motherName} onChange={(e) => setForm({ ...form, motherName: e.target.value })} placeholder="Mother's full name" />
+      <Input label="Spouse's Name" value={form.spouseName} onChange={(e) => setForm({ ...form, spouseName: e.target.value })} placeholder="Spouse's full name (if any)" />
+      <div className="flex items-center gap-2">
+        <Button onClick={handleSave} disabled={loading} size="sm" className="bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+          Save Family Info
+        </Button>
+        {saved && <span className="text-xs text-green-600">Saved!</span>}
+      </div>
+    </div>
+  );
+}
+
+export function EditDividendOptionForm({ current }: { current: "CASH" | "CIP" }) {
+  const router = useRouter();
+  const [value, setValue] = useState<"CASH" | "CIP">(current);
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setLoading(true);
+    setSaved(false);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_dividend_option", dividendOption: value }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        router.refresh();
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="text-[13px] font-medium text-text-label block mb-2">Dividend Option</label>
+        <div className="flex gap-2">
+          {(["CASH", "CIP"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setValue(v)}
+              className={
+                "flex-1 h-11 rounded-[5px] border-2 text-[13px] font-medium transition-colors " +
+                (value === v
+                  ? "border-ekush-orange bg-orange-50 text-ekush-orange"
+                  : "border-input-border bg-white text-text-body hover:border-ekush-orange/40")
+              }
+            >
+              {v === "CASH" ? "Cash payout" : "CIP (reinvest)"}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-text-muted mt-2 italic">
+          Cash: dividends are deposited into your registered bank. CIP: dividends are reinvested into new units.
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button onClick={handleSave} disabled={loading || value === current} size="sm" className="bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+          Save Preference
+        </Button>
+        {saved && <span className="text-xs text-green-600">Saved!</span>}
+      </div>
+    </div>
+  );
+}
+
 export function AddBankForm({ investorName }: { investorName?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);

@@ -181,6 +181,8 @@ export function InvestmentGrowth() {
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} minTickGap={40} interval="preserveStartEnd" tickFormatter={(v: string) => v.slice(2)} />
               <YAxis
+                domain={[80_000, "auto"]}
+                allowDataOverflow={false}
                 tick={{ fontSize: 10 }}
                 tickFormatter={(v: number) => (v >= 10_000_000 ? `${(v / 10_000_000).toFixed(1)}Cr` : v >= 100_000 ? `${(v / 100_000).toFixed(1)}L` : v.toFixed(0))}
               />

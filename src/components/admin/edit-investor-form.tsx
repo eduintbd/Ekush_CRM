@@ -20,6 +20,7 @@ interface Props {
     investorType: string;
     status: string;
     investorCode: string;
+    dividendOption: string;
     welcomeEmailSentAt: string | null;
   };
 }
@@ -116,6 +117,17 @@ export function AdminEditInvestorForm({ investorId, userId, initial }: Props) {
             {INVESTOR_TYPES.map((t) => (
               <option key={t} value={t}>{INVESTOR_TYPE_LABELS[t] || t}</option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[12px] font-medium text-gray-600 mb-1 block">Dividend Option</label>
+          <select
+            value={form.dividendOption}
+            onChange={(e) => setForm({ ...form, dividendOption: e.target.value })}
+            className="w-full h-[50px] rounded-[5px] border border-input-border px-3 text-sm focus:border-ekush-orange focus:outline-none bg-white"
+          >
+            <option value="CASH">Cash payout</option>
+            <option value="CIP">CIP (reinvest)</option>
           </select>
         </div>
         <div>
