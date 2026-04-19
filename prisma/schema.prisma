@@ -14,7 +14,10 @@ datasource db {
 
 model User {
   id               String   @id @default(cuid())
-  email            String?  @unique
+  // Email is NOT unique — family members investing under different investor
+  // codes may legitimately share a single email. Login resolves ambiguity by
+  // preferring the investor-code match; email lookups use findFirst.
+  email            String?
   phone            String?
   passwordHash     String
   supabaseId       String?  @unique
@@ -35,6 +38,7 @@ model User {
 
   @@index([status])
   @@index([role])
+  @@index([email])
   @@map("users")
 }
 
