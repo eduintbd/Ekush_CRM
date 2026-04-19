@@ -70,7 +70,12 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. Check account status
-  if (user.status === "SUSPENDED" || user.status === "CLOSED") {
+  if (
+    user.status === "SUSPENDED" ||
+    user.status === "CLOSED" ||
+    user.status === "DEACTIVATED" ||
+    user.status === "LOCKED"
+  ) {
     return NextResponse.json(
       { error: "Account is not active. Please contact support." },
       { status: 401 }

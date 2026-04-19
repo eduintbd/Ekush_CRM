@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { AuthProvider } from "@/components/layout/session-provider";
 import Link from "next/link";
 import { AdminLogoutButton } from "@/components/admin/logout-button";
-import { STAFF_ROLES } from "@/lib/roles";
+import { STAFF_ROLES, SUPER_ROLES, can, type Action } from "@/lib/roles";
 
 export default async function AdminLayout({
   children,
@@ -39,11 +39,18 @@ export default async function AdminLayout({
             <Link href="/admin/dashboard" className="text-text-dark hover:text-ekush-orange transition-colors">Dashboard</Link>
             <Link href="/admin/investors" className="text-text-dark hover:text-ekush-orange transition-colors">Investors</Link>
             <Link href="/admin/statements" className="text-text-dark hover:text-ekush-orange transition-colors">Statements</Link>
-            <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">Data Entry</Link>
+            {can(role, "EDIT_DATA_ENTRY" as Action) && (
+              <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">Data Entry</Link>
+            )}
             <Link href="/admin/fund-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Fund Reports</Link>
             <Link href="/admin/tickets" className="text-text-dark hover:text-ekush-orange transition-colors">Tickets</Link>
             <Link href="/admin/content" className="text-text-dark hover:text-ekush-orange transition-colors">Mail</Link>
-            <Link href="/admin/audit-log" className="text-text-dark hover:text-ekush-orange transition-colors">Audit Log</Link>
+            {can(role, "VIEW_AUDIT_LOG" as Action) && (
+              <Link href="/admin/audit-log" className="text-text-dark hover:text-ekush-orange transition-colors">Audit Log</Link>
+            )}
+            {SUPER_ROLES.includes(role) && (
+              <Link href="/admin/settings/team" className="text-text-dark hover:text-ekush-orange transition-colors">Team</Link>
+            )}
             <Link href="/dashboard" className="text-ekush-orange hover:text-ekush-orange-dark transition-colors">Portal</Link>
             <AdminLogoutButton userName={session.user.name || session.user.email || undefined} />
           </div>

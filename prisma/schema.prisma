@@ -41,6 +41,7 @@ model User {
   createdBy     User?          @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdUsers  User[]         @relation("UserCreatedBy")
   invitesSent   Invitation[]   @relation("InvitedBy")
+  resetTokens   PasswordResetToken[]
   investor      Investor?
   auditLogs     AuditLog[]
   notifications Notification[]
@@ -73,6 +74,23 @@ model Invitation {
   @@index([email])
   @@index([expiresAt])
   @@map("invitations")
+}
+
+// Self-serve password reset. One-time token; hash stored here, raw token
+// emailed. usedAt marks the token as consumed so a second click 404s.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 model Session {

@@ -260,6 +260,77 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+export function staffInviteEmail(v: {
+  fullName: string;
+  role: string;
+  acceptUrl: string;
+  expiresIn: string; // e.g. "24 hours"
+  inviterName: string;
+  note?: string;
+}): { subject: string; html: string; text: string } {
+  const subject = `You've been invited to Ekush Wealth Management Admin (${v.role})`;
+  const html = `
+    <div style="font-family:'Segoe UI', Arial, sans-serif;font-size:14px;color:#0D0D0D;line-height:1.6;background:#F5F5F5;padding:24px 0;">
+      <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div style="background:linear-gradient(135deg,#F28C28 0%,#E87722 100%);padding:24px;color:#fff;text-align:center;">
+          <h1 style="margin:0;font-size:18px;font-weight:700;">Ekush Wealth Management Admin</h1>
+          <p style="margin:6px 0 0;font-size:13px;opacity:0.95;">Team invitation</p>
+        </div>
+        <div style="padding:24px;">
+          <p>Hi ${escapeHtml(v.fullName)},</p>
+          <p><strong>${escapeHtml(v.inviterName)}</strong> has invited you to the Ekush Wealth Management admin portal as <strong>${escapeHtml(v.role)}</strong>.</p>
+          ${v.note ? `<p style="background:#FFFBEB;border-left:3px solid #F28C28;padding:10px 14px;margin:14px 0;font-size:13px;">${escapeHtml(v.note)}</p>` : ""}
+          <p>Click the button below to set your password and finish creating your account. The link expires in ${escapeHtml(v.expiresIn)}.</p>
+          <p style="text-align:center;margin:22px 0;"><a href="${escapeHtml(v.acceptUrl)}" style="display:inline-block;background:#F28C28;color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:600;">Accept invitation</a></p>
+          <p style="font-size:11px;color:#777;">If the button doesn't work, paste this link into your browser:<br/><a href="${escapeHtml(v.acceptUrl)}" style="color:#F28C28;word-break:break-all;">${escapeHtml(v.acceptUrl)}</a></p>
+          <p style="margin-top:24px;font-size:12px;color:#555;">If you weren't expecting this invitation, you can safely ignore it.</p>
+        </div>
+      </div>
+    </div>
+  `.trim();
+
+  const text = `
+Ekush Wealth Management Admin — team invitation
+
+Hi ${v.fullName},
+
+${v.inviterName} has invited you to the Ekush admin portal as ${v.role}.
+${v.note ? `\nNote from the inviter:\n${v.note}\n` : ""}
+Open this link to set your password and finish creating your account:
+${v.acceptUrl}
+
+The link expires in ${v.expiresIn}. If you weren't expecting this invitation, you can ignore it.
+  `.trim();
+
+  return { subject, html, text };
+}
+
+export function passwordResetEmail(v: {
+  fullName: string;
+  resetUrl: string;
+  expiresIn: string;
+}): { subject: string; html: string; text: string } {
+  const subject = "Reset your Ekush Wealth Management Admin password";
+  const html = `
+    <div style="font-family:'Segoe UI', Arial, sans-serif;font-size:14px;color:#0D0D0D;line-height:1.6;background:#F5F5F5;padding:24px 0;">
+      <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div style="background:linear-gradient(135deg,#F28C28 0%,#E87722 100%);padding:24px;color:#fff;text-align:center;">
+          <h1 style="margin:0;font-size:18px;font-weight:700;">Reset your password</h1>
+        </div>
+        <div style="padding:24px;">
+          <p>Hi ${escapeHtml(v.fullName)},</p>
+          <p>We received a request to reset your password. If that was you, click the button below to choose a new one. The link expires in ${escapeHtml(v.expiresIn)}.</p>
+          <p style="text-align:center;margin:22px 0;"><a href="${escapeHtml(v.resetUrl)}" style="display:inline-block;background:#F28C28;color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:600;">Reset password</a></p>
+          <p style="font-size:11px;color:#777;">If the button doesn't work, paste this link into your browser:<br/><a href="${escapeHtml(v.resetUrl)}" style="color:#F28C28;word-break:break-all;">${escapeHtml(v.resetUrl)}</a></p>
+          <p style="margin-top:24px;font-size:12px;color:#555;">If you didn't request this reset, ignore this message and your password will stay the same.</p>
+        </div>
+      </div>
+    </div>
+  `.trim();
+  const text = `Reset your Ekush admin password\n\nHi ${v.fullName},\n\nOpen this link to set a new password (expires in ${v.expiresIn}):\n${v.resetUrl}\n\nIf you didn't request this, ignore this message.`;
+  return { subject, html, text };
+}
+
 export const TEMPLATE_OPTIONS = [
   { id: "EFUF_PORTFOLIO", label: "EFUF Investment Update", fundCode: "EFUF", fundName: "EKUSH FIRST UNIT FUND" },
   { id: "EGF_PORTFOLIO", label: "EGF Investment Update", fundCode: "EGF", fundName: "EKUSH GROWTH FUND" },
