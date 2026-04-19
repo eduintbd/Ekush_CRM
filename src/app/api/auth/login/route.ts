@@ -44,6 +44,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
+  // 1b. Active investors must log in with their Investor Code. Email/phone
+  // lookups are only allowed while the account is still PENDING (so
+  // approvals staff and KYC helpers can reach new sign-ups). Admin / staff
+  // users have no investor record, so this guard doesn't affect them.
+  if (user.status === "ACTIVE" && user.investor) {
+    const enteredUpper = loginTrimmed.toUpperCase();
+    if (enteredUpper !== user.investor.investorCode.toUpperCase()) {
+      return NextResponse.json(
+        {
+          error:
+            "Active investors must log in with their Investor Code. Please enter your code (e.g. A00002) instead of an email or phone number.",
+        },
+        { status: 401 },
+      );
+    }
+  }
+
   // 2. Check account lock
   if (user.lockedUntil && user.lockedUntil > new Date()) {
     return NextResponse.json(

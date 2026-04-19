@@ -75,8 +75,8 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
-              label="Email / Investor Code"
-              placeholder="e.g., A00002 or your email"
+              label="Investor Code"
+              placeholder="e.g., A00002"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
               required

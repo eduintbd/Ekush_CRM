@@ -67,17 +67,23 @@ async function main() {
   // Step 2: Create admin user
   logProgress("Creating admin user...");
   const adminPassword = await hash("admin@ekush2026", 10);
-  await prisma.user.upsert({
+  const existingAdmin = await prisma.user.findFirst({
     where: { email: "admin@ekushwml.com" },
-    update: {},
-    create: {
-      email: "admin@ekushwml.com",
-      passwordHash: adminPassword,
-      role: "SUPER_ADMIN",
-      status: "ACTIVE",
-    },
+    select: { id: true },
   });
-  logProgress("  Admin user created (admin@ekushwml.com)");
+  if (!existingAdmin) {
+    await prisma.user.create({
+      data: {
+        email: "admin@ekushwml.com",
+        passwordHash: adminPassword,
+        role: "SUPER_ADMIN",
+        status: "ACTIVE",
+      },
+    });
+    logProgress("  Admin user created (admin@ekushwml.com)");
+  } else {
+    logProgress("  Admin user already exists, skipping");
+  }
 
   // Step 3: Import investors and holdings from Excel files
   await importInvestors(prisma);

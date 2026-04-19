@@ -29,14 +29,26 @@ export async function POST(req: NextRequest) {
     }
     results.push("3 funds created");
 
-    // Step 2: Create admin user
+    // Step 2: Create admin user (email is no longer unique, so upsert isn't
+    // available — check-then-create instead).
     const adminHash = await hash("admin@ekush2026", 10);
-    await prisma.user.upsert({
+    const existingAdmin = await prisma.user.findFirst({
       where: { email: "admin@ekushwml.com" },
-      update: {},
-      create: { email: "admin@ekushwml.com", passwordHash: adminHash, role: "SUPER_ADMIN", status: "ACTIVE" },
+      select: { id: true },
     });
-    results.push("Admin user created");
+    if (!existingAdmin) {
+      await prisma.user.create({
+        data: {
+          email: "admin@ekushwml.com",
+          passwordHash: adminHash,
+          role: "SUPER_ADMIN",
+          status: "ACTIVE",
+        },
+      });
+      results.push("Admin user created");
+    } else {
+      results.push("Admin user already exists");
+    }
 
     // Step 3: Create sample investors
     const sampleInvestors = [
