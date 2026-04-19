@@ -68,6 +68,16 @@ model Investor {
   address      String?
   riskProfile  String?
   boId         String?
+  // DP (Depository Participant) ID and brokerage house — completes the BO/demat
+  // account triple. Populated from the 'BO ID- NEW / DP ID- NEW / Brokerage
+  // House Name- NEW' columns in Investors Database.xlsx.
+  dpId            String?
+  brokerageHouse  String?
+  // Family names — sourced from 'Father Name / Mother Name / Spouse Name'
+  // columns in the Investors Database workbook. Used on printed forms.
+  fatherName      String?
+  motherName      String?
+  spouseName      String?
   dividendOption String @default("CASH") // CASH | CIP
   // Digital signature image URL (optional — wet signature on file is the fallback).
   // Used on auto-generated DDI forms.

@@ -5,7 +5,7 @@ import { prisma, withRetry } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { INVESTOR_TYPE_LABELS } from "@/lib/constants";
-import { User, Phone, Mail, MapPin, CreditCard, Shield, Users, Edit } from "lucide-react";
+import { User, Phone, Mail, MapPin, CreditCard, Shield, Users, Edit, Briefcase, Heart } from "lucide-react";
 import { EditContactForm, EditPersonalForm, AddBankForm, AddNomineeForm, DeleteButton } from "@/components/profile/edit-forms";
 
 async function getInvestorProfile(investorId: string) {
@@ -63,7 +63,6 @@ export default async function ProfilePage() {
             <InfoRow label="Investor Code" value={investor.investorCode} />
             <InfoRow label="Type" value={INVESTOR_TYPE_LABELS[investor.investorType] || investor.investorType} />
             <InfoRow label="Title" value={investor.title || "N/A"} />
-            <InfoRow label="BO ID" value={investor.boId || "N/A"} />
             <InfoRow label="Account Status">
               <Badge variant={investor.user.status === "ACTIVE" ? "active" : "pending"}>
                 {investor.user.status}
@@ -72,6 +71,45 @@ export default async function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* BO / Demat Account + Family Information (on file, read-only) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[16px] flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-icon-muted" /> BO / Demat Account
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4">
+              <InfoRow label="BO ID" value={investor.boId || "N/A"} />
+              <InfoRow label="DP ID" value={investor.dpId || "N/A"} />
+              <InfoRow label="Brokerage House" value={investor.brokerageHouse || "N/A"} />
+            </div>
+            <p className="text-[11px] text-text-muted mt-3 italic">
+              These details are maintained by Ekush. Contact support to request changes.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[16px] flex items-center gap-2">
+              <Heart className="w-4 h-4 text-icon-muted" /> Family Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4">
+              <InfoRow label="Father's Name" value={investor.fatherName || "N/A"} />
+              <InfoRow label="Mother's Name" value={investor.motherName || "N/A"} />
+              <InfoRow label="Spouse's Name" value={investor.spouseName || "N/A"} />
+            </div>
+            <p className="text-[11px] text-text-muted mt-3 italic">
+              Used on registration &amp; DDI forms. Contact support to update.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Editable Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
