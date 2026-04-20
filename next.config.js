@@ -8,17 +8,17 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {
-    // /api/public/* is consumed cross-origin by the marketing site
-    // (ekushwml.com + ekush.aibd.bd) — no auth, safe to expose with CORS.
+    // Routes consumed cross-origin by the marketing site
+    // (ekushwml.com + ekush.aibd.bd). All are public read-only — no auth.
+    const cors = [
+      { key: "Access-Control-Allow-Origin", value: "*" },
+      { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
+      { key: "Access-Control-Allow-Headers", value: "Content-Type" },
+    ];
     return [
-      {
-        source: "/api/public/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Origin", value: "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "Content-Type" },
-        ],
-      },
+      { source: "/api/public/:path*", headers: cors },
+      { source: "/api/funds", headers: cors },
+      { source: "/api/performance-comparison", headers: cors },
     ];
   },
 };
