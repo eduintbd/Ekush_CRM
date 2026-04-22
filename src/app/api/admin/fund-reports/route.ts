@@ -3,6 +3,18 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/upload";
 import { STAFF_ROLES } from "@/lib/roles";
+import { flushTag, fundTag } from "@/lib/marketing-revalidator";
+
+// Maps a fund-report reportType to the ekushwml.com rebuild's cache
+// section key (see web/src/lib/api/fund-detail.ts::fundCacheTag).
+// Report types not listed don't surface on the public site so skip
+// the webhook entirely.
+const REPORT_TYPE_TO_SECTION: Record<string, string> = {
+  PORTFOLIO_STATEMENT: "portfolio-statements",
+  FINANCIAL_STATEMENT: "financial-statements",
+  FORMATION_DOCUMENT: "formation-documents",
+  FORM_PDF: "forms",
+};
 
 
 export async function POST(req: NextRequest) {
@@ -41,7 +53,15 @@ export async function POST(req: NextRequest) {
       mimeType: file.type || null,
       uploadedBy: (session.user as any).id,
     },
+    include: { fund: { select: { code: true } } },
   });
+
+  // Best-effort cache flush on the marketing rebuild. flushTag never
+  // throws — a failure here must not fail the admin upload.
+  const section = REPORT_TYPE_TO_SECTION[reportType];
+  if (section && report.fund?.code) {
+    await flushTag(fundTag(report.fund.code, section));
+  }
 
   return NextResponse.json({ success: true, report });
 }
