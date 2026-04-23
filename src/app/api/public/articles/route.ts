@@ -7,7 +7,9 @@ import { prisma } from "@/lib/prisma";
  * the admin-curated displayOrder so the editorial team controls
  * the 3-column grid without touching code.
  */
-export const revalidate = 86400;
+// Rendered on demand, cached at the edge via the Cache-Control header
+// below. See videos/route.ts for the reasoning.
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const articles = await prisma.article.findMany({

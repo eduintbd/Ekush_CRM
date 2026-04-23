@@ -13,7 +13,9 @@ import { prisma } from "@/lib/prisma";
  * Buster still live in its static JSON. Keeping the query param
  * flexible means we can migrate those later without a schema change.
  */
-export const revalidate = 86400;
+// Rendered on demand, cached at the edge via the Cache-Control header
+// below. See videos/route.ts for the reasoning.
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const category = req.nextUrl.searchParams.get("category");

@@ -10,7 +10,10 @@ import { prisma } from "@/lib/prisma";
  * No auth, CORS allowed via next.config.js headers() rule for
  * /api/public/:path*.
  */
-export const revalidate = 86400;
+// Rendered on demand, cached at the edge via the Cache-Control header
+// on the response. `revalidate` would pre-render at build time, which
+// fails in fresh environments where the Prisma tables don't exist yet.
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const videos = await prisma.video.findMany({
