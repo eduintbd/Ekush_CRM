@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { RefreshVideoButton } from "@/components/admin/knowledge/refresh-video-button";
 
 export const dynamic = "force-dynamic";
 
@@ -91,12 +92,15 @@ export default async function AdminVideosPage() {
                     {v.displayOrder}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/admin/videos/${v.id}`}
-                      className="text-[12px] font-semibold text-ekush-orange hover:underline"
-                    >
-                      Edit
-                    </Link>
+                    <div className="flex items-center justify-end gap-4">
+                      <RefreshVideoButton id={v.id} />
+                      <Link
+                        href={`/admin/videos/${v.id}`}
+                        className="text-[12px] font-semibold text-ekush-orange hover:underline"
+                      >
+                        Edit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

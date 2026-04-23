@@ -58,7 +58,49 @@ export function VideoForm({
   const router = useRouter();
   const [form, setForm] = useState<VideoFormInitial>(initial ?? EMPTY);
   const [err, setErr] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // Calls /api/admin/videos/fetch-metadata for the URL currently in
+  // the form. On success it overwrites the YouTube-owned fields
+  // (title, videoId, thumbnail, duration, counts, published date) and
+  // leaves admin-owned fields (category, order, featured, published
+  // flag) alone.
+  async function handleFetch() {
+    setErr(null);
+    if (!form.youtubeUrl.trim()) {
+      setErr("Paste a YouTube URL first.");
+      return;
+    }
+    setFetching(true);
+    try {
+      const res = await fetch("/api/admin/videos/fetch-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: form.youtubeUrl }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(body?.error ?? "Fetch failed");
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        youtubeUrl: body.youtubeUrl ?? f.youtubeUrl,
+        videoId: body.videoId ?? f.videoId,
+        title: body.title ?? f.title,
+        thumbnailUrl: body.thumbnailUrl ?? f.thumbnailUrl,
+        duration: body.duration ?? f.duration,
+        viewCount: body.viewCount ?? f.viewCount,
+        likeCount: body.likeCount ?? f.likeCount,
+        publishedAt: body.publishedAt
+          ? String(body.publishedAt).slice(0, 10)
+          : f.publishedAt,
+      }));
+    } finally {
+      setFetching(false);
+    }
+  }
 
   const publishedAtISO = useMemo(() => {
     if (!form.publishedAt) return "";
@@ -116,9 +158,11 @@ export function VideoForm({
         <UrlFetchRow
           value={form.youtubeUrl}
           onChange={(v) => setForm((f) => ({ ...f, youtubeUrl: v }))}
+          onFetch={handleFetch}
+          fetching={fetching}
         />
 
-        <Field label="Video ID" hint="Derived from URL in Step 5. For now paste the 11-char ID after 'v=' or after 'youtu.be/'.">
+        <Field label="Video ID" hint="Auto-filled from the URL. Any 11-char YouTube ID works if you prefer to paste it directly.">
           <input
             type="text"
             value={form.videoId}
@@ -293,9 +337,13 @@ export function VideoForm({
 function UrlFetchRow({
   value,
   onChange,
+  onFetch,
+  fetching,
 }: {
   value: string;
   onChange: (v: string) => void;
+  onFetch: () => void;
+  fetching: boolean;
 }) {
   return (
     <div>
@@ -312,11 +360,11 @@ function UrlFetchRow({
         />
         <button
           type="button"
-          disabled
-          title="Auto-fetch lands in Step 5 — paste values manually for now"
-          className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-400"
+          onClick={onFetch}
+          disabled={fetching || !value.trim()}
+          className="rounded-md border border-ekush-orange bg-white px-4 py-2 text-sm font-semibold text-ekush-orange hover:bg-[#FFF4EC] disabled:opacity-50"
         >
-          Fetch
+          {fetching ? "Fetching…" : "Fetch"}
         </button>
       </div>
     </div>
