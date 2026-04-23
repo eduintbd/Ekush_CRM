@@ -188,6 +188,7 @@ model Fund {
   transactions        Transaction[]
   navRecords          NavRecord[]
   dividends           Dividend[]
+  dividendHistory     DividendHistory[]
   taxCertificates     TaxCertificate[]
   financialStatements FinancialStatement[]
   fundExpenses        FundExpense[]
@@ -387,6 +388,31 @@ model Dividend {
 
   @@index([investorId, fundId])
   @@map("dividends")
+}
+
+// ─── DividendHistory ────────────────────────────────────────────
+// Admin-entered annual dividend rate per fund/year, surfaced on the
+// ekushwml.com marketing site's Dividend History tab (columns: Year,
+// Annual Dividend %). Kept separate from Dividend (which is per-
+// investor-per-payout) because the per-investor aggregation doesn't
+// reliably reproduce the headline number the business announces.
+model DividendHistory {
+  id                String   @id @default(cuid())
+  fundId            String
+  year              Int
+  annualDividendPct Float
+  // Free-form note shown on admin list only (e.g. "Interim", "Final").
+  // Never surfaced on the public marketing site.
+  note              String?
+
+  fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fundId, year])
+  @@index([fundId])
+  @@map("dividend_histories")
 }
 
 // ─── Tax Certificate ─────────────────────────────────────────────

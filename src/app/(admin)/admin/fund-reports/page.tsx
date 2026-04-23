@@ -7,6 +7,7 @@ import { FUND_CODES } from "@/lib/constants";
 import { FileText, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { DeleteFundReportButton } from "@/components/admin/delete-fund-report-button";
 import { DeleteDailyUploadButton } from "@/components/admin/delete-daily-upload-button";
+import { DividendHistoryManager } from "@/components/admin/dividend-history-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,12 @@ export default async function AdminFundReportsPage() {
       dailyUploads: {
         orderBy: { createdAt: "desc" },
         take: 5,
+      },
+      // DividendHistory feeds the ekushwml.com Dividend History tab
+      // (Year + Annual %). Separate from the per-investor Dividend
+      // table; admin types these in via DividendHistoryManager below.
+      dividendHistory: {
+        orderBy: { year: "desc" },
       },
     },
   });
@@ -133,6 +140,33 @@ export default async function AdminFundReportsPage() {
                   </div>
                 )}
               </div>
+
+              {/* ── Dividend History rates (Year + Annual %) ───── */}
+              <details
+                className="group border border-gray-100 rounded-lg overflow-hidden"
+                open={fund.dividendHistory.length === 0}
+              >
+                <summary className="px-4 py-2.5 bg-gray-50 cursor-pointer flex items-center justify-between text-[13px] font-medium text-text-dark hover:bg-gray-100 transition-colors">
+                  <span className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-ekush-orange/10 text-ekush-orange flex items-center justify-center text-[10px] font-bold">
+                      {fund.dividendHistory.length}
+                    </span>
+                    Dividend History (Annual %)
+                    <span className="text-[10px] text-text-muted">— shown on ekushwml.com</span>
+                  </span>
+                  <span className="text-[10px] text-text-muted group-open:hidden">Click to expand</span>
+                </summary>
+                <DividendHistoryManager
+                  fundId={fund.id}
+                  fundCode={fund.code}
+                  initialEntries={fund.dividendHistory.map((e) => ({
+                    id: e.id,
+                    year: e.year,
+                    annualDividendPct: e.annualDividendPct,
+                    note: e.note,
+                  }))}
+                />
+              </details>
 
               {/* ── Report categories ──────────────────────────── */}
               {REPORT_TYPES.map((rt) => {
