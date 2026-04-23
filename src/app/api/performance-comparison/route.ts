@@ -204,12 +204,18 @@ export async function GET() {
   const indexBlocks = [
     {
       code: "DSEX",
+      // `name` is consumed by the rebuild's Historical Performance table
+      // — without it the row just renders "DSEX" from `code` which is
+      // fine, but naming explicitly is cleaner for any future UI that
+      // wants the friendly label.
+      name: "DSEX",
       returnType: "price-return" as const,
       returns: indexReturns(dsexSeries),
       series: dsexSeries.map((p) => ({ date: p.date.toISOString(), price: p.price })),
     },
     {
       code: "DS30",
+      name: "DS30",
       returnType: "price-return" as const,
       returns: indexReturns(ds30Series),
       series: ds30Series.map((p) => ({ date: p.date.toISOString(), price: p.price })),
