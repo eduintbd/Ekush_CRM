@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { importInvestors } from "./import-investors";
 import { importTransactions } from "./import-transactions";
+import { seedKnowledgeCenter } from "./knowledge";
 import { logProgress } from "./helpers";
 
 const prisma = new PrismaClient();
@@ -137,6 +138,10 @@ async function main() {
       logProgress(`  ${fund.code} AUM updated`);
     }
   }
+
+  // Step 5: Knowledge Center content (videos, articles, learn topics).
+  // Idempotent — safe to re-run after initial seed.
+  await seedKnowledgeCenter(prisma);
 
   logProgress("=== Seed Complete ===");
 }
