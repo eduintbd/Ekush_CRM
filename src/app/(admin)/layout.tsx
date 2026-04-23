@@ -43,6 +43,13 @@ export default async function AdminLayout({
               <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">Data Entry</Link>
             )}
             <Link href="/admin/fund-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Fund Reports</Link>
+            {/* Knowledge Center CMS — three independent content types.
+                Linked directly (not behind a dropdown) so each list
+                page is one click away; a dropdown would hide the
+                surfaces the marketing team uses daily. */}
+            <Link href="/admin/videos" className="text-text-dark hover:text-ekush-orange transition-colors">Videos</Link>
+            <Link href="/admin/articles" className="text-text-dark hover:text-ekush-orange transition-colors">Articles</Link>
+            <Link href="/admin/learn-topics" className="text-text-dark hover:text-ekush-orange transition-colors">Topics</Link>
             <Link href="/admin/tickets" className="text-text-dark hover:text-ekush-orange transition-colors">Tickets</Link>
             <Link href="/admin/content" className="text-text-dark hover:text-ekush-orange transition-colors">Mail</Link>
             {can(role, "VIEW_AUDIT_LOG" as Action) && (

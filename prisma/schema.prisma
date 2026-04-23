@@ -869,3 +869,82 @@ model InvestmentGoal {
   @@index([status])
   @@map("investment_goals")
 }
+
+// ─── Knowledge Center ────────────────────────────────────────────
+// Three admin-editable content types surfaced on the ekushwml.com
+// /knowledge page's new 5-tab layout:
+//   Video        → Video Library tab (YouTube videos)
+//   Article      → Press & Articles tab (TBS / Financial Express / other)
+//   LearnTopic   → Basic of Mutual Fund tab (icon-led expandable cards)
+//
+// FAQ and Myth Buster stay in the rebuild's static JSON for now —
+// LearnTopic.category is left as an open String so those can migrate
+// later without a schema change.
+
+model Video {
+  id           String   @id @default(cuid())
+  // Full URL the admin pasted; we derive videoId from this but keep
+  // the original so support can debug odd paste cases (shorts, etc.).
+  youtubeUrl   String
+  videoId      String   @unique
+  title        String
+  category     String   // basics | strategy | tax | industry
+  thumbnailUrl String
+  duration     String   // "14:32" — formatted at fetch time, not re-parsed
+  viewCount    Int      @default(0)
+  likeCount    Int      @default(0)
+  publishedAt  DateTime
+  // At most ONE Video may have isFeatured=true at a time. Enforced
+  // in the admin route handler via a transactional toggle-others-off
+  // step (Prisma has no native "unique where true" constraint).
+  isFeatured   Boolean  @default(false)
+  displayOrder Int      @default(0)
+  isPublished  Boolean  @default(false)
+  // Updated every time we re-fetch YouTube stats (daily cron + manual
+  // refresh button). Lets admin see staleness at a glance.
+  lastSyncedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isPublished, displayOrder])
+  @@index([isFeatured])
+  @@map("videos")
+}
+
+model Article {
+  id              String   @id @default(cuid())
+  articleUrl      String
+  publisher       String   // tbs | financial_express | other
+  title           String
+  excerpt         String
+  coverImageUrl   String
+  category        String   // opinion | analysis | feature | interview
+  publishedAt     DateTime
+  readTimeMinutes Int
+  displayOrder    Int      @default(0)
+  isPublished     Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isPublished, displayOrder])
+  @@map("articles")
+}
+
+model LearnTopic {
+  id           String   @id @default(cuid())
+  title        String
+  summary      String   // one-liner shown in the list row ("Read · 4 min · …")
+  body         String   @db.Text // HTML from TipTap
+  iconKey      String   // cube | layers | bank | chart  (extendable)
+  category     String   // basics (only used today)
+  displayOrder Int      @default(0)
+  isPublished  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, isPublished, displayOrder])
+  @@map("learn_topics")
+}
