@@ -30,6 +30,12 @@ export type YoutubeStats = {
   likeCount: number;
 };
 
+export type YoutubeHealth = {
+  title: string;            // best-effort, for UI only
+  privacyStatus: string;    // "public" | "unlisted" | "private"
+  embeddable: boolean;
+};
+
 export type YoutubeResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string; status?: number; kind?: YoutubeErrorKind };
@@ -227,6 +233,65 @@ export async function fetchYoutubeStatsBatch(
       out.set(item.id, {
         viewCount: Number(item.statistics?.viewCount ?? 0),
         likeCount: Number(item.statistics?.likeCount ?? 0),
+      });
+    }
+  }
+  return { ok: true, data: out };
+}
+
+/**
+ * Health-check variant used by /api/admin/videos/health. Pulls the
+ * minimum fields needed to flag broken rows — title for UI, privacy
+ * + embeddable status for the actual check. Any ID missing from the
+ * response is treated as "not_found" (deleted, region-blocked, or
+ * fully private) at the call site.
+ */
+export async function fetchYoutubeHealthBatch(
+  videoIds: string[],
+): Promise<YoutubeResult<Map<string, YoutubeHealth>>> {
+  const key = process.env.YOUTUBE_API_KEY;
+  if (!key) {
+    return { ok: false, error: "YOUTUBE_API_KEY not set", kind: "missing_key" };
+  }
+
+  const out = new Map<string, YoutubeHealth>();
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const slice = videoIds.slice(i, i + 50);
+    const url =
+      `${API_BASE}?part=status,snippet&id=${slice.join(",")}` +
+      `&key=${encodeURIComponent(key)}`;
+
+    let res: Response;
+    try {
+      res = await fetch(url, { cache: "no-store" });
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "network error",
+        kind: "network",
+      };
+    }
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: `YouTube API returned ${res.status}`,
+        status: res.status,
+        kind: "api_error",
+      };
+    }
+    const body = (await res.json()) as {
+      items?: Array<{
+        id?: string;
+        snippet?: { title?: string };
+        status?: { privacyStatus?: string; embeddable?: boolean };
+      }>;
+    };
+    for (const item of body.items ?? []) {
+      if (!item.id) continue;
+      out.set(item.id, {
+        title: item.snippet?.title ?? "",
+        privacyStatus: item.status?.privacyStatus ?? "unknown",
+        embeddable: item.status?.embeddable !== false,
       });
     }
   }

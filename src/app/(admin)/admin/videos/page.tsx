@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { RefreshVideoButton } from "@/components/admin/knowledge/refresh-video-button";
+import { VideoHealthCheck } from "@/components/admin/knowledge/video-health-check";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,12 @@ export default async function AdminVideosPage() {
           + Add video
         </Link>
       </div>
+
+      {/* Manual health check — pings YouTube for every stored row and
+          flags any that would render as a broken card on the public
+          site. Intentionally not automatic; admin runs it when they
+          suspect breakage. */}
+      <VideoHealthCheck />
 
       {videos.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-200 bg-white p-8 text-center text-sm text-text-body">
