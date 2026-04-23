@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { flushTag } from "@/lib/marketing-revalidator";
 import { requireStaff } from "../../knowledge/_guard";
-import { parseLearnTopicInput } from "../route";
+import { parseLearnTopicInput } from "../parsers";
 
 const BASE_TAG = "knowledge-learn-topics";
 const tagForCategory = (cat: string) => `${BASE_TAG}-${cat}`;

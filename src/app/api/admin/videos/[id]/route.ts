@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { flushTag } from "@/lib/marketing-revalidator";
 import { requireStaff } from "../../knowledge/_guard";
-import { parseVideoInput } from "../route";
+import { parseVideoInput } from "../parsers";
 
 const CACHE_TAG = "knowledge-videos";
 
