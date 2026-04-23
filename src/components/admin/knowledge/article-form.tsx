@@ -68,7 +68,46 @@ export function ArticleForm({
   const [form, setForm] = useState<ArticleFormInitial>(initial ?? EMPTY);
   const [err, setErr] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // Hits /api/admin/articles/fetch-metadata with whatever's in the
+  // articleUrl field. On success, overwrites the publisher-owned
+  // fields (title, excerpt, coverImageUrl, publisher, publishedAt,
+  // readTimeMinutes) and keeps admin-owned fields (category,
+  // displayOrder, isPublished) alone.
+  async function handleFetch() {
+    setErr(null);
+    if (!form.articleUrl.trim()) {
+      setErr("Paste an article URL first.");
+      return;
+    }
+    setFetching(true);
+    try {
+      const res = await fetch("/api/admin/articles/fetch-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: form.articleUrl }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErr(body?.error ?? "Fetch failed");
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        articleUrl: body.articleUrl ?? f.articleUrl,
+        title: body.title || f.title,
+        excerpt: body.excerpt || f.excerpt,
+        coverImageUrl: body.coverImageUrl || f.coverImageUrl,
+        publisher: body.publisher || f.publisher,
+        publishedAt: body.publishedAtDate || f.publishedAt,
+        readTimeMinutes: body.readTimeMinutes || f.readTimeMinutes,
+      }));
+    } finally {
+      setFetching(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -148,7 +187,7 @@ export function ArticleForm({
       className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]"
     >
       <div className="space-y-4">
-        <Field label="Article URL" hint="Step 6 will auto-fetch title/image/excerpt from this.">
+        <Field label="Article URL" hint="Paste a publisher link — title, excerpt, cover image, publisher and publish date are pulled from its Open Graph tags.">
           <div className="flex gap-2">
             <input
               type="url"
@@ -160,11 +199,11 @@ export function ArticleForm({
             />
             <button
               type="button"
-              disabled
-              title="Auto-fetch lands in Step 6 — paste values manually for now"
-              className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-400"
+              onClick={handleFetch}
+              disabled={fetching || !form.articleUrl.trim()}
+              className="rounded-md border border-ekush-orange bg-white px-4 py-2 text-sm font-semibold text-ekush-orange hover:bg-[#FFF4EC] disabled:opacity-50"
             >
-              Fetch from URL
+              {fetching ? "Fetching…" : "Fetch from URL"}
             </button>
           </div>
         </Field>
