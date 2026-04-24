@@ -94,6 +94,8 @@ type ArticlePreviewProps = {
 const PUBLISHER_DOT: Record<string, { dot: string; label: string }> = {
   tbs: { dot: "#0A4D3C", label: "The Business Standard" },
   financial_express: { dot: "#C8102E", label: "Financial Express" },
+  daily_star: { dot: "#0E2942", label: "The Daily Star" },
+  prothom_alo: { dot: "#D4191F", label: "Prothom Alo" },
   other: { dot: "#8A8A8A", label: "Other" },
 };
 
