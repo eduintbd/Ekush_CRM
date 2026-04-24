@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { flushTag } from "@/lib/marketing-revalidator";
 import { requireStaff } from "../../knowledge/_guard";
 import { parseVideoInput } from "../parsers";
 
 const CACHE_TAG = "knowledge-videos";
+const PUBLIC_PATH = "/api/public/videos";
 
 export async function PATCH(
   req: NextRequest,
@@ -39,6 +41,7 @@ export async function PATCH(
     });
   });
 
+  revalidatePath(PUBLIC_PATH);
   await flushTag(CACHE_TAG);
   return NextResponse.json({ video });
 }
@@ -51,6 +54,7 @@ export async function DELETE(
   if (guard) return guard;
 
   await prisma.video.delete({ where: { id: params.id } });
+  revalidatePath(PUBLIC_PATH);
   await flushTag(CACHE_TAG);
   return NextResponse.json({ success: true });
 }

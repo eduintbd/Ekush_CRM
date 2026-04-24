@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { flushTag } from "@/lib/marketing-revalidator";
 import { requireStaff } from "../../knowledge/_guard";
 import { parseLearnTopicInput } from "../parsers";
 
 const BASE_TAG = "knowledge-learn-topics";
+const PUBLIC_PATH = "/api/public/learn-topics";
 const tagForCategory = (cat: string) => `${BASE_TAG}-${cat}`;
 
 export async function PATCH(
@@ -37,6 +39,7 @@ export async function PATCH(
 
   // Flush both the old + new category in case admin moved the topic
   // across categories (e.g. basics → faq once we migrate those).
+  revalidatePath(PUBLIC_PATH);
   await flushTag(BASE_TAG);
   if (previous && previous.category !== topic.category) {
     await flushTag(tagForCategory(previous.category));
@@ -59,6 +62,7 @@ export async function DELETE(
   });
   await prisma.learnTopic.delete({ where: { id: params.id } });
 
+  revalidatePath(PUBLIC_PATH);
   await flushTag(BASE_TAG);
   if (existing) await flushTag(tagForCategory(existing.category));
 
