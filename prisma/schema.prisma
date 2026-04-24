@@ -958,6 +958,19 @@ model LearnTopic {
   @@map("learn_topics")
 }
 
+// Singleton row (id hard-coded to "singleton") holding the URL of
+// the image that should pop up on the rebuild's homepage PBSL-style.
+// Pinning image B from the LearnTopic gallery overwrites A on this
+// row; clearing it removes the popup site-wide. Kept as a dedicated
+// model so reads are a single cheap findUnique.
+model FrontPagePopup {
+  id        String   @id @default("singleton")
+  imageUrl  String?
+  updatedAt DateTime @updatedAt
+
+  @@map("front_page_popup")
+}
+
 // Admin-uploaded PDF research reports. Rendered as a Bridgewater-
 // style card grid on /knowledge → "Research & Insights" tab, below
 // the Myth Buster section. The PDF itself lives on Vercel Blob; the

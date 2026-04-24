@@ -10,9 +10,13 @@ export default async function EditLearnTopicPage({
 }: {
   params: { id: string };
 }) {
-  const topic = await prisma.learnTopic.findUnique({
-    where: { id: params.id },
-  });
+  const [topic, popup] = await Promise.all([
+    prisma.learnTopic.findUnique({ where: { id: params.id } }),
+    prisma.frontPagePopup.findUnique({
+      where: { id: "singleton" },
+      select: { imageUrl: true },
+    }),
+  ]);
   if (!topic) notFound();
 
   return (
@@ -30,6 +34,7 @@ export default async function EditLearnTopicPage({
       </div>
       <LearnTopicForm
         mode="edit"
+        pinnedImageUrl={popup?.imageUrl ?? null}
         initial={{
           id: topic.id,
           title: topic.title,

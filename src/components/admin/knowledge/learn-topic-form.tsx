@@ -60,15 +60,46 @@ const MAX_IMAGES = 10;
 export function LearnTopicForm({
   initial,
   mode,
+  pinnedImageUrl: pinnedImageUrlInitial = null,
 }: {
   initial?: LearnTopicFormInitial;
   mode: "create" | "edit";
+  pinnedImageUrl?: string | null;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<LearnTopicFormInitial>(initial ?? EMPTY);
   const [err, setErr] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
+  // Which image URL (if any) is currently the homepage popup. Null
+  // means nothing pinned site-wide. Mutating from here POSTs to the
+  // singleton endpoint, which is cross-topic — pinning image A in
+  // topic X auto-unpins whatever image was previously live, even if
+  // that image belonged to a different topic.
+  const [pinnedImageUrl, setPinnedImageUrl] = useState<string | null>(
+    pinnedImageUrlInitial,
+  );
+  const [pinning, setPinning] = useState(false);
+
+  async function setPopupImage(url: string | null) {
+    setErr(null);
+    setPinning(true);
+    try {
+      const res = await fetch("/api/admin/front-page-popup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErr(body?.error ?? "Pin failed");
+        return;
+      }
+      setPinnedImageUrl(url);
+    } finally {
+      setPinning(false);
+    }
+  }
 
   // Multi-image upload. Each selected file is POSTed to the upload
   // endpoint serially and appended to `images`. Serial (not parallel)
@@ -119,10 +150,18 @@ export function LearnTopicForm({
   }
 
   function removeImage(idx: number) {
+    const removed = form.images[idx];
     setForm((f) => ({
       ...f,
       images: f.images.filter((_, i) => i !== idx),
     }));
+    // Prevent orphan popups: if admin deletes the image currently
+    // live on the homepage, clear the singleton too. The
+    // fire-and-forget call is fine — if the POST fails, the pin
+    // still shows on the homepage until admin tries again.
+    if (removed && removed === pinnedImageUrl) {
+      void setPopupImage(null);
+    }
   }
 
   function moveImage(idx: number, dir: -1 | 1) {
@@ -258,6 +297,9 @@ export function LearnTopicForm({
           onRemove={removeImage}
           onMove={moveImage}
           maxImages={MAX_IMAGES}
+          pinnedImageUrl={pinnedImageUrl}
+          onPinToggle={(url) => void setPopupImage(url)}
+          pinBusy={pinning}
         />
       </Field>
 
@@ -365,6 +407,9 @@ function ImageGalleryEditor({
   onRemove,
   onMove,
   maxImages,
+  pinnedImageUrl,
+  onPinToggle,
+  pinBusy,
 }: {
   images: string[];
   uploading: boolean;
@@ -373,6 +418,9 @@ function ImageGalleryEditor({
   onRemove: (idx: number) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
   maxImages: number;
+  pinnedImageUrl: string | null;
+  onPinToggle: (url: string | null) => void;
+  pinBusy: boolean;
 }) {
   const [urlDraft, setUrlDraft] = useState("");
   const atLimit = images.length >= maxImages;
@@ -381,50 +429,82 @@ function ImageGalleryEditor({
     <div className="space-y-3">
       {images.length > 0 ? (
         <ul className="flex flex-wrap gap-3">
-          {images.map((src, i) => (
-            <li
-              key={`${src}-${i}`}
-              className="relative flex flex-col items-center gap-1 rounded-md border border-gray-200 bg-white p-2"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={src}
-                alt=""
-                className="h-20 w-20 rounded object-cover"
-              />
-              <div className="flex items-center gap-1 text-[11px] text-[#6A6A6A]">
+          {images.map((src, i) => {
+            const isPinned = src === pinnedImageUrl;
+            return (
+              <li
+                key={`${src}-${i}`}
+                className={`relative flex flex-col items-center gap-1 rounded-md border p-2 ${
+                  isPinned
+                    ? "border-ekush-orange bg-[#FFF4EC]"
+                    : "border-gray-200 bg-white"
+                }`}
+              >
+                {/* Pin-to-homepage-popup star. Only one image across
+                    the whole site can be pinned at once — clicking a
+                    star on a different image reassigns it. */}
                 <button
                   type="button"
-                  onClick={() => onMove(i, -1)}
-                  disabled={i === 0}
-                  className="rounded border border-gray-200 px-1.5 hover:bg-gray-50 disabled:opacity-30"
-                  title="Move left"
+                  onClick={() => onPinToggle(isPinned ? null : src)}
+                  disabled={pinBusy}
+                  title={
+                    isPinned
+                      ? "Unpin from homepage popup"
+                      : "Pin to homepage popup"
+                  }
+                  className={`absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full border text-[12px] disabled:opacity-50 ${
+                    isPinned
+                      ? "border-ekush-orange bg-ekush-orange text-white"
+                      : "border-gray-200 bg-white text-[#8A8A8A] hover:text-ekush-orange"
+                  }`}
                 >
-                  ←
+                  {isPinned ? "★" : "☆"}
                 </button>
-                <span className="px-1">{i + 1}</span>
-                <button
-                  type="button"
-                  onClick={() => onMove(i, 1)}
-                  disabled={i === images.length - 1}
-                  className="rounded border border-gray-200 px-1.5 hover:bg-gray-50 disabled:opacity-30"
-                  title="Move right"
-                >
-                  →
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemove(i)}
-                  className="ml-1 rounded border border-red-200 bg-white px-1.5 text-red-600 hover:bg-red-50"
-                  title="Remove"
-                >
-                  ✕
-                </button>
-              </div>
-            </li>
-          ))}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt=""
+                  className="h-20 w-20 rounded object-cover"
+                />
+                <div className="flex items-center gap-1 text-[11px] text-[#6A6A6A]">
+                  <button
+                    type="button"
+                    onClick={() => onMove(i, -1)}
+                    disabled={i === 0}
+                    className="rounded border border-gray-200 px-1.5 hover:bg-gray-50 disabled:opacity-30"
+                    title="Move left"
+                  >
+                    ←
+                  </button>
+                  <span className="px-1">{i + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => onMove(i, 1)}
+                    disabled={i === images.length - 1}
+                    className="rounded border border-gray-200 px-1.5 hover:bg-gray-50 disabled:opacity-30"
+                    title="Move right"
+                  >
+                    →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(i)}
+                    className="ml-1 rounded border border-red-200 bg-white px-1.5 text-red-600 hover:bg-red-50"
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
+      <p className="text-[11px] text-[#8A8A8A]">
+        Tap the ☆ on any image to pin it as the homepage popup. Only
+        one image can be pinned site-wide — pinning a new one replaces
+        the previous.
+      </p>
 
       <div className="flex flex-wrap items-center gap-2">
         <input

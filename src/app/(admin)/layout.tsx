@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { AuthProvider } from "@/components/layout/session-provider";
 import Link from "next/link";
 import { AdminLogoutButton } from "@/components/admin/logout-button";
+import { ContentNavDropdown } from "@/components/admin/content-nav-dropdown";
 import { STAFF_ROLES, SUPER_ROLES, can, type Action } from "@/lib/roles";
 
 export default async function AdminLayout({
@@ -43,14 +44,10 @@ export default async function AdminLayout({
               <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">Data Entry</Link>
             )}
             <Link href="/admin/fund-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Fund Reports</Link>
-            {/* Knowledge Center CMS — three independent content types.
-                Linked directly (not behind a dropdown) so each list
-                page is one click away; a dropdown would hide the
-                surfaces the marketing team uses daily. */}
-            <Link href="/admin/videos" className="text-text-dark hover:text-ekush-orange transition-colors">Videos</Link>
-            <Link href="/admin/articles" className="text-text-dark hover:text-ekush-orange transition-colors">Articles</Link>
-            <Link href="/admin/learn-topics" className="text-text-dark hover:text-ekush-orange transition-colors">Topics</Link>
-            <Link href="/admin/research-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Research</Link>
+            {/* Knowledge Center CMS surfaces — grouped under one
+                "Contents" dropdown so the top bar stays compact as
+                we add sections. */}
+            <ContentNavDropdown />
             <Link href="/admin/tickets" className="text-text-dark hover:text-ekush-orange transition-colors">Tickets</Link>
             <Link href="/admin/content" className="text-text-dark hover:text-ekush-orange transition-colors">Mail</Link>
             {can(role, "VIEW_AUDIT_LOG" as Action) && (
