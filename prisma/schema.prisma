@@ -957,3 +957,23 @@ model LearnTopic {
   @@index([category, isPublished, displayOrder])
   @@map("learn_topics")
 }
+
+// Admin-uploaded PDF research reports. Rendered as a Bridgewater-
+// style card grid on /knowledge → "Research & Insights" tab, below
+// the Myth Buster section. The PDF itself lives on Vercel Blob; the
+// card links out to the file in a new tab.
+model ResearchReport {
+  id           String   @id @default(cuid())
+  title        String
+  description  String   // 1–2 sentences shown on the public card
+  pdfUrl       String   // Vercel Blob URL, required
+  pdfSizeBytes Int?     // populated by the upload handler so the card
+                        // can show "PDF · 2.3 MB"
+  displayOrder Int      @default(0)
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isPublished, displayOrder])
+  @@map("research_reports")
+}

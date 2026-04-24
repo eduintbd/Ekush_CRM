@@ -50,6 +50,7 @@ export default async function AdminLayout({
             <Link href="/admin/videos" className="text-text-dark hover:text-ekush-orange transition-colors">Videos</Link>
             <Link href="/admin/articles" className="text-text-dark hover:text-ekush-orange transition-colors">Articles</Link>
             <Link href="/admin/learn-topics" className="text-text-dark hover:text-ekush-orange transition-colors">Topics</Link>
+            <Link href="/admin/research-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Research</Link>
             <Link href="/admin/tickets" className="text-text-dark hover:text-ekush-orange transition-colors">Tickets</Link>
             <Link href="/admin/content" className="text-text-dark hover:text-ekush-orange transition-colors">Mail</Link>
             {can(role, "VIEW_AUDIT_LOG" as Action) && (

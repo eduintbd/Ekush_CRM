@@ -28,6 +28,7 @@ const PUBLIC_PATHS = [
   "/api/public/learn-topics?category=basics",
   "/api/public/learn-topics?category=faq",
   "/api/public/learn-topics?category=myth_buster",
+  "/api/public/research-reports",
 ];
 
 const REBUILD_TAGS = [
@@ -37,6 +38,7 @@ const REBUILD_TAGS = [
   "knowledge-learn-topics-basics",
   "knowledge-learn-topics-faq",
   "knowledge-learn-topics-myth_buster",
+  "knowledge-research-reports",
 ];
 
 export async function GET() {
