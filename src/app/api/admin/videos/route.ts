@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { flushTag } from "@/lib/marketing-revalidator";
 import { requireStaff } from "../knowledge/_guard";
 import { parseVideoInput } from "./parsers";
 
-// Tag used by rebuild's /api/public/videos wrapper. On any write we
-// invalidate the whole list since ordering and the single featured
-// row can shift from any individual edit.
+// Two caches sit in front of the public video list and both must be
+// dropped on every write:
+//   1. Our own Vercel edge cache — /api/public/videos ships
+//      Cache-Control: s-maxage=86400, so Vercel CDN pins the response
+//      for a day. revalidatePath purges it.
+//   2. The rebuild's Next.js fetch cache — tagged ISR invalidated via
+//      the outbound webhook in flushTag.
+// Ordering and the single featured row can shift from any individual
+// edit, so we always invalidate the whole list.
 const CACHE_TAG = "knowledge-videos";
+const PUBLIC_PATH = "/api/public/videos";
 
 export async function GET() {
   const guard = await requireStaff();
@@ -49,6 +57,7 @@ export async function POST(req: NextRequest) {
     return tx.video.create({ data: parsed });
   });
 
+  revalidatePath(PUBLIC_PATH);
   await flushTag(CACHE_TAG);
   return NextResponse.json({ video });
 }

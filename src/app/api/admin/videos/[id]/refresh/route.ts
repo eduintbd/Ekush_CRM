@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { fetchYoutubeMetadata } from "@/lib/youtube";
 import { flushTag } from "@/lib/marketing-revalidator";
@@ -50,6 +51,7 @@ export async function POST(
     },
   });
 
+  revalidatePath("/api/public/videos");
   await flushTag("knowledge-videos");
   return NextResponse.json({ video });
 }

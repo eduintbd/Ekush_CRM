@@ -34,6 +34,8 @@ export type ArticleFormInitial = {
 const PUBLISHERS = [
   { value: "tbs", label: "The Business Standard" },
   { value: "financial_express", label: "Financial Express" },
+  { value: "daily_star", label: "The Daily Star" },
+  { value: "prothom_alo", label: "Prothom Alo" },
   { value: "other", label: "Other" },
 ] as const;
 

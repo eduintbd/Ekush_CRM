@@ -9,6 +9,7 @@ export type LearnTopicInput = {
   summary: string;
   body: string;
   iconKey: string;
+  imageUrl: string | null;
   category: string;
   displayOrder: number;
   isPublished: boolean;
@@ -24,6 +25,7 @@ export function parseLearnTopicInput(
   const bodyHtml = str(body.body);
   const iconKey = str(body.iconKey);
   const category = str(body.category);
+  const imageUrlRaw = str(body.imageUrl);
 
   if (!title) return { error: "title is required" };
   if (!summary) return { error: "summary is required" };
@@ -35,12 +37,19 @@ export function parseLearnTopicInput(
     };
   }
   if (!category) return { error: "category is required" };
+  // Admin-uploaded image is optional; empty string → null so Prisma
+  // stores a real NULL rather than the empty string (the rebuild
+  // treats "" and null identically, but NULL is cleaner in queries).
+  if (imageUrlRaw && !/^https?:\/\//i.test(imageUrlRaw)) {
+    return { error: "imageUrl must be an http(s) URL" };
+  }
 
   return {
     title,
     summary,
     body: bodyHtml,
     iconKey,
+    imageUrl: imageUrlRaw || null,
     category,
     displayOrder: intOrZero(body.displayOrder),
     isPublished: !!body.isPublished,

@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { flushTag } from "@/lib/marketing-revalidator";
 import { requireStaff } from "../../knowledge/_guard";
 import { parseLearnTopicInput } from "../parsers";
 
+// See ../route.ts for why we purge every category variant explicitly.
 const BASE_TAG = "knowledge-learn-topics";
+const PUBLIC_BASE_PATH = "/api/public/learn-topics";
+const PUBLIC_CATEGORY_PATHS = [
+  `${PUBLIC_BASE_PATH}?category=basics`,
+  `${PUBLIC_BASE_PATH}?category=faq`,
+  `${PUBLIC_BASE_PATH}?category=myth_buster`,
+];
 const tagForCategory = (cat: string) => `${BASE_TAG}-${cat}`;
+
+function purgePublicPaths() {
+  revalidatePath(PUBLIC_BASE_PATH);
+  for (const p of PUBLIC_CATEGORY_PATHS) revalidatePath(p);
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -37,6 +50,7 @@ export async function PATCH(
 
   // Flush both the old + new category in case admin moved the topic
   // across categories (e.g. basics → faq once we migrate those).
+  purgePublicPaths();
   await flushTag(BASE_TAG);
   if (previous && previous.category !== topic.category) {
     await flushTag(tagForCategory(previous.category));
@@ -59,6 +73,7 @@ export async function DELETE(
   });
   await prisma.learnTopic.delete({ where: { id: params.id } });
 
+  purgePublicPaths();
   await flushTag(BASE_TAG);
   if (existing) await flushTag(tagForCategory(existing.category));
 

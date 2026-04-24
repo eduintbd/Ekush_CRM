@@ -36,6 +36,7 @@ export default async function EditLearnTopicPage({
           summary: topic.summary,
           body: topic.body,
           iconKey: topic.iconKey,
+          imageUrl: topic.imageUrl ?? "",
           category: topic.category,
           displayOrder: topic.displayOrder,
           isPublished: topic.isPublished,
