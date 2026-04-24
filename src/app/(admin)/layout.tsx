@@ -44,6 +44,7 @@ export default async function AdminLayout({
               <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">Data Entry</Link>
             )}
             <Link href="/admin/fund-reports" className="text-text-dark hover:text-ekush-orange transition-colors">Fund Reports</Link>
+            <Link href="/admin/fund-fact-sheets" className="text-text-dark hover:text-ekush-orange transition-colors">Fact Sheets</Link>
             {/* Knowledge Center CMS surfaces — grouped under one
                 "Contents" dropdown so the top bar stays compact as
                 we add sections. */}

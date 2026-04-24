@@ -958,6 +958,37 @@ model LearnTopic {
   @@map("learn_topics")
 }
 
+// Admin-maintained Fund Fact Sheet — one row per fund code (EFUF,
+// EGF, ESRF today). Populated manually today; a future cron can
+// seed it by parsing the latest portfolio-statement PDF, with the
+// admin form allowing overrides. JSON columns keep the row
+// normalised against fund code while letting the shape evolve
+// without schema churn.
+//
+//   assetAllocation: [{category: "Equity", weightPct: 65}, ...]
+//   topHoldings:     [{ticker: "SQUAREPHARMA", name: "Square Pharma",
+//                      weightPct: 7.2}, ...]
+model FundFactSheet {
+  id              String   @id @default(cuid())
+  // Fund code as used in the rebuild's URL slug — "EFUF" / "EGF" /
+  // "ESRF". Unique so the admin form is an upsert against this code.
+  fundCode        String   @unique
+  asOfDate        DateTime   // quarter-end the data reflects
+  assetAllocation Json     @default("[]")
+  topHoldings     Json     @default("[]")
+  // Source tracking: which portfolio-statement PDF the data was
+  // pulled from (URL). Null until the first auto-extract lands.
+  sourcePdfUrl    String?
+  autoExtractedAt DateTime?
+  // Touched on every admin save so the public API can show a
+  // "Last updated" hint if we ever want it.
+  updatedBy       String?  // user id of the admin who last saved
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("fund_fact_sheets")
+}
+
 // Singleton row (id hard-coded to "singleton") holding the URL of
 // the image that should pop up on the rebuild's homepage PBSL-style.
 // Pinning image B from the LearnTopic gallery overwrites A on this
