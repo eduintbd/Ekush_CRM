@@ -22,7 +22,12 @@ export type OgMetadata = {
   excerpt: string;
   coverImageUrl: string;
   publishedAt: string | null; // ISO if parseable
-  publisher: "tbs" | "financial_express" | "other";
+  publisher:
+    | "tbs"
+    | "financial_express"
+    | "daily_star"
+    | "prothom_alo"
+    | "other";
   readTimeMinutes: number;
 };
 
@@ -50,6 +55,8 @@ export function detectPublisher(
   }
   if (host.includes("tbsnews.net")) return "tbs";
   if (host.includes("thefinancialexpress.com.bd")) return "financial_express";
+  if (host.includes("thedailystar.net")) return "daily_star";
+  if (host.includes("prothomalo.com")) return "prothom_alo";
   return "other";
 }
 
