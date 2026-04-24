@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
       summary: true,
       body: true,
       iconKey: true,
+      imageUrl: true,
       category: true,
       displayOrder: true,
     },

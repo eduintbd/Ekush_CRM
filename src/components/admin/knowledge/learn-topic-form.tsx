@@ -23,6 +23,7 @@ export type LearnTopicFormInitial = {
   summary: string;
   body: string; // HTML
   iconKey: string;
+  imageUrl: string;
   category: string;
   displayOrder: number;
   isPublished: boolean;
@@ -48,6 +49,7 @@ const EMPTY: LearnTopicFormInitial = {
   summary: "",
   body: "",
   iconKey: "cube",
+  imageUrl: "",
   category: "basics",
   displayOrder: 0,
   isPublished: true,
@@ -63,7 +65,30 @@ export function LearnTopicForm({
   const router = useRouter();
   const [form, setForm] = useState<LearnTopicFormInitial>(initial ?? EMPTY);
   const [err, setErr] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  async function onUploadImage(file: File) {
+    setErr(null);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/learn-topics/upload-image", {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErr(body?.error ?? "Upload failed");
+        return;
+      }
+      const body = await res.json();
+      setForm((f) => ({ ...f, imageUrl: body.url }));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -176,6 +201,53 @@ export function LearnTopicForm({
         </Field>
       </div>
 
+      <Field
+        label="Cover image"
+        hint="Optional. When set, the rebuild's basics card shows this image in place of the icon."
+      >
+        <div className="flex gap-2">
+          <input
+            type="url"
+            placeholder="Paste an https URL or upload below"
+            value={form.imageUrl}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, imageUrl: e.target.value }))
+            }
+            className={`${inputClass} flex-1`}
+          />
+          <label className="cursor-pointer rounded-md border border-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-50">
+            {uploading ? "Uploading…" : "Upload"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onUploadImage(f);
+              }}
+            />
+          </label>
+          {form.imageUrl ? (
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+              className="rounded-md border border-gray-200 px-3 text-sm font-medium hover:bg-gray-50"
+              title="Clear image — fall back to the selected icon"
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+        {form.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={form.imageUrl}
+            alt=""
+            className="mt-2 h-24 w-24 rounded-md border border-gray-200 object-cover"
+          />
+        ) : null}
+      </Field>
+
       <Field label="Body">
         <TiptapEditor
           value={form.body}
@@ -208,6 +280,7 @@ export function LearnTopicForm({
           title={form.title}
           summary={form.summary}
           iconKey={form.iconKey}
+          imageUrl={form.imageUrl}
         />
       </div>
 

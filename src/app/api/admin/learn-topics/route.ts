@@ -6,9 +6,26 @@ import { requireStaff } from "../knowledge/_guard";
 import { parseLearnTopicInput } from "./parsers";
 
 // See videos/route.ts for the two-cache-layer invariant.
+//
+// Extra twist for this route: the rebuild fetches
+// `/api/public/learn-topics?category=basics`, which Vercel's CDN
+// caches as a separate entry from the no-query base path.
+// revalidatePath only purges exact URLs, so on every write we
+// explicitly purge the base path AND every category variant we
+// ship today.
 const BASE_TAG = "knowledge-learn-topics";
-const PUBLIC_PATH = "/api/public/learn-topics";
+const PUBLIC_BASE_PATH = "/api/public/learn-topics";
+const PUBLIC_CATEGORY_PATHS = [
+  `${PUBLIC_BASE_PATH}?category=basics`,
+  `${PUBLIC_BASE_PATH}?category=faq`,
+  `${PUBLIC_BASE_PATH}?category=myth_buster`,
+];
 const tagForCategory = (cat: string) => `${BASE_TAG}-${cat}`;
+
+function purgePublicPaths() {
+  revalidatePath(PUBLIC_BASE_PATH);
+  for (const p of PUBLIC_CATEGORY_PATHS) revalidatePath(p);
+}
 
 export async function GET(req: NextRequest) {
   const guard = await requireStaff();
@@ -39,7 +56,7 @@ export async function POST(req: NextRequest) {
   }
 
   const topic = await prisma.learnTopic.create({ data: parsed });
-  revalidatePath(PUBLIC_PATH);
+  purgePublicPaths();
   await flushTag(BASE_TAG);
   await flushTag(tagForCategory(topic.category));
   return NextResponse.json({ topic });

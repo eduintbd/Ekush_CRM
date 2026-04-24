@@ -150,18 +150,29 @@ type LearnTopicPreviewProps = {
   title: string;
   summary: string;
   iconKey: string;
+  imageUrl?: string;
 };
 
 export function LearnTopicPreviewRow({
   title,
   summary,
   iconKey,
+  imageUrl,
 }: LearnTopicPreviewProps) {
   return (
     <div className="flex items-center gap-5 rounded-xl border border-[#EEE6DD] bg-white px-6 py-5">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[#FFF4EC] text-[#F27023]">
-        <IconFor iconKey={iconKey} />
-      </span>
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt=""
+          className="h-11 w-11 shrink-0 rounded-[10px] object-cover"
+        />
+      ) : (
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[#FFF4EC] text-[#F27023]">
+          <IconFor iconKey={iconKey} />
+        </span>
+      )}
       <div className="flex-1">
         <p className="text-[16px] font-semibold">{title || "Topic title"}</p>
         <p className="mt-[3px] text-[13px] text-[#8A8A8A]">

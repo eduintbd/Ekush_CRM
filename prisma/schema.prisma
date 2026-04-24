@@ -938,6 +938,10 @@ model LearnTopic {
   summary      String   // one-liner shown in the list row ("Read · 4 min · …")
   body         String   @db.Text // HTML from TipTap
   iconKey      String   // cube | layers | bank | chart  (extendable)
+  // Optional admin-uploaded cover image. When present the rebuild's
+  // basics card renders the image in the icon tile instead of the
+  // iconKey SVG. Vercel Blob URL or any https link the admin pastes.
+  imageUrl     String?
   category     String   // basics (only used today)
   displayOrder Int      @default(0)
   isPublished  Boolean  @default(false)
