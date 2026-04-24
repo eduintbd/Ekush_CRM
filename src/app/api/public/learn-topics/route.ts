@@ -13,8 +13,14 @@ import { prisma } from "@/lib/prisma";
  * Buster still live in its static JSON. Keeping the query param
  * flexible means we can migrate those later without a schema change.
  */
-// Rendered on demand, cached at the edge via the Cache-Control header
-// below. See videos/route.ts for the reasoning.
+// Rendered on demand. Unlike /api/public/videos, this route takes a
+// `?category=...` query string and Next.js's revalidatePath doesn't
+// purge Vercel-CDN entries for query-parametered URLs — so a long
+// s-maxage would let the `?category=basics` variant sit stale after
+// every admin write. The rebuild's own ISR (web/src/lib/api/knowledge.ts
+// with `revalidate: 3600`) is the real cache; this endpoint just reads
+// Prisma cheap. See videos/route.ts for the reasoning that does still
+// apply to the query-less endpoints.
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
@@ -40,8 +46,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(topics, {
     headers: {
-      "Cache-Control":
-        "public, s-maxage=86400, stale-while-revalidate=172800",
+      // No Vercel-edge caching here — see the file-top comment.
+      "Cache-Control": "private, no-store",
     },
   });
 }
