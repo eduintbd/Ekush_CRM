@@ -36,7 +36,15 @@ export default async function EditLearnTopicPage({
           summary: topic.summary,
           body: topic.body,
           iconKey: topic.iconKey,
-          imageUrl: topic.imageUrl ?? "",
+          // Seed the gallery from the new `images` array. Legacy rows
+          // that only have the deprecated `imageUrl` column get it
+          // promoted into the array so the admin can see + edit it.
+          images:
+            topic.images.length > 0
+              ? topic.images
+              : topic.imageUrl
+              ? [topic.imageUrl]
+              : [],
           category: topic.category,
           displayOrder: topic.displayOrder,
           isPublished: topic.isPublished,

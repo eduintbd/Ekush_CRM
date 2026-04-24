@@ -9,6 +9,10 @@ export type LearnTopicInput = {
   summary: string;
   body: string;
   iconKey: string;
+  images: string[];
+  // Kept so legacy topics that still have imageUrl in the DB round-trip
+  // through PATCH without clearing the field. New writes should prefer
+  // `images`. The public API merges the two on read.
   imageUrl: string | null;
   category: string;
   displayOrder: number;
@@ -37,11 +41,24 @@ export function parseLearnTopicInput(
     };
   }
   if (!category) return { error: "category is required" };
-  // Admin-uploaded image is optional; empty string → null so Prisma
-  // stores a real NULL rather than the empty string (the rebuild
-  // treats "" and null identically, but NULL is cleaner in queries).
   if (imageUrlRaw && !/^https?:\/\//i.test(imageUrlRaw)) {
     return { error: "imageUrl must be an http(s) URL" };
+  }
+
+  // Array of image URLs. Accept both an incoming `images: string[]` and
+  // the legacy single `imageUrl` (the UI will shortly stop sending the
+  // latter). Trim each, drop empties, validate scheme. Cap at 10 to
+  // avoid runaway admin input.
+  const rawImages = Array.isArray(body.images) ? body.images : [];
+  const images: string[] = [];
+  for (const v of rawImages) {
+    const s = typeof v === "string" ? v.trim() : "";
+    if (!s) continue;
+    if (!/^https?:\/\//i.test(s)) {
+      return { error: `images entries must be http(s) URLs (got "${s}")` };
+    }
+    images.push(s);
+    if (images.length >= 10) break;
   }
 
   return {
@@ -49,6 +66,7 @@ export function parseLearnTopicInput(
     summary,
     body: bodyHtml,
     iconKey,
+    images,
     imageUrl: imageUrlRaw || null,
     category,
     displayOrder: intOrZero(body.displayOrder),

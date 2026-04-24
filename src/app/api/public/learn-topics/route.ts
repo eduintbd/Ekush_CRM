@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const category = req.nextUrl.searchParams.get("category");
 
-  const topics = await prisma.learnTopic.findMany({
+  const rows = await prisma.learnTopic.findMany({
     where: {
       isPublished: true,
       ...(category ? { category } : {}),
@@ -38,11 +38,21 @@ export async function GET(req: NextRequest) {
       summary: true,
       body: true,
       iconKey: true,
+      images: true,
       imageUrl: true,
       category: true,
       displayOrder: true,
     },
   });
+
+  // Merge the legacy single-cover column into the array output so
+  // pre-migration rows (where `images` is empty and only `imageUrl`
+  // is set) still render on the rebuild. Drop both fields from the
+  // public shape — downstream code only cares about `images`.
+  const topics = rows.map(({ images, imageUrl, ...rest }) => ({
+    ...rest,
+    images: images.length ? images : imageUrl ? [imageUrl] : [],
+  }));
 
   return NextResponse.json(topics, {
     headers: {

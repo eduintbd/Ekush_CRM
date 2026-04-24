@@ -938,9 +938,14 @@ model LearnTopic {
   summary      String   // one-liner shown in the list row ("Read · 4 min · …")
   body         String   @db.Text // HTML from TipTap
   iconKey      String   // cube | layers | bank | chart  (extendable)
-  // Optional admin-uploaded cover image. When present the rebuild's
-  // basics card renders the image in the icon tile instead of the
-  // iconKey SVG. Vercel Blob URL or any https link the admin pastes.
+  // Multi-image gallery. The rebuild renders each image at its
+  // native aspect ratio inside a coverflow slide; 2+ images turn the
+  // card into a nested swipeable deck. Empty array → iconKey fallback.
+  images       String[] @default([])
+  // Deprecated single-cover column, kept so legacy rows still render.
+  // The public API emits `images` with [imageUrl] filled in when
+  // `images` is empty and `imageUrl` is set. Drop once every row has
+  // migrated to the array column.
   imageUrl     String?
   category     String   // basics (only used today)
   displayOrder Int      @default(0)

@@ -23,7 +23,7 @@ export type LearnTopicFormInitial = {
   summary: string;
   body: string; // HTML
   iconKey: string;
-  imageUrl: string;
+  images: string[];
   category: string;
   displayOrder: number;
   isPublished: boolean;
@@ -49,11 +49,13 @@ const EMPTY: LearnTopicFormInitial = {
   summary: "",
   body: "",
   iconKey: "cube",
-  imageUrl: "",
+  images: [],
   category: "basics",
   displayOrder: 0,
   isPublished: true,
 };
+
+const MAX_IMAGES = 10;
 
 export function LearnTopicForm({
   initial,
@@ -68,26 +70,69 @@ export function LearnTopicForm({
   const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  async function onUploadImage(file: File) {
+  // Multi-image upload. Each selected file is POSTed to the upload
+  // endpoint serially and appended to `images`. Serial (not parallel)
+  // so that progressive state updates don't race each other and the
+  // final array order matches file-picker order.
+  async function onUploadFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
     setErr(null);
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/learn-topics/upload-image", {
-        method: "POST",
-        body: fd,
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setErr(body?.error ?? "Upload failed");
-        return;
+      for (const file of Array.from(files)) {
+        if (form.images.length + 1 > MAX_IMAGES) {
+          setErr(`Max ${MAX_IMAGES} images per topic.`);
+          return;
+        }
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/admin/learn-topics/upload-image", {
+          method: "POST",
+          body: fd,
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setErr(body?.error ?? "Upload failed");
+          return;
+        }
+        const body = await res.json();
+        setForm((f) => ({ ...f, images: [...f.images, body.url] }));
       }
-      const body = await res.json();
-      setForm((f) => ({ ...f, imageUrl: body.url }));
     } finally {
       setUploading(false);
     }
+  }
+
+  function addImageUrl(url: string) {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    if (!/^https?:\/\//i.test(trimmed)) {
+      setErr("Image URL must start with http:// or https://");
+      return;
+    }
+    if (form.images.length >= MAX_IMAGES) {
+      setErr(`Max ${MAX_IMAGES} images per topic.`);
+      return;
+    }
+    setErr(null);
+    setForm((f) => ({ ...f, images: [...f.images, trimmed] }));
+  }
+
+  function removeImage(idx: number) {
+    setForm((f) => ({
+      ...f,
+      images: f.images.filter((_, i) => i !== idx),
+    }));
+  }
+
+  function moveImage(idx: number, dir: -1 | 1) {
+    setForm((f) => {
+      const next = [...f.images];
+      const j = idx + dir;
+      if (j < 0 || j >= next.length) return f;
+      [next[idx], next[j]] = [next[j], next[idx]];
+      return { ...f, images: next };
+    });
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -202,50 +247,18 @@ export function LearnTopicForm({
       </div>
 
       <Field
-        label="Cover image"
-        hint="Optional. When set, the rebuild's basics card shows this image in place of the icon."
+        label={`Cover images (${form.images.length}/${MAX_IMAGES})`}
+        hint="Optional. Upload one or more images — the basics card shows the first one by default; 2+ images turn the card into a swipeable deck. Empty list → icon fallback."
       >
-        <div className="flex gap-2">
-          <input
-            type="url"
-            placeholder="Paste an https URL or upload below"
-            value={form.imageUrl}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, imageUrl: e.target.value }))
-            }
-            className={`${inputClass} flex-1`}
-          />
-          <label className="cursor-pointer rounded-md border border-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-50">
-            {uploading ? "Uploading…" : "Upload"}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void onUploadImage(f);
-              }}
-            />
-          </label>
-          {form.imageUrl ? (
-            <button
-              type="button"
-              onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
-              className="rounded-md border border-gray-200 px-3 text-sm font-medium hover:bg-gray-50"
-              title="Clear image — fall back to the selected icon"
-            >
-              Clear
-            </button>
-          ) : null}
-        </div>
-        {form.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={form.imageUrl}
-            alt=""
-            className="mt-2 h-24 w-24 rounded-md border border-gray-200 object-cover"
-          />
-        ) : null}
+        <ImageGalleryEditor
+          images={form.images}
+          uploading={uploading}
+          onUpload={(files) => void onUploadFiles(files)}
+          onAddUrl={addImageUrl}
+          onRemove={removeImage}
+          onMove={moveImage}
+          maxImages={MAX_IMAGES}
+        />
       </Field>
 
       <Field label="Body">
@@ -280,7 +293,7 @@ export function LearnTopicForm({
           title={form.title}
           summary={form.summary}
           iconKey={form.iconKey}
-          imageUrl={form.imageUrl}
+          imageUrl={form.images[0]}
         />
       </div>
 
@@ -332,3 +345,134 @@ function Field({
 
 const inputClass =
   "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-ekush-orange focus:outline-none";
+
+/**
+ * Multi-image editor used inside the LearnTopic form. Composition:
+ *   - Horizontal list of thumbnails (admin-uploaded or pasted).
+ *     Each thumb has ← → reorder buttons and a ✕ remove button.
+ *   - A URL input + Add button to paste a remote https link.
+ *   - A multi-file Upload button that pushes selected files to
+ *     /api/admin/learn-topics/upload-image serially.
+ *
+ * Uses plain <img> (not next/image) because these preview thumbs are
+ * temporary admin-only views where layout-shift doesn't matter.
+ */
+function ImageGalleryEditor({
+  images,
+  uploading,
+  onUpload,
+  onAddUrl,
+  onRemove,
+  onMove,
+  maxImages,
+}: {
+  images: string[];
+  uploading: boolean;
+  onUpload: (files: FileList | null) => void;
+  onAddUrl: (url: string) => void;
+  onRemove: (idx: number) => void;
+  onMove: (idx: number, dir: -1 | 1) => void;
+  maxImages: number;
+}) {
+  const [urlDraft, setUrlDraft] = useState("");
+  const atLimit = images.length >= maxImages;
+
+  return (
+    <div className="space-y-3">
+      {images.length > 0 ? (
+        <ul className="flex flex-wrap gap-3">
+          {images.map((src, i) => (
+            <li
+              key={`${src}-${i}`}
+              className="relative flex flex-col items-center gap-1 rounded-md border border-gray-200 bg-white p-2"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt=""
+                className="h-20 w-20 rounded object-cover"
+              />
+              <div className="flex items-center gap-1 text-[11px] text-[#6A6A6A]">
+                <button
+                  type="button"
+                  onClick={() => onMove(i, -1)}
+                  disabled={i === 0}
+                  className="rounded border border-gray-200 px-1.5 hover:bg-gray-50 disabled:opacity-30"
+                  title="Move left"
+                >
+                  ←
+                </button>
+                <span className="px-1">{i + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => onMove(i, 1)}
+                  disabled={i === images.length - 1}
+                  className="rounded border border-gray-200 px-1.5 hover:bg-gray-50 disabled:opacity-30"
+                  title="Move right"
+                >
+                  →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemove(i)}
+                  className="ml-1 rounded border border-red-200 bg-white px-1.5 text-red-600 hover:bg-red-50"
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="url"
+          placeholder="Paste an https URL…"
+          value={urlDraft}
+          onChange={(e) => setUrlDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onAddUrl(urlDraft);
+              setUrlDraft("");
+            }
+          }}
+          disabled={atLimit}
+          className={`${inputClass} flex-1 disabled:opacity-50`}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            onAddUrl(urlDraft);
+            setUrlDraft("");
+          }}
+          disabled={atLimit || !urlDraft.trim()}
+          className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+        >
+          Add URL
+        </button>
+        <label
+          className={`cursor-pointer rounded-md border border-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-50 ${
+            atLimit ? "cursor-not-allowed opacity-50" : ""
+          }`}
+        >
+          {uploading ? "Uploading…" : "Upload files"}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={atLimit || uploading}
+            className="hidden"
+            onChange={(e) => {
+              onUpload(e.target.files);
+              // Reset so selecting the same file twice still fires onChange.
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
