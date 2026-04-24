@@ -35,8 +35,10 @@ export async function GET() {
 
   return NextResponse.json(reports, {
     headers: {
-      "Cache-Control":
-        "public, s-maxage=86400, stale-while-revalidate=172800",
+      // No Vercel-edge caching — revalidatePath doesn't invalidate
+      // every edge region reliably, and the rebuild fetches with
+      // cache:'no-store' anyway. See articles/route.ts for why.
+      "Cache-Control": "private, no-store",
     },
   });
 }

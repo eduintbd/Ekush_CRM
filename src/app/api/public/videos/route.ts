@@ -37,11 +37,12 @@ export async function GET() {
 
   return NextResponse.json(videos, {
     headers: {
-      // Daily freshness window + two-day SWR. View/like counts lag
-      // that much anyway between YouTube-API syncs, so tight TTL
-      // would waste compute.
-      "Cache-Control":
-        "public, s-maxage=86400, stale-while-revalidate=172800",
+      // No Vercel-edge caching — same reasoning as articles/route.ts:
+      // per-edge cached responses can linger past a revalidatePath
+      // call, causing stale slugs to reach the rebuild. The rebuild
+      // calls this with cache:'no-store', so edge caching was
+      // redundant AND risky.
+      "Cache-Control": "private, no-store",
     },
   });
 }

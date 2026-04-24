@@ -31,8 +31,15 @@ export async function GET() {
 
   return NextResponse.json(articles, {
     headers: {
-      "Cache-Control":
-        "public, s-maxage=86400, stale-while-revalidate=172800",
+      // No Vercel-edge caching — revalidatePath doesn't reliably
+      // invalidate every edge region simultaneously, so pre-edit
+      // cached responses can linger at some edges long after the
+      // admin has corrected content (observed: daily_star articles
+      // serving "other" to the rebuild's server-side fetch while
+      // client curls from a different geo saw the corrected data).
+      // The rebuild calls this with cache:'no-store' anyway, so the
+      // only cache we're giving up was a 24h one that caused bugs.
+      "Cache-Control": "private, no-store",
     },
   });
 }
