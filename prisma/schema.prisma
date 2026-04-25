@@ -970,6 +970,67 @@ model LearnTopic {
   @@map("learn_topics")
 }
 
+// ── Ahona chatbot ────────────────────────────────────────────────
+// Menu-driven assistant on both ekushwml.com (public) and the portal.
+// Strictly button-tap navigation — no text input, no AI, no message
+// persistence. Users only see admin-curated quick replies; out-of-
+// scope routes them to call/WhatsApp. Bilingual (en + bn) in every
+// content field.
+model AhonaSettings {
+  id                 String   @id @default("singleton")
+  enabledOnWebsite   Boolean  @default(false)
+  enabledOnPortal    Boolean  @default(false)
+  // Greeting shown at the top of the panel before any menu choice.
+  greetingEn         String   @default("Hi, I'm Ahona — how can I help?")
+  greetingBn         String   @default("নমস্কার, আমি আহনা — কীভাবে সাহায্য করতে পারি?")
+  // Phone + WhatsApp the contact-card leaves render as buttons. Stored
+  // as digits-only (international, no leading +) so the wa.me/tel:
+  // links can use them verbatim.
+  phoneNumber        String?
+  whatsappNumber     String?
+  // Free-form text shown alongside the contact card so admins can
+  // tell users when the line is staffed.
+  workingHoursEn     String?
+  workingHoursBn     String?
+  updatedAt          DateTime @updatedAt
+  updatedBy          String?
+
+  @@map("ahona_settings")
+}
+
+// One node of the menu tree. parentId = null → top-level button.
+// surface controls which mount point sees it; isContactCard turns
+// the leaf into the phone/WhatsApp pair instead of a text response.
+model AhonaQuickReply {
+  id             String   @id @default(cuid())
+  parentId       String?
+  displayOrder   Int      @default(0)
+  // Which mount sees this node: PUBLIC (only ekushwml.com), PORTAL
+  // (only the investor portal), BOTH.
+  surface        String   @default("BOTH")
+  labelEn        String
+  labelBn        String
+  // Plain-text reply rendered as paragraphs (\n preserved). HTML is
+  // stripped on render; we don't want a hostile-admin XSS path.
+  responseEn     String   @default("")
+  responseBn     String   @default("")
+  // When true, the response area renders the AhonaSettings phone +
+  // WhatsApp buttons instead of the response text. Lets every menu
+  // tree have a "Talk to us" leaf without admin retyping the number.
+  isContactCard  Boolean  @default(false)
+  isPublished    Boolean  @default(true)
+
+  parent   AhonaQuickReply?  @relation("AhonaQuickReplyChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children AhonaQuickReply[] @relation("AhonaQuickReplyChildren")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId, displayOrder])
+  @@index([surface, isPublished])
+  @@map("ahona_quick_replies")
+}
+
 // Singleton config for the What's New side-tab. Holds the global
 // WhatsApp number the "Call on WhatsApp" CTA on every card opens.
 // Stored as its own row (not on each LearnTopic) so admins can

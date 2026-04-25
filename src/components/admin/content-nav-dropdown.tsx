@@ -30,6 +30,7 @@ const LINKS = [
   // published fund-research surfaces sit together. Still editable
   // at /admin/fund-fact-sheets; just no longer a top-nav pill.
   { href: "/admin/fund-fact-sheets", label: "Fact Sheets" },
+  { href: "/admin/ahona", label: "Ahona Bot" },
 ] as const;
 
 export function ContentNavDropdown() {
