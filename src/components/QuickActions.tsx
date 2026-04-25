@@ -89,8 +89,6 @@ export function QuickActions() {
     <nav aria-label="Quick actions" className="w-full">
       <ul
         className={cn(
-          // Named group used by the exclusive-active CSS rules below
-          "group/row",
           // Mobile: 2x2 grid, slightly larger tap targets
           "grid grid-cols-2 gap-2.5",
           // Desktop: 4-up centered row, ~390px total
@@ -106,6 +104,7 @@ export function QuickActions() {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 data-active={isActive ? "true" : undefined}
+                data-shortcut="true"
                 className={cn(
                   // Named group so the inner span/icon can react to this link's hover state
                   "group/item flex flex-col items-center justify-center text-center",
@@ -131,7 +130,7 @@ export function QuickActions() {
                   // is itself not hovered, demote it back to idle chrome so only
                   // one tile ever appears navy at any moment.
                   isActive &&
-                    "group-has-[a:hover]/row:[&:not(:hover)]:!bg-transparent group-has-[a:hover]/row:[&:not(:hover)]:!shadow-none"
+                    "group-has-[[data-shortcut]:hover]/actions:[&:not(:hover)]:!bg-transparent group-has-[[data-shortcut]:hover]/actions:[&:not(:hover)]:!shadow-none"
                 )}
               >
                 <item.Icon
@@ -143,7 +142,7 @@ export function QuickActions() {
                     !isActive && "group-hover/item:scale-110",
                     // Demote scale on the committed card while the cursor previews another
                     isActive &&
-                      "group-has-[a:hover]/row:group-[&:not(:hover)]/item:!scale-100"
+                      "group-has-[[data-shortcut]:hover]/actions:group-[&:not(:hover)]/item:!scale-100"
                   )}
                   aria-hidden
                 />
@@ -156,7 +155,7 @@ export function QuickActions() {
                     !isActive && "group-hover/item:text-white",
                     // Demote the committed label back to brand blue while the cursor previews another
                     isActive &&
-                      "group-has-[a:hover]/row:group-[&:not(:hover)]/item:!text-brand"
+                      "group-has-[[data-shortcut]:hover]/actions:group-[&:not(:hover)]/item:!text-brand"
                   )}
                 >
                   {item.labelTop}

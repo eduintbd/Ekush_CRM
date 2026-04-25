@@ -50,7 +50,6 @@ export function ServiceShortcuts() {
     <nav aria-label="Investor services" className="w-full">
       <ul
         className={cn(
-          "group/row",
           // Mobile: 2-up; tablet: 3-up; desktop: 6-up centered
           "grid grid-cols-2 gap-2.5 sm:grid-cols-3",
           "md:flex md:justify-center md:gap-2.5 md:max-w-[640px] md:mx-auto",
@@ -64,6 +63,7 @@ export function ServiceShortcuts() {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 data-active={isActive ? "true" : undefined}
+                data-shortcut="true"
                 className={cn(
                   "group/item flex flex-col items-center justify-center text-center",
                   "h-[120px] md:h-[90px] w-full",
@@ -80,7 +80,7 @@ export function ServiceShortcuts() {
                   // committed tile demotes to idle so only one tile reads
                   // navy at a time. Mirrors QuickActions.
                   isActive &&
-                    "group-has-[a:hover]/row:[&:not(:hover)]:!bg-transparent group-has-[a:hover]/row:[&:not(:hover)]:!shadow-none",
+                    "group-has-[[data-shortcut]:hover]/actions:[&:not(:hover)]:!bg-transparent group-has-[[data-shortcut]:hover]/actions:[&:not(:hover)]:!shadow-none",
                 )}
               >
                 <item.Icon
@@ -90,7 +90,7 @@ export function ServiceShortcuts() {
                     isActive && "scale-110",
                     !isActive && "group-hover/item:scale-110",
                     isActive &&
-                      "group-has-[a:hover]/row:group-[&:not(:hover)]/item:!scale-100",
+                      "group-has-[[data-shortcut]:hover]/actions:group-[&:not(:hover)]/item:!scale-100",
                   )}
                   aria-hidden
                 />
@@ -100,7 +100,7 @@ export function ServiceShortcuts() {
                     isActive ? "text-white" : "text-brand",
                     !isActive && "group-hover/item:text-white",
                     isActive &&
-                      "group-has-[a:hover]/row:group-[&:not(:hover)]/item:!text-brand",
+                      "group-has-[[data-shortcut]:hover]/actions:group-[&:not(:hover)]/item:!text-brand",
                   )}
                 >
                   {item.labelTop}

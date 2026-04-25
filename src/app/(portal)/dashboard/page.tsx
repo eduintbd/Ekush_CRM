@@ -17,7 +17,14 @@ export default async function DashboardPage() {
   const isPending = session?.user?.status === "PENDING" && investorCode.startsWith("PENDING-");
 
   return (
-    <div className="space-y-8">
+    // group/actions covers the dashboard's two action surfaces
+    // (QuickActions up top + ServiceShortcuts at the bottom). Hovering
+    // any tile in either surface demotes the active tile in the other —
+    // see the [data-shortcut]:hover gating in those components — so
+    // exactly one tile reads navy at any moment regardless of which row
+    // it lives in. The TaxRebateBanner CTA between them isn't tagged
+    // with data-shortcut, so it doesn't trigger the demotion.
+    <div className="group/actions space-y-8">
       {isPending && (
         <div className="rounded-[10px] border border-amber-300 bg-amber-50 px-5 py-4 flex items-start gap-3">
           <div className="w-2 h-2 rounded-full bg-amber-500 mt-[6px] shrink-0" />

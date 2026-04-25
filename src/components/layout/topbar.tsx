@@ -19,7 +19,6 @@ import { useRouter } from "next/navigation";
 interface TopBarProps {
   userName?: string;
   investorCode?: string;
-  userImage?: string;
 }
 
 interface ServiceItem {
@@ -39,7 +38,7 @@ const SERVICE_ITEMS: ServiceItem[] = [
   { href: "/dividends", label: "Dividend Statement", icon: Gift, iconColor: "#DB2777", iconBg: "#FCE7F3" },
 ];
 
-export function TopBar({ userName, investorCode, userImage }: TopBarProps) {
+export function TopBar({ userName, investorCode }: TopBarProps) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -106,55 +105,19 @@ export function TopBar({ userName, investorCode, userImage }: TopBarProps) {
           </div>
         </Link>
 
-        {/* BRAC-style horizontal menu row — service links separated by
-            vertical bars, centered between brand and avatar. Hidden on
-            tablet/mobile where the hamburger + dropdown handle the
-            same destinations. */}
-        <nav
-          aria-label="Investor services"
-          className="hidden lg:flex items-center gap-3 text-[13px] text-text-dark min-w-0"
-        >
-          {SERVICE_ITEMS.map((item, idx) => (
-            <span key={item.href} className="flex items-center gap-3 whitespace-nowrap">
-              <Link
-                href={item.href}
-                className="font-medium hover:text-ekush-orange transition-colors"
-              >
-                {item.label}
-              </Link>
-              {idx < SERVICE_ITEMS.length - 1 && (
-                <span aria-hidden className="text-text-muted/60">|</span>
-              )}
-            </span>
-          ))}
-        </nav>
-
-        {/* Trigger cluster — hamburger (BRAC-style) + avatar circle.
-            Both open the same dropdown so investors who reach for
-            either control land in the same place. */}
-        <div className="relative flex items-center gap-2 shrink-0" ref={menuRef}>
+        {/* Sole trigger — BRAC Bank–style hamburger. No border, no
+            background, just the icon. Tapping opens the same services
+            dropdown the avatar used to. */}
+        <div className="relative shrink-0" ref={menuRef}>
           <button
             type="button"
             onClick={handleToggle}
             aria-haspopup="menu"
             aria-expanded={showMenu}
             aria-label="Open menu"
-            className="hidden sm:flex w-10 h-10 items-center justify-center rounded-md border border-gray-200 text-text-body hover:border-ekush-orange hover:text-ekush-orange transition-colors"
+            className="flex h-10 w-10 items-center justify-center text-text-dark hover:text-ekush-orange transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ekush-orange rounded-md"
           >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          <button
-            onClick={handleToggle}
-            aria-haspopup="menu"
-            aria-expanded={showMenu}
-            className="w-[50px] h-[50px] rounded-full bg-page-bg border-2 border-transparent hover:border-ekush-orange transition-colors overflow-hidden flex items-center justify-center"
-          >
-            {userImage ? (
-              <img src={userImage} alt={userName} className="w-full h-full object-cover" />
-            ) : (
-              <User className="w-6 h-6 text-text-body" />
-            )}
+            <Menu className="h-7 w-7" strokeWidth={2.25} />
           </button>
 
           {showMenu && (
