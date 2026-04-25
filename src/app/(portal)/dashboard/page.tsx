@@ -44,8 +44,10 @@ export default async function DashboardPage() {
         <QuickActions />
       </div>
 
-      {/* Promotional banner — centered feature card sized to ~90% of the desktop viewport */}
-      <div className="!mt-5 !mb-4 w-[92%] md:w-[88%] lg:w-[90%] lg:max-w-[1100px] mx-auto">
+      {/* Promotional banner — full container width so its left/right
+          edges line up exactly with the chart row below. (Both are
+          direct children of the same max-w-7xl px-8 layout shell.) */}
+      <div className="!mt-5 !mb-4">
         <TaxRebateBanner />
       </div>
 

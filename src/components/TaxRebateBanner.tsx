@@ -1,9 +1,5 @@
 import Link from "next/link";
 
-// Photo lives at public/images/tax-rebate-banner.png and is served at /images/tax-rebate-banner.png.
-// If the file is missing, the navy fallback color (bg-navy) shows through — no placeholder is imported.
-const BANNER_IMAGE = "/images/tax-rebate-banner.png";
-
 // Buy Units route — must mirror QuickActions.tsx
 const BUY_UNITS_HREF = "/transactions/buy";
 
@@ -12,15 +8,15 @@ export default function TaxRebateBanner() {
     <section
       role="region"
       aria-label="Tax rebate promotion — invest to save on income tax."
-      className="relative w-full overflow-hidden rounded-2xl bg-navy shadow-[0_4px_14px_rgba(15,30,61,0.20)] aspect-auto md:aspect-[3.3/1] min-h-[200px] md:min-h-[180px] font-bengali"
-      style={{
-        backgroundImage: `url(${BANNER_IMAGE})`,
-        backgroundSize: "cover",
-        // Bias 10% closer to the top so the model's head stops getting clipped by the rounded corner.
-        backgroundPosition: "right 5%",
-        backgroundRepeat: "no-repeat",
-        backgroundColor: "#0F1E3D",
-      }}
+      className="
+        relative w-full overflow-hidden rounded-2xl bg-navy
+        shadow-[0_4px_14px_rgba(15,30,61,0.20)] font-bengali
+        bg-[url(/images/tax-rebate-banner.png)] bg-no-repeat
+        aspect-auto min-h-[220px]
+        bg-cover bg-[position:right_5%]
+        md:aspect-[3.3/1] md:min-h-[260px]
+        md:bg-[length:auto_calc(100%_-_40px)] md:bg-[position:right_20px]
+      "
     >
       {/* Per-component scoped styles — keyframes + reduced-motion override */}
       <style>{`
