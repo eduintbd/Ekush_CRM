@@ -56,7 +56,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="/logo-color.png"
             alt="Ekush Wealth Management Limited"
             className="h-16 w-auto mb-3"
           />

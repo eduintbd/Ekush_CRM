@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-page-bg font-poppins px-4">
       <div className="w-full max-w-[420px]">
         <div className="flex flex-col items-center mb-6">
-          <img src="/logo.png" alt="Ekush" className="h-14 w-auto mb-2" />
+          <img src="/logo-color.png" alt="Ekush" className="h-14 w-auto mb-2" />
         </div>
         <div className="bg-white rounded-card shadow-card p-8">
           {done ? (

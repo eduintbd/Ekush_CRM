@@ -3,6 +3,7 @@ import { QuickActions } from "@/components/QuickActions";
 import TaxRebateBanner from "@/components/TaxRebateBanner";
 import { InvestmentGrowth } from "@/components/dashboard/investment-growth";
 import { PerformanceComparison } from "@/components/dashboard/performance-comparison";
+import { ServiceShortcuts } from "@/components/dashboard/service-shortcuts";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 export default async function DashboardPage() {
@@ -52,6 +53,11 @@ export default async function DashboardPage() {
           </ErrorBoundary>
         </div>
       </div>
+
+      {/* Records & reports — same navy/gold tile style as the
+          QuickActions banner up top, so the dashboard reads as one
+          coherent action surface. */}
+      <ServiceShortcuts />
     </div>
   );
 }

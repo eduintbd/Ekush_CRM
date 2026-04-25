@@ -4,8 +4,8 @@ import {
   Award,
   FileText,
   Gift,
-  LayoutDashboard,
   LogOut,
+  Menu,
   PieChart,
   Receipt,
   User,
@@ -68,12 +68,16 @@ export function TopBar({ userName, investorCode, userImage }: TopBarProps) {
     };
   }, [showMenu]);
 
+  const openMenu = () => {
+    setShowMenu(true);
+    window.dispatchEvent(
+      new CustomEvent("widget:open", { detail: { source: "profile" } }),
+    );
+  };
+
   const handleToggle = () => {
-    const next = !showMenu;
-    setShowMenu(next);
-    if (next) {
-      window.dispatchEvent(new CustomEvent("widget:open", { detail: { source: "profile" } }));
-    }
+    if (showMenu) setShowMenu(false);
+    else openMenu();
   };
 
   const handleSignOut = async () => {
@@ -84,11 +88,12 @@ export function TopBar({ userName, investorCode, userImage }: TopBarProps) {
 
   return (
     <header className="sticky top-0 z-30 bg-white shadow-sidebar">
-      <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
-        {/* Brand + Investor Info */}
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <img src="/logo.png" alt="Ekush" className="h-10 shrink-0" />
-          <div>
+      <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between gap-6">
+        {/* Brand + Investor Info — uses the marketing site's color
+            wordmark so the portal reads as the same brand surface. */}
+        <Link href="/dashboard" className="flex items-center gap-3 shrink-0">
+          <img src="/logo-color.png" alt="Ekush" className="h-10 shrink-0" />
+          <div className="hidden sm:block">
             <h1 className="font-bold text-[14px] text-navy font-rajdhani leading-tight">
               Welcome to Ekush Wealth Management Limited
             </h1>
@@ -101,8 +106,44 @@ export function TopBar({ userName, investorCode, userImage }: TopBarProps) {
           </div>
         </Link>
 
-        {/* Profile Avatar & Dropdown */}
-        <div className="relative" ref={menuRef}>
+        {/* BRAC-style horizontal menu row — service links separated by
+            vertical bars, centered between brand and avatar. Hidden on
+            tablet/mobile where the hamburger + dropdown handle the
+            same destinations. */}
+        <nav
+          aria-label="Investor services"
+          className="hidden lg:flex items-center gap-3 text-[13px] text-text-dark min-w-0"
+        >
+          {SERVICE_ITEMS.map((item, idx) => (
+            <span key={item.href} className="flex items-center gap-3 whitespace-nowrap">
+              <Link
+                href={item.href}
+                className="font-medium hover:text-ekush-orange transition-colors"
+              >
+                {item.label}
+              </Link>
+              {idx < SERVICE_ITEMS.length - 1 && (
+                <span aria-hidden className="text-text-muted/60">|</span>
+              )}
+            </span>
+          ))}
+        </nav>
+
+        {/* Trigger cluster — hamburger (BRAC-style) + avatar circle.
+            Both open the same dropdown so investors who reach for
+            either control land in the same place. */}
+        <div className="relative flex items-center gap-2 shrink-0" ref={menuRef}>
+          <button
+            type="button"
+            onClick={handleToggle}
+            aria-haspopup="menu"
+            aria-expanded={showMenu}
+            aria-label="Open menu"
+            className="hidden sm:flex w-10 h-10 items-center justify-center rounded-md border border-gray-200 text-text-body hover:border-ekush-orange hover:text-ekush-orange transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           <button
             onClick={handleToggle}
             aria-haspopup="menu"
@@ -164,17 +205,11 @@ export function TopBar({ userName, investorCode, userImage }: TopBarProps) {
                 </ul>
               </div>
 
-              {/* Account actions */}
+              {/* Account actions — Sign Out only; the Dashboard shortcut
+                  was removed because the brand wordmark already links
+                  there and a duplicated link in the dropdown read as
+                  noise. */}
               <div className="py-2 border-t border-gray-100">
-                <Link
-                  href="/dashboard"
-                  role="menuitem"
-                  onClick={() => setShowMenu(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-[13px] text-text-dark hover:bg-gray-100 transition-colors"
-                >
-                  <LayoutDashboard className="w-4 h-4 text-text-body" />
-                  <span className="font-medium">Dashboard</span>
-                </Link>
                 <button
                   type="button"
                   role="menuitem"

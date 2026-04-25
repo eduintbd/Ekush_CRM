@@ -77,7 +77,7 @@ export function AcceptInviteClient() {
     <div className="min-h-screen flex items-center justify-center bg-page-bg font-poppins px-4">
       <div className="w-full max-w-[440px]">
         <div className="flex flex-col items-center mb-6">
-          <img src="/logo.png" alt="Ekush" className="h-14 w-auto mb-2" />
+          <img src="/logo-color.png" alt="Ekush" className="h-14 w-auto mb-2" />
           <p className="text-xs text-text-body tracking-wider uppercase">Admin Portal</p>
         </div>
 

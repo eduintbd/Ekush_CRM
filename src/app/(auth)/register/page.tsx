@@ -698,7 +698,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-page-bg font-poppins">
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Ekush" className="h-14 mx-auto mb-3" />
+          <img src="/logo-color.png" alt="Ekush" className="h-14 mx-auto mb-3" />
           <h1 className="text-[22px] font-semibold text-text-dark font-rajdhani">Online Registration</h1>
           <p className="text-[13px] text-text-body">Ekush Wealth Management Limited</p>
         </div>
