@@ -26,6 +26,10 @@ const LINKS = [
   { href: "/admin/articles", label: "Articles" },
   { href: "/admin/learn-topics", label: "Topics" },
   { href: "/admin/research-reports", label: "Research" },
+  // Fact Sheets live under Research in the admin nav so all
+  // published fund-research surfaces sit together. Still editable
+  // at /admin/fund-fact-sheets; just no longer a top-nav pill.
+  { href: "/admin/fund-fact-sheets", label: "Fact Sheets" },
 ] as const;
 
 export function ContentNavDropdown() {

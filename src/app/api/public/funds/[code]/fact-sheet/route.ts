@@ -33,6 +33,7 @@ export async function GET(
       fundCode: true,
       asOfDate: true,
       assetAllocation: true,
+      sectorAllocation: true,
       topHoldings: true,
       updatedAt: true,
     },
@@ -40,7 +41,13 @@ export async function GET(
 
   if (!sheet) {
     return NextResponse.json(
-      { fundCode: code, asOfDate: null, assetAllocation: [], topHoldings: [] },
+      {
+        fundCode: code,
+        asOfDate: null,
+        assetAllocation: [],
+        sectorAllocation: [],
+        topHoldings: [],
+      },
       { headers: { "Cache-Control": "private, no-store" } },
     );
   }
@@ -50,6 +57,7 @@ export async function GET(
       fundCode: sheet.fundCode,
       asOfDate: sheet.asOfDate.toISOString(),
       assetAllocation: sheet.assetAllocation,
+      sectorAllocation: sheet.sectorAllocation,
       topHoldings: sheet.topHoldings,
       updatedAt: sheet.updatedAt.toISOString(),
     },

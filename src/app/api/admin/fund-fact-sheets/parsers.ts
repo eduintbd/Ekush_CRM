@@ -10,6 +10,11 @@ export type AssetAllocationEntry = {
   weightPct: number;
 };
 
+export type SectorAllocationEntry = {
+  sector: string;
+  weightPct: number;
+};
+
 export type TopHoldingEntry = {
   ticker: string;
   name: string;
@@ -20,6 +25,7 @@ export type FactSheetInput = {
   fundCode: string;
   asOfDate: Date;
   assetAllocation: AssetAllocationEntry[];
+  sectorAllocation: SectorAllocationEntry[];
   topHoldings: TopHoldingEntry[];
   sourcePdfUrl: string | null;
 };
@@ -70,6 +76,34 @@ export function parseFactSheetInput(
     };
   }
 
+  const sectorRaw = Array.isArray(body.sectorAllocation)
+    ? body.sectorAllocation
+    : [];
+  const sector: SectorAllocationEntry[] = [];
+  for (const raw of sectorRaw) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as Record<string, unknown>;
+    const s = str(r.sector);
+    const weight = num(r.weightPct);
+    if (!s || weight == null) continue;
+    if (weight < 0 || weight > 100) {
+      return {
+        error: `sectorAllocation weightPct must be 0–100 (got ${weight} for ${s})`,
+      };
+    }
+    sector.push({ sector: s, weightPct: weight });
+  }
+
+  const sectorTotal = sector.reduce((s, r) => s + r.weightPct, 0);
+  // Sectors only cover equity buckets, so they should sum to roughly
+  // the Stocks % (typically 95–100 on an Ekush portfolio). Let a
+  // 60–105 window through to accommodate heavy-cash quarters.
+  if (sector.length && (sectorTotal < 60 || sectorTotal > 105)) {
+    return {
+      error: `sectorAllocation weights total ${sectorTotal.toFixed(1)}% — expected 60–105% (sum of equity sectors)`,
+    };
+  }
+
   const holdingsRaw = Array.isArray(body.topHoldings) ? body.topHoldings : [];
   const holdings: TopHoldingEntry[] = [];
   for (const raw of holdingsRaw) {
@@ -98,6 +132,7 @@ export function parseFactSheetInput(
     fundCode,
     asOfDate,
     assetAllocation: allocation,
+    sectorAllocation: sector,
     topHoldings: holdings,
     sourcePdfUrl,
   };

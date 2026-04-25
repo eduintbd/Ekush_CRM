@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       fundCode: parsed.fundCode,
       asOfDate: parsed.asOfDate,
       assetAllocation: parsed.assetAllocation,
+      sectorAllocation: parsed.sectorAllocation,
       topHoldings: parsed.topHoldings,
       sourcePdfUrl: parsed.sourcePdfUrl,
       updatedBy: userId,
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
     update: {
       asOfDate: parsed.asOfDate,
       assetAllocation: parsed.assetAllocation,
+      sectorAllocation: parsed.sectorAllocation,
       topHoldings: parsed.topHoldings,
       sourcePdfUrl: parsed.sourcePdfUrl,
       updatedBy: userId,

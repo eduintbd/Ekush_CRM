@@ -974,7 +974,16 @@ model FundFactSheet {
   // "ESRF". Unique so the admin form is an upsert against this code.
   fundCode        String   @unique
   asOfDate        DateTime   // quarter-end the data reflects
+  // Asset allocation: the three buckets derived from the portfolio
+  // statement — Stocks (Listed + Non-Listed), Bonds (typically 0%),
+  // and Cash & Equivalents. Kept as free-form JSON so admins can
+  // relabel or add categories without a migration.
   assetAllocation Json     @default("[]")
+  // Sector allocation: Bank / Pharmaceuticals / Close-end MF / etc.
+  // Summed from the "% of total Investment" column on the listed
+  // portfolio, grouped by the un-numbered sector header above each
+  // block of rows. Stored as [{sector, weightPct}, ...].
+  sectorAllocation Json    @default("[]")
   topHoldings     Json     @default("[]")
   // Source tracking: which portfolio-statement PDF the data was
   // pulled from (URL). Null until the first auto-extract lands.

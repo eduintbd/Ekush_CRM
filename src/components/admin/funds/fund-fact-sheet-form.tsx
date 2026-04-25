@@ -18,6 +18,7 @@ export type FactSheetFormInitial = {
   fundCode: string;
   asOfDate: string; // YYYY-MM-DD
   assetAllocation: { category: string; weightPct: number }[];
+  sectorAllocation: { sector: string; weightPct: number }[];
   topHoldings: { ticker: string; name: string; weightPct: number }[];
   sourcePdfUrl: string;
 };
@@ -28,15 +29,33 @@ const FUND_LABELS: Record<string, string> = {
   ESRF: "Ekush Stable Return Fund",
 };
 
-// Typical allocation buckets used on Ekush fact sheets; admins can
-// add custom categories by editing the string free-form.
+// Typical allocation buckets used on Ekush fact sheets. The extract
+// endpoint pre-fills Stocks / Bonds / Cash & Equivalents (the three
+// buckets the public asset-allocation pie renders); admins can add
+// custom categories by editing the string free-form.
 const ALLOCATION_SUGGESTIONS = [
+  "Stocks",
+  "Bonds",
+  "Cash & Equivalents",
   "Equity",
   "Debt / Fixed Income",
   "Government Securities",
-  "Cash & Equivalents",
   "Mutual Fund Units",
   "Corporate Bonds",
+];
+
+// Sector names match the headers on Ekush portfolio-statement PDFs.
+// Kept in sync with the extract prompt in
+// /api/admin/fund-fact-sheets/extract so auto-extract and manual
+// entry produce the same vocabulary.
+const SECTOR_SUGGESTIONS = [
+  "Bank",
+  "Pharmaceuticals",
+  "Close-End Mutual Funds",
+  "Open-End Mutual Funds",
+  "Miscellaneous",
+  "Engineering",
+  "Preference Shares",
 ];
 
 export function FundFactSheetForm({
@@ -47,7 +66,103 @@ export function FundFactSheetForm({
   const router = useRouter();
   const [form, setForm] = useState<FactSheetFormInitial>(initial);
   const [err, setErr] = useState<string | null>(null);
+  const [extractMsg, setExtractMsg] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  async function onExtract() {
+    setErr(null);
+    setExtractMsg(null);
+    setExtracting(true);
+    try {
+      const res = await fetch("/api/admin/fund-fact-sheets/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fundCode: form.fundCode }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        extracted?: {
+          asOfDate?: string | null;
+          assetAllocation?: { category: string; weightPct: number }[];
+          sectorAllocation?: { sector: string; weightPct: number }[];
+          holdings?: { ticker: string; name: string; weightPct: number }[];
+        };
+        report?: { filePath?: string };
+      };
+      if (!res.ok || !body.extracted) {
+        setErr(body?.error ?? "Extraction failed");
+        return;
+      }
+      const e = body.extracted;
+      setForm((f) => ({
+        ...f,
+        asOfDate: e.asOfDate && /^\d{4}-\d{2}-\d{2}$/.test(e.asOfDate)
+          ? e.asOfDate
+          : f.asOfDate,
+        assetAllocation: Array.isArray(e.assetAllocation)
+          ? e.assetAllocation.map((r) => ({
+              category: String(r.category ?? ""),
+              weightPct: roundPct(r.weightPct),
+            }))
+          : f.assetAllocation,
+        sectorAllocation: Array.isArray(e.sectorAllocation)
+          ? e.sectorAllocation
+              .filter((r) => Number(r.weightPct) > 0)
+              .map((r) => ({
+                sector: String(r.sector ?? ""),
+                weightPct: roundPct(r.weightPct),
+              }))
+          : f.sectorAllocation,
+        topHoldings: Array.isArray(e.holdings)
+          ? [...e.holdings]
+              .sort((a, b) => Number(b.weightPct) - Number(a.weightPct))
+              .map((r) => ({
+                ticker: String(r.ticker ?? "").toUpperCase(),
+                name: String(r.name ?? ""),
+                weightPct: roundPct(r.weightPct),
+              }))
+          : f.topHoldings,
+        sourcePdfUrl: body.report?.filePath ?? f.sourcePdfUrl,
+      }));
+      setExtractMsg(
+        "Extracted from the latest Portfolio Statement PDF — review each row and save.",
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Extraction failed");
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  function setSector(
+    idx: number,
+    patch: Partial<{ sector: string; weightPct: number }>,
+  ) {
+    setForm((f) => ({
+      ...f,
+      sectorAllocation: f.sectorAllocation.map((row, i) =>
+        i === idx ? { ...row, ...patch } : row,
+      ),
+    }));
+  }
+
+  function addSector(preset?: string) {
+    setForm((f) => ({
+      ...f,
+      sectorAllocation: [
+        ...f.sectorAllocation,
+        { sector: preset ?? "", weightPct: 0 },
+      ],
+    }));
+  }
+
+  function removeSector(idx: number) {
+    setForm((f) => ({
+      ...f,
+      sectorAllocation: f.sectorAllocation.filter((_, i) => i !== idx),
+    }));
+  }
 
   function setAlloc(idx: number, patch: Partial<{ category: string; weightPct: number }>) {
     setForm((f) => ({
@@ -121,6 +236,7 @@ export function FundFactSheetForm({
         fundCode: form.fundCode,
         asOfDate: form.asOfDate,
         assetAllocation: form.assetAllocation,
+        sectorAllocation: form.sectorAllocation,
         topHoldings: form.topHoldings,
         sourcePdfUrl: form.sourcePdfUrl || null,
       }),
@@ -140,9 +256,42 @@ export function FundFactSheetForm({
     (s, r) => s + (Number(r.weightPct) || 0),
     0,
   );
+  const sectorTotal = form.sectorAllocation.reduce(
+    (s, r) => s + (Number(r.weightPct) || 0),
+    0,
+  );
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
+      <div className="rounded-lg border border-dashed border-ekush-orange bg-[#FFF9F3] p-4">
+        <div className="flex items-start gap-4">
+          <div className="flex-1">
+            <h2 className="text-[14px] font-semibold text-text-dark">
+              Auto-fill from latest Portfolio Statement
+            </h2>
+            <p className="mt-0.5 text-[12px] text-[#6A6A6A]">
+              Reads the most recent Portfolio Statement PDF uploaded under
+              Fund Reports → {form.fundCode} and pre-fills the three sections
+              below (asset allocation, sector allocation, top holdings). You
+              can still edit every row before saving.
+            </p>
+            {extractMsg ? (
+              <p className="mt-2 text-[12px] font-medium text-green-700">
+                {extractMsg}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onExtract}
+            disabled={extracting}
+            className="shrink-0 rounded-md bg-ekush-orange px-3 py-2 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
+          >
+            {extracting ? "Extracting…" : "Extract from latest PDF"}
+          </button>
+        </div>
+      </div>
+
       <div className="rounded-lg border border-gray-200 bg-white p-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Fund">
@@ -252,6 +401,86 @@ export function FundFactSheetForm({
           <button
             type="button"
             onClick={() => addAlloc()}
+            className="rounded border border-ekush-orange bg-[#FFF4EC] px-2.5 py-1 text-[11px] font-semibold text-ekush-orange hover:bg-[#FFE9D8]"
+          >
+            + Custom
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
+        <header className="mb-3 flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-[15px] font-semibold">Sector allocation</h2>
+            <p className="text-[12px] text-[#8A8A8A]">
+              Equity sector buckets summed from the &ldquo;% of total
+              Investment&rdquo; column (Bank, Pharmaceuticals, &hellip;).
+              Renders as the Sectoral Classification pie on the public fact
+              sheet.
+            </p>
+          </div>
+          <div
+            className={`text-[13px] font-mono ${
+              sectorTotal >= 60 && sectorTotal <= 105
+                ? "text-green-700"
+                : "text-red-600"
+            }`}
+          >
+            Σ {sectorTotal.toFixed(1)}%
+          </div>
+        </header>
+        <ul className="space-y-2">
+          {form.sectorAllocation.map((row, i) => (
+            <li key={i} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={row.sector}
+                onChange={(e) => setSector(i, { sector: e.target.value })}
+                placeholder="e.g. Bank"
+                className={`${inputClass} flex-1`}
+                list="sector-suggestions"
+              />
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                max={100}
+                value={row.weightPct}
+                onChange={(e) =>
+                  setSector(i, { weightPct: Number(e.target.value) || 0 })
+                }
+                className={`${inputClass} w-24 text-right`}
+              />
+              <span className="text-[13px] text-[#8A8A8A]">%</span>
+              <button
+                type="button"
+                onClick={() => removeSector(i)}
+                className="rounded border border-red-200 bg-white px-2 text-[12px] text-red-600 hover:bg-red-50"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+        <datalist id="sector-suggestions">
+          {SECTOR_SUGGESTIONS.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {SECTOR_SUGGESTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => addSector(s)}
+              className="rounded border border-gray-200 bg-white px-2.5 py-1 text-[11px] text-[#4A4A4A] hover:bg-gray-50"
+            >
+              + {s}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => addSector()}
             className="rounded border border-ekush-orange bg-[#FFF4EC] px-2.5 py-1 text-[11px] font-semibold text-ekush-orange hover:bg-[#FFE9D8]"
           >
             + Custom
@@ -385,3 +614,9 @@ function Field({
 
 const inputClass =
   "rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:border-ekush-orange focus:outline-none";
+
+function roundPct(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 100) / 100;
+}

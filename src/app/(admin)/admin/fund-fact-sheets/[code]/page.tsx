@@ -37,6 +37,12 @@ export default async function EditFundFactSheetPage({
           weightPct: number;
         }[])
       : [],
+    sectorAllocation: Array.isArray(existing?.sectorAllocation)
+      ? (existing!.sectorAllocation as {
+          sector: string;
+          weightPct: number;
+        }[])
+      : [],
     topHoldings: Array.isArray(existing?.topHoldings)
       ? (existing!.topHoldings as {
           ticker: string;
