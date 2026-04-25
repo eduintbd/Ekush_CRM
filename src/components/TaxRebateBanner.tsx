@@ -12,10 +12,9 @@ export default function TaxRebateBanner() {
         relative w-full overflow-hidden rounded-2xl bg-navy
         shadow-[0_4px_14px_rgba(15,30,61,0.20)] font-bengali
         bg-[url(/images/tax-rebate-banner.png)] bg-no-repeat
+        bg-cover bg-[position:right_top]
         aspect-auto min-h-[220px]
-        bg-cover bg-[position:right_5%]
         md:aspect-[3.3/1] md:min-h-[260px]
-        md:bg-[length:auto_calc(100%_-_40px)] md:bg-[position:right_20px]
       "
     >
       {/* Per-component scoped styles — keyframes + reduced-motion override */}
@@ -30,22 +29,27 @@ export default function TaxRebateBanner() {
         }
       `}</style>
 
-      {/* Gradient overlay — desktop (extended for the narrower feature-card width). */}
+      {/* Gradient overlay — desktop. Smooth navy-to-photo wash so the
+          text zone fades into the warm photograph instead of meeting
+          it at a hard panel seam. Stops match the design spec:
+          92% / 75% / 15% / 0% at 0% / 40% / 65% / 100%. */}
       <div
         aria-hidden
         className="hidden md:block absolute inset-0 pointer-events-none z-[1]"
         style={{
           background:
-            "linear-gradient(to right, rgba(15,30,61,0.90) 0%, rgba(15,30,61,0.75) 35%, rgba(15,30,61,0.35) 55%, rgba(15,30,61,0) 68%)",
+            "linear-gradient(to right, rgba(15,30,61,0.92) 0%, rgba(15,30,61,0.75) 40%, rgba(15,30,61,0.15) 65%, rgba(15,30,61,0) 100%)",
         }}
       />
-      {/* Gradient overlay — mobile (denser middle band so text stays legible). */}
+      {/* Gradient overlay — mobile. Denser stops because the narrower
+          viewport leaves less horizontal room for the wash to settle
+          before the photo overtakes the text zone. */}
       <div
         aria-hidden
         className="block md:hidden absolute inset-0 pointer-events-none z-[1]"
         style={{
           background:
-            "linear-gradient(to right, rgba(15,30,61,0.90) 0%, rgba(15,30,61,0.75) 45%, rgba(15,30,61,0.35) 60%, rgba(15,30,61,0) 75%)",
+            "linear-gradient(to right, rgba(15,30,61,0.95) 0%, rgba(15,30,61,0.80) 45%, rgba(15,30,61,0.30) 75%, rgba(15,30,61,0) 100%)",
         }}
       />
 
