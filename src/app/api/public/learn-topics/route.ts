@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
   const rows = await prisma.learnTopic.findMany({
     where: {
       isPublished: true,
+      showOnTopic: true,
       ...(category ? { category } : {}),
     },
     orderBy: { displayOrder: "asc" },

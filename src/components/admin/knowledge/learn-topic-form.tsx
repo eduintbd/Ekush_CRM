@@ -27,12 +27,20 @@ export type LearnTopicFormInitial = {
   category: string;
   displayOrder: number;
   isPublished: boolean;
+  // Surface visibility — independent flags. A topic can show on the
+  // /knowledge Topic tab, in the floating What's New carousel, or both.
+  showOnTopic: boolean;
   // What's New side-tab opt-in. Topics with showInWhatsNew = true
   // (and isPublished = true) appear in the rebuild's What's New
   // floating carousel. whatsNewOrder controls slot order — lower
   // first, null falls to the end (sorted by createdAt desc).
   showInWhatsNew: boolean;
   whatsNewOrder: number | null;
+  // Optional CTA pinned to the What's New slide ("Open Portal" → URL).
+  // Both fields together or both null; the form blocks half-built
+  // states so the API parser never has to.
+  ctaUrl: string | null;
+  ctaLabel: string | null;
 };
 
 const ICONS = [
@@ -59,8 +67,11 @@ const EMPTY: LearnTopicFormInitial = {
   category: "basics",
   displayOrder: 0,
   isPublished: true,
+  showOnTopic: true,
   showInWhatsNew: false,
   whatsNewOrder: null,
+  ctaUrl: null,
+  ctaLabel: null,
 };
 
 const MAX_IMAGES = 10;
@@ -336,7 +347,31 @@ export function LearnTopicForm({
       </label>
 
       <div className="rounded-md border border-gray-200 p-3">
-        <label className="flex cursor-pointer items-start gap-3">
+        <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-[#8A8A8A]">
+          Where to show this topic
+        </p>
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-gray-50">
+          <input
+            type="checkbox"
+            checked={form.showOnTopic}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, showOnTopic: e.target.checked }))
+            }
+            className="mt-1 h-4 w-4 accent-ekush-orange"
+          />
+          <span className="flex-1">
+            <span className="block text-[13px] font-medium">
+              Show on Topic
+            </span>
+            <span className="mt-0.5 block text-[11px] text-[#8A8A8A]">
+              Topic appears under &ldquo;Basic of Mutual Fund&rdquo; on the
+              public /knowledge page. Requires Published.
+            </span>
+          </span>
+        </label>
+
+        <label className="mt-2 flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-gray-50">
           <input
             type="checkbox"
             checked={form.showInWhatsNew}
@@ -356,27 +391,73 @@ export function LearnTopicForm({
             </span>
           </span>
         </label>
+
         {form.showInWhatsNew ? (
-          <label className="mt-3 flex items-center gap-3 border-t border-gray-100 pt-3">
-            <span className="text-[12px] text-[#4A4A4A]">Display order</span>
-            <input
-              type="number"
-              step="1"
-              value={form.whatsNewOrder ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                setForm((f) => ({
-                  ...f,
-                  whatsNewOrder: v === "" ? null : Number(v),
-                }));
-              }}
-              placeholder="(unordered — sorted by date)"
-              className="w-56 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-ekush-orange focus:outline-none"
-            />
-            <span className="text-[11px] text-[#8A8A8A]">
-              Lower number first. Leave blank to sort by date.
-            </span>
-          </label>
+          <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
+            <label className="flex items-center gap-3">
+              <span className="w-32 text-[12px] text-[#4A4A4A]">
+                Display order
+              </span>
+              <input
+                type="number"
+                step="1"
+                value={form.whatsNewOrder ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    whatsNewOrder: v === "" ? null : Number(v),
+                  }));
+                }}
+                placeholder="(unordered — sorted by date)"
+                className="w-56 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-ekush-orange focus:outline-none"
+              />
+              <span className="text-[11px] text-[#8A8A8A]">
+                Lower number first. Leave blank to sort by date.
+              </span>
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="block text-[12px] font-medium text-text-body">
+                  CTA label
+                </span>
+                <input
+                  type="text"
+                  value={form.ctaLabel ?? ""}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      ctaLabel: e.target.value === "" ? null : e.target.value,
+                    }))
+                  }
+                  placeholder="e.g. Open Portal"
+                  className={inputClass}
+                />
+              </label>
+              <label className="block">
+                <span className="block text-[12px] font-medium text-text-body">
+                  CTA URL
+                </span>
+                <input
+                  type="url"
+                  value={form.ctaUrl ?? ""}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      ctaUrl: e.target.value === "" ? null : e.target.value,
+                    }))
+                  }
+                  placeholder="https://…"
+                  className={inputClass}
+                />
+              </label>
+            </div>
+            <p className="text-[11px] text-[#8A8A8A]">
+              Both fields are required together. Leave both empty to hide the
+              CTA on this slide.
+            </p>
+          </div>
         ) : null}
       </div>
 

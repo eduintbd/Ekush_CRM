@@ -951,7 +951,14 @@ model LearnTopic {
   displayOrder Int      @default(0)
   isPublished  Boolean  @default(false)
 
-  // ── What's New carousel flags ─────────────────────────────────
+  // ── Surface visibility flags ──────────────────────────────────
+  // isPublished is the master gate; `showOnTopic` and
+  // `showInWhatsNew` decide *where* a published topic appears.
+  // The two flags are independent: a topic can live on the Topic
+  // tab only, in the What's New carousel only, or both.
+  // showOnTopic defaults to true so existing rows keep showing on
+  // /knowledge after the migration without any admin action.
+  showOnTopic    Boolean @default(true)
   // The What's New floating tab pulls from topics that opt-in via
   // showInWhatsNew. Topics still need isPublished:true to appear
   // publicly — showInWhatsNew is a *feature flag*, not a publish
@@ -962,10 +969,18 @@ model LearnTopic {
   // toggle a topic into What's New without typing a number.
   whatsNewOrder  Int?
 
+  // Optional CTA shown on the What's New slide — e.g. "Open Portal"
+  // → portal login. Both fields are required together (null/null
+  // hides the CTA). Validated at the API parser, not enforced in
+  // the schema, so partial drafts can round-trip.
+  ctaUrl   String?
+  ctaLabel String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([category, isPublished, displayOrder])
+  @@index([showOnTopic, isPublished, displayOrder])
   @@index([showInWhatsNew, whatsNewOrder])
   @@map("learn_topics")
 }

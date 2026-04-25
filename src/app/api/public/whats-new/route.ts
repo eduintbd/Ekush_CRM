@@ -42,6 +42,8 @@ export async function GET() {
         images: true,
         imageUrl: true,
         category: true,
+        ctaUrl: true,
+        ctaLabel: true,
       },
     }),
     prisma.whatsNewSetting.findUnique({
@@ -51,11 +53,15 @@ export async function GET() {
   ]);
 
   // Match the legacy-imageUrl merge done by /api/public/learn-topics
-  // so rebuild code can render either shape with one path.
+  // so rebuild code can render either shape with one path. The CTA
+  // is collapsed into a single nullable object so the rebuild can
+  // render it with a single null-check rather than two.
   const items = rows
-    .map(({ images, imageUrl, ...rest }) => ({
+    .map(({ images, imageUrl, ctaUrl, ctaLabel, ...rest }) => ({
       ...rest,
       images: images.length ? images : imageUrl ? [imageUrl] : [],
+      cta:
+        ctaUrl && ctaLabel ? { url: ctaUrl, label: ctaLabel } : null,
     }))
     // Drop topics with no image at all — the carousel is image-only,
     // so an iconKey-only topic would render as a blank slide.

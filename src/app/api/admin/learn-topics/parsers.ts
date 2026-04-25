@@ -17,11 +17,18 @@ export type LearnTopicInput = {
   category: string;
   displayOrder: number;
   isPublished: boolean;
-  // What's New side-tab opt-in. The public /api/public/whats-new
-  // endpoint filters on showInWhatsNew && isPublished, sorted by
-  // whatsNewOrder ASC NULLS LAST, then createdAt DESC.
+  // Surface visibility flags. /api/public/learn-topics filters on
+  // isPublished && showOnTopic; /api/public/whats-new filters on
+  // isPublished && showInWhatsNew. The two are independent.
+  showOnTopic: boolean;
+  // What's New side-tab opt-in.
   showInWhatsNew: boolean;
   whatsNewOrder: number | null;
+  // Optional CTA pinned to the What's New slide. Both fields are
+  // either non-empty together or both null — partial input is
+  // collapsed to null so the public API never ships a half-built CTA.
+  ctaUrl: string | null;
+  ctaLabel: string | null;
 };
 
 const ALLOWED_ICONS = new Set(["cube", "layers", "bank", "chart"]);
@@ -78,6 +85,26 @@ export function parseLearnTopicInput(
     whatsNewOrder = Math.trunc(n);
   }
 
+  // CTA: collapse partial input (one field set, the other blank) to
+  // null/null so the public API never emits a half-built button.
+  const ctaUrlRaw = str(body.ctaUrl);
+  const ctaLabelRaw = str(body.ctaLabel);
+  let ctaUrl: string | null = null;
+  let ctaLabel: string | null = null;
+  if (ctaUrlRaw && ctaLabelRaw) {
+    if (!/^https?:\/\//i.test(ctaUrlRaw)) {
+      return { error: "ctaUrl must be an http(s) URL" };
+    }
+    ctaUrl = ctaUrlRaw;
+    ctaLabel = ctaLabelRaw;
+  }
+
+  // showOnTopic defaults to true when missing, matching the column
+  // default — older clients that don't send the field still write
+  // topics that show on the Topic tab.
+  const showOnTopic =
+    body.showOnTopic === undefined ? true : !!body.showOnTopic;
+
   return {
     title,
     summary,
@@ -88,8 +115,11 @@ export function parseLearnTopicInput(
     category,
     displayOrder: intOrZero(body.displayOrder),
     isPublished: !!body.isPublished,
+    showOnTopic,
     showInWhatsNew: !!body.showInWhatsNew,
     whatsNewOrder,
+    ctaUrl,
+    ctaLabel,
   };
 }
 

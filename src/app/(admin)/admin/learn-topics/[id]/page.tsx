@@ -53,8 +53,11 @@ export default async function EditLearnTopicPage({
           category: topic.category,
           displayOrder: topic.displayOrder,
           isPublished: topic.isPublished,
+          showOnTopic: topic.showOnTopic,
           showInWhatsNew: topic.showInWhatsNew,
           whatsNewOrder: topic.whatsNewOrder,
+          ctaUrl: topic.ctaUrl,
+          ctaLabel: topic.ctaLabel,
         }}
       />
     </div>
