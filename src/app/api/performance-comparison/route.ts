@@ -193,6 +193,11 @@ export async function GET() {
       series: series.map((p) => ({
         date: p.date.toISOString(),
         investorReturn: p.investorReturn,
+        // NAV per unit at this point in time. Exposed so the rebuild's
+        // /fund/<slug> NAV chart can plot the full series in one fetch
+        // — the dedicated /nav-history endpoint caps perPage at 100,
+        // which would force the chart to paginate or silently truncate.
+        nav: p.nav,
       })),
     };
   });
