@@ -17,6 +17,11 @@ export type LearnTopicInput = {
   category: string;
   displayOrder: number;
   isPublished: boolean;
+  // What's New side-tab opt-in. The public /api/public/whats-new
+  // endpoint filters on showInWhatsNew && isPublished, sorted by
+  // whatsNewOrder ASC NULLS LAST, then createdAt DESC.
+  showInWhatsNew: boolean;
+  whatsNewOrder: number | null;
 };
 
 const ALLOWED_ICONS = new Set(["cube", "layers", "bank", "chart"]);
@@ -61,6 +66,18 @@ export function parseLearnTopicInput(
     if (images.length >= 10) break;
   }
 
+  // whatsNewOrder accepts an explicit integer or null/undefined/empty
+  // string for "unordered". The form sends "" when the input is blank.
+  const whatsNewOrderRaw = body.whatsNewOrder;
+  let whatsNewOrder: number | null = null;
+  if (whatsNewOrderRaw !== null && whatsNewOrderRaw !== undefined && whatsNewOrderRaw !== "") {
+    const n = Number(whatsNewOrderRaw);
+    if (!Number.isFinite(n)) {
+      return { error: "whatsNewOrder must be an integer or null" };
+    }
+    whatsNewOrder = Math.trunc(n);
+  }
+
   return {
     title,
     summary,
@@ -71,6 +88,8 @@ export function parseLearnTopicInput(
     category,
     displayOrder: intOrZero(body.displayOrder),
     isPublished: !!body.isPublished,
+    showInWhatsNew: !!body.showInWhatsNew,
+    whatsNewOrder,
   };
 }
 

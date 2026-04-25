@@ -951,11 +951,39 @@ model LearnTopic {
   displayOrder Int      @default(0)
   isPublished  Boolean  @default(false)
 
+  // ── What's New carousel flags ─────────────────────────────────
+  // The What's New floating tab pulls from topics that opt-in via
+  // showInWhatsNew. Topics still need isPublished:true to appear
+  // publicly — showInWhatsNew is a *feature flag*, not a publish
+  // override.
+  showInWhatsNew Boolean @default(false)
+  // Lower number = shown first. NULL means "after all ordered
+  // entries, then by createdAt desc". Kept nullable so admins can
+  // toggle a topic into What's New without typing a number.
+  whatsNewOrder  Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([category, isPublished, displayOrder])
+  @@index([showInWhatsNew, whatsNewOrder])
   @@map("learn_topics")
+}
+
+// Singleton config for the What's New side-tab. Holds the global
+// WhatsApp number the "Call on WhatsApp" CTA on every card opens.
+// Stored as its own row (not on each LearnTopic) so admins can
+// rotate the number once and have it apply across all cards.
+model WhatsNewSetting {
+  id             String   @id @default("singleton")
+  // International format without the leading + (e.g. "8801713086101"),
+  // or null when the admin hasn't configured one yet — in that case
+  // the public side-tab hides the WhatsApp button.
+  whatsappNumber String?
+  updatedAt      DateTime @updatedAt
+  updatedBy      String?  // user id of the admin who last saved
+
+  @@map("whats_new_settings")
 }
 
 // Admin-maintained Fund Fact Sheet — one row per fund code (EFUF,

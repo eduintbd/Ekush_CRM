@@ -1,12 +1,22 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { WhatsNewSettingsBar } from "@/components/admin/knowledge/whats-new-settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLearnTopicsPage() {
-  const topics = await prisma.learnTopic.findMany({
-    orderBy: [{ category: "asc" }, { displayOrder: "asc" }],
-  });
+  const [topics, whatsNewSetting] = await Promise.all([
+    prisma.learnTopic.findMany({
+      orderBy: [{ category: "asc" }, { displayOrder: "asc" }],
+    }),
+    prisma.whatsNewSetting.findUnique({
+      where: { id: "singleton" },
+      select: { whatsappNumber: true },
+    }),
+  ]);
+  const flaggedCount = topics.filter(
+    (t) => t.showInWhatsNew && t.isPublished,
+  ).length;
 
   // Group by category so admin can eyeball each tab in isolation.
   // Today only "basics" is used on the public site; faq + myth_buster
@@ -37,6 +47,11 @@ export default async function AdminLearnTopicsPage() {
         </Link>
       </div>
 
+      <WhatsNewSettingsBar
+        initialNumber={whatsNewSetting?.whatsappNumber ?? null}
+        flaggedCount={flaggedCount}
+      />
+
       {topics.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-200 bg-white p-8 text-center text-sm text-text-body">
           No topics yet. Click &ldquo;Add topic&rdquo; to create the first
@@ -64,6 +79,9 @@ export default async function AdminLearnTopicsPage() {
                       </th>
                       <th className="px-4 py-3 text-center font-semibold">
                         Published
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        What&rsquo;s New
                       </th>
                       <th className="px-4 py-3 text-right font-semibold">
                         Order
@@ -93,6 +111,16 @@ export default async function AdminLearnTopicsPage() {
                             <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
                               Draft
                             </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {t.showInWhatsNew ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#FFF4EC] px-2 py-0.5 text-[10px] font-semibold text-ekush-orange">
+                              <span className="h-1.5 w-1.5 rounded-full bg-ekush-orange" />
+                              {t.whatsNewOrder != null ? `#${t.whatsNewOrder}` : "On"}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-[#8A8A8A]">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right font-mono">
