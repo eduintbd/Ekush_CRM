@@ -208,8 +208,8 @@ function Panel({
               ? `Hi ${me.name}${me.investorCode ? ` · ${me.investorCode}` : ""}`
               : `নমস্কার ${me.name}${me.investorCode ? ` · ${me.investorCode}` : ""}`
             : lang === "en"
-              ? "Ekush assistant"
-              : "একুশ সহকারী"
+              ? "Ekush AI Assistant"
+              : "একুশ এআই সহকারী"
         }
         lang={lang}
         setLang={setLang}
@@ -325,12 +325,7 @@ function Header({
         />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2">
-          <p className="font-semibold text-[14px]">{title}</p>
-          <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-            Bot
-          </span>
-        </div>
+        <p className="font-semibold text-[14px]">{title}</p>
         <p className="truncate text-[11px] opacity-85">{subtitle}</p>
       </div>
       <div className="flex shrink-0 items-center gap-1 rounded-full bg-white/15 p-0.5 text-[10px] font-semibold">
