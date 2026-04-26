@@ -124,16 +124,11 @@ export default async function StatementsPage() {
         </CardContent>
       </Card>
 
-      {/* Fund Allocation + Goals side by side */}
+      {/* Fund Allocation + Goals side by side. AllocationChart owns
+          its own card chrome (border + radius + padding + header) so
+          we don't wrap it in a Card here. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-[16px]">Fund Allocation</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AllocationChart funds={fundsForChart} />
-        </CardContent>
-      </Card>
+      <AllocationChart funds={fundsForChart} asOfDate={new Date()} />
 
       {goals.length > 0 && (
         <Card>
