@@ -119,7 +119,13 @@ export function AllocationChart({ funds, asOfDate }: Props) {
   const slices = useMemo<Slice[]>(() => {
     const filtered = funds.filter((f) => f.marketValue > 0);
     if (filtered.length === 0) return [];
-    let cursor = -Math.PI / 2; // start at 12 o'clock
+    // Start at 6 o'clock (donut "upside down") so the small slices —
+    // which always trail the dominant one in clockwise order —
+    // land in the lower-right quadrant, right next to where their
+    // labels sit on the right rail. Eliminates the long diagonal
+    // leader that previously crossed the donut interior to reach
+    // a bottom-left label.
+    let cursor = Math.PI / 2;
     let fallbackIdx = 0;
     return filtered.map((f) => {
       const sweep = (f.weight / 100) * 2 * Math.PI;
@@ -317,6 +323,12 @@ export function AllocationChart({ funds, asOfDate }: Props) {
             let polyPoints: string;
             let textAnchor: "start" | "end";
 
+            // Donut starts at 6 o'clock so the dominant slice covers
+            // the entire left half + most of right; the two small
+            // slices cluster in the lower-right quadrant. All three
+            // labels live on the right rail at y-positions that
+            // track each slice's actual position — leaders stay
+            // short and never cross the donut interior.
             if (isPrimary) {
               anchorX = CX + R_OUT;
               anchorY = CY;
@@ -325,17 +337,18 @@ export function AllocationChart({ funds, asOfDate }: Props) {
               polyPoints = `${anchorX},${anchorY} ${labelX - 4},${labelY}`;
               textAnchor = "end";
             } else {
-              // Two left-side slots; rank 1 sits high, rank 2 sits low
-              // so labels never collide regardless of slice geometry.
-              const slotY = rank === 1 ? 30 : VB_H - 22;
               anchorX = CX + R_OUT * Math.cos(s.mid);
               anchorY = CY + R_OUT * Math.sin(s.mid);
               const elbowX = anchorX + 14 * Math.cos(s.mid);
               const elbowY = anchorY + 14 * Math.sin(s.mid);
-              labelX = 8;
+              // Slot Y tracks the slice mid; clamped so the label
+              // box always stays inside the viewBox even if the
+              // slice mid sits very close to top or bottom.
+              const slotY = Math.max(40, Math.min(VB_H - 22, anchorY + 4));
+              labelX = VB_W - 8;
               labelY = slotY;
-              polyPoints = `${anchorX},${anchorY} ${elbowX},${elbowY} ${labelX + 60},${labelY}`;
-              textAnchor = "start";
+              polyPoints = `${anchorX},${anchorY} ${elbowX},${elbowY} ${labelX - 60},${labelY}`;
+              textAnchor = "end";
             }
 
             return (
