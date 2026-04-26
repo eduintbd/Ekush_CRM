@@ -26,6 +26,10 @@ export default async function AdminDashboard() {
     name: string;
     investorType: string;
     createdAt: Date;
+    // Set when the investor was upgraded from a Tier-1 prospect; the
+    // dashboard renders a "Tier1→Tier2" badge in the TYPE column to flag
+    // these so admins can spot the conversion path during review.
+    linkedProspectId: string | null;
     user: { email: string | null; phone: string | null; status: string };
   }> = [];
   try {
@@ -85,7 +89,14 @@ export default async function AdminDashboard() {
                   <TableCell className="text-[12px]">{formatDate(inv.createdAt)}</TableCell>
                   <TableCell className="font-medium text-text-dark">{inv.name}</TableCell>
                   <TableCell className="font-mono text-[11px] text-text-body">{inv.investorCode}</TableCell>
-                  <TableCell className="text-[12px]">{inv.investorType}</TableCell>
+                  <TableCell className="text-[12px]">
+                    {inv.investorType}
+                    {inv.linkedProspectId && (
+                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 text-[10px] font-semibold uppercase tracking-wide border border-amber-200">
+                        Tier1→Tier2
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="pending">{inv.user.status}</Badge>
                   </TableCell>

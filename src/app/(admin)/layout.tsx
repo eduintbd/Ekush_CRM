@@ -5,6 +5,19 @@ import Link from "next/link";
 import { AdminLogoutButton } from "@/components/admin/logout-button";
 import { ContentNavDropdown } from "@/components/admin/content-nav-dropdown";
 import { STAFF_ROLES, SUPER_ROLES, can, type Action } from "@/lib/roles";
+import { isProspectsEnabled } from "@/lib/feature-flags";
+
+// True for the first 30 days after the prospect-tier launch. Drives the
+// small green "NEW" badge next to the Prospects nav link so existing
+// staff notice the new surface. After the 30-day window it auto-hides.
+function isProspectsNew(): boolean {
+  const launch = process.env.PROSPECTS_TAB_LAUNCH;
+  if (!launch) return false;
+  const launchDate = new Date(launch);
+  if (Number.isNaN(launchDate.getTime())) return false;
+  const ageMs = Date.now() - launchDate.getTime();
+  return ageMs >= 0 && ageMs <= 30 * 24 * 60 * 60 * 1000;
+}
 
 export default async function AdminLayout({
   children,
@@ -23,6 +36,9 @@ export default async function AdminLayout({
     redirect("/dashboard");
   }
 
+  const showProspectsTab = isProspectsEnabled();
+  const showProspectsNewBadge = showProspectsTab && isProspectsNew();
+
   return (
     <AuthProvider>
       <div className="min-h-screen bg-page-bg">
@@ -39,6 +55,19 @@ export default async function AdminLayout({
           <div className="flex items-center gap-5 text-[13px] font-medium flex-wrap">
             <Link href="/admin/dashboard" className="text-text-dark hover:text-ekush-orange transition-colors">Dashboard</Link>
             <Link href="/admin/investors" className="text-text-dark hover:text-ekush-orange transition-colors">Investors</Link>
+            {showProspectsTab && (
+              <Link
+                href="/admin/prospects"
+                className="text-text-dark hover:text-ekush-orange transition-colors inline-flex items-center gap-1.5"
+              >
+                Prospects
+                {showProspectsNewBadge && (
+                  <span className="inline-flex items-center bg-green-600 text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-[3px] leading-none">
+                    NEW
+                  </span>
+                )}
+              </Link>
+            )}
             <Link href="/admin/statements" className="text-text-dark hover:text-ekush-orange transition-colors">Statements</Link>
             {can(role, "EDIT_DATA_ENTRY" as Action) && (
               <Link href="/admin/nav-entry" className="text-text-dark hover:text-ekush-orange transition-colors">Data Entry</Link>
