@@ -14,26 +14,55 @@ type IconProps = {
 
 type IconComponent = (props: IconProps) => ReactElement;
 
-function GoldBarsIcon({ size = 24, className, ...rest }: IconProps) {
+// Two-color icon by design: cream cart frame + gold growth bars
+// and arrow inside the basket. Hardcoded fills/strokes — the parent
+// tile's text-gold class drives `currentColor`, but we want a
+// fixed two-tone palette here so the cart and bars stay distinct
+// regardless of the row's color treatment.
+function BuyCartIcon({ size = 24, className, ...rest }: IconProps) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 100 100"
       width={size}
       height={size}
-      fill="currentColor"
       className={className}
       {...rest}
     >
-      {/* sparkle dots above the stack */}
-      <circle cx="6.5" cy="3.5" r="0.7" />
-      <circle cx="12" cy="2.4" r="0.7" />
-      <circle cx="17.5" cy="3.5" r="0.7" />
-      {/* top bar (smallest) */}
-      <path d="M9 7.5 L15 7.5 L16 11.5 L8 11.5 Z" />
-      {/* middle bar */}
-      <path d="M7 12.5 L17 12.5 L18 16.5 L6 16.5 Z" />
-      {/* bottom bar (widest) */}
-      <path d="M5 17.5 L19 17.5 L20 21.5 L4 21.5 Z" />
+      {/* Cart frame + wheels — cream outline */}
+      <g
+        fill="none"
+        stroke="#F5F1E8"
+        strokeWidth={6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* Handle: short hook from upper-left into the basket lip */}
+        <path d="M 14 22 L 26 22 L 32 38" />
+        {/* Basket: trapezoid (wider at top, narrower at bottom) */}
+        <path d="M 32 38 L 80 38 L 76 64 L 38 64 Z" />
+        {/* Wheels */}
+        <circle cx="44" cy="74" r="5" />
+        <circle cx="70" cy="74" r="5" />
+      </g>
+
+      {/* Three gold bars inside the basket, ascending heights */}
+      <g fill="#F5C518">
+        <rect x="44" y="54" width="6" height="8" />
+        <rect x="54" y="48" width="6" height="14" />
+        <rect x="64" y="42" width="6" height="20" />
+      </g>
+
+      {/* Up arrow — gold, anchored at the top-right of the tallest bar */}
+      <g
+        fill="none"
+        stroke="#F5C518"
+        strokeWidth={4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M 78 38 L 78 24" />
+        <path d="M 72 30 L 78 24 L 84 30" />
+      </g>
     </svg>
   );
 }
@@ -70,7 +99,7 @@ interface ActionItem {
 }
 
 const ITEMS: ActionItem[] = [
-  { href: "/transactions/buy", labelTop: "Buy", labelBottom: "Units", Icon: GoldBarsIcon },
+  { href: "/transactions/buy", labelTop: "Buy", labelBottom: "Units", Icon: BuyCartIcon },
   { href: "/sip", labelTop: "Start", labelBottom: "SIP", Icon: CalendarClock as unknown as IconComponent },
   { href: "/goals", labelTop: "Progress", labelBottom: "Report", Icon: BarChart3 as unknown as IconComponent },
   { href: "/transactions/sell", labelTop: "Sell", labelBottom: "Units", Icon: TakaIcon },
