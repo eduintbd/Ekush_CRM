@@ -1,26 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ArrowUpRight, FileDown, Sparkles } from "lucide-react";
+import { FileDown, Sparkles } from "lucide-react";
 import { prisma, withRetry } from "@/lib/prisma";
 import { isProspectsEnabled } from "@/lib/feature-flags";
+import { getSession } from "@/lib/auth";
+import { SUPER_ROLES } from "@/lib/roles";
+import {
+  ProspectsTableClient,
+  type ProspectRow,
+} from "@/components/admin/prospects-table-client";
 
-// Phase 6a — read-only prospects admin tab.
-// Filters / search / sort / pagination are all driven by URL search
-// params so links work, the Back button does the right thing, and the
-// page can be deep-linked from email or admin chat.
+// Phase 6 server shell — owns metrics, filter pills, search/sort form,
+// and pagination. Hands the data rows to a client island for selection
+// + delete modals (Phase 6b).
 //
-// Mutations (delete, bulk delete, CSV / Meta exports) come in 6b.
-// The table column for those actions is reserved here as an empty
-// header to keep the layout stable across the 6a → 6b ship.
+// All filter/search/sort/page state is in URL search params so links
+// and the Back button work, and direct deep-links share cleanly.
 
 export const dynamic = "force-dynamic";
 
@@ -35,14 +31,6 @@ type SortKey = (typeof SORT_KEYS)[number];
 const ACTIVE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const DORMANT_THRESHOLD_MS = 60 * 24 * 60 * 60 * 1000;
 
-const INTEREST_LABELS: Record<string, string> = {
-  exploring: "Just exploring",
-  mutual_funds: "Mutual Funds",
-  sukuk: "Sukuk",
-  dpm: "DPM",
-  other: "Other",
-};
-
 export default async function AdminProspectsPage({
   searchParams,
 }: {
@@ -54,6 +42,9 @@ export default async function AdminProspectsPage({
   };
 }) {
   if (!isProspectsEnabled()) notFound();
+
+  const session = await getSession();
+  const canHardDelete = SUPER_ROLES.includes(session?.user?.role ?? "");
 
   const page = Math.max(1, parseInt(searchParams.page || "1"));
   const query = (searchParams.q || "").trim();
@@ -72,8 +63,6 @@ export default async function AdminProspectsPage({
   const activeSince = new Date(now - ACTIVE_WINDOW_MS);
   const dormantBefore = new Date(now - DORMANT_THRESHOLD_MS);
 
-  // Soft-deleted rows are hidden from the admin view by default; the
-  // 30-day purge cron sweeps them after deletedAt + 30d.
   const baseFilter = { deletedAt: null };
 
   const filterClause: Record<string, unknown> =
@@ -114,7 +103,7 @@ export default async function AdminProspectsPage({
         ? { lastLoginAt: { sort: "desc" as const, nulls: "last" as const } }
         : { createdAt: "desc" as const };
 
-  const [rows, total, metrics] = await withRetry(() =>
+  const [rawRows, total, metrics] = await withRetry(() =>
     Promise.all([
       prisma.prospect.findMany({
         where,
@@ -138,6 +127,20 @@ export default async function AdminProspectsPage({
     ]),
   );
 
+  // Date → ISO string for the wire so the client island gets a plain
+  // serializable shape.
+  const rows: ProspectRow[] = rawRows.map((r) => ({
+    id: r.id,
+    phone: r.phone,
+    name: r.name,
+    email: r.email,
+    interest: r.interest,
+    source: r.source,
+    createdAt: r.createdAt.toISOString(),
+    lastLoginAt: r.lastLoginAt ? r.lastLoginAt.toISOString() : null,
+    kycSubmitted: r.kycSubmitted,
+  }));
+
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
   return (
@@ -153,18 +156,18 @@ export default async function AdminProspectsPage({
           </p>
         </div>
         <div className="flex gap-2">
-          <ExportButton
+          <a
             href="/api/admin/prospects/export"
-            label="Export to CSV"
-            disabled
-            icon={<FileDown className="w-4 h-4" />}
-          />
-          <ExportButton
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark transition-colors"
+          >
+            <FileDown className="w-4 h-4" /> Export to CSV
+          </a>
+          <a
             href="/api/admin/prospects/export-meta"
-            label="Export for Meta audience"
-            disabled
-            icon={<Sparkles className="w-4 h-4" />}
-          />
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark transition-colors"
+          >
+            <Sparkles className="w-4 h-4" /> Export for Meta audience
+          </a>
         </div>
       </header>
 
@@ -189,95 +192,7 @@ export default async function AdminProspectsPage({
 
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-0 hover:bg-transparent">
-                  <TableHead className="w-8">
-                    {/* Checkbox column reserved for Phase 6b bulk delete. */}
-                  </TableHead>
-                  <TableHead>Phone (login)</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Interest</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead>Last active</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-10"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={10}
-                      className="text-center text-[13px] text-text-body py-10"
-                    >
-                      No prospects match the current filters.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  rows.map((p) => {
-                    const status = computeStatus(
-                      p.lastLoginAt,
-                      p.createdAt,
-                      now,
-                    );
-                    return (
-                      <TableRow key={p.id}>
-                        <TableCell>
-                          <input
-                            type="checkbox"
-                            disabled
-                            className="accent-ekush-orange"
-                            aria-label={`Select ${p.name}`}
-                          />
-                        </TableCell>
-                        <TableCell className="font-mono text-[13px] text-text-dark">
-                          +880 {p.phone}
-                        </TableCell>
-                        <TableCell className="text-[13px] text-text-dark">
-                          <span className="font-medium">{p.name}</span>
-                          {p.kycSubmitted && (
-                            <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 text-[10px] font-semibold uppercase tracking-wide border border-amber-200">
-                              <ArrowUpRight className="w-2.5 h-2.5" />
-                              KYC submitted
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-[13px] text-text-body">
-                          {p.email ?? <span className="text-text-muted">&mdash;</span>}
-                        </TableCell>
-                        <TableCell className="text-[13px] text-text-body">
-                          {INTEREST_LABELS[p.interest] ?? p.interest}
-                        </TableCell>
-                        <TableCell className="text-[13px] text-text-body">
-                          {p.source ?? <span className="text-text-muted">&mdash;</span>}
-                        </TableCell>
-                        <TableCell className="text-[13px] text-text-body">
-                          {relativeFromNow(p.createdAt, now)}
-                        </TableCell>
-                        <TableCell className="text-[13px] text-text-body">
-                          {p.lastLoginAt ? (
-                            relativeFromNow(p.lastLoginAt, now)
-                          ) : (
-                            <span className="text-text-muted">never</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <StatusPill status={status} />
-                        </TableCell>
-                        <TableCell>
-                          {/* Per-row delete reserved for Phase 6b. */}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <ProspectsTableClient rows={rows} canHardDelete={canHardDelete} />
 
           {totalPages > 1 && (
             <PaginationBar
@@ -292,10 +207,7 @@ export default async function AdminProspectsPage({
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between text-[13px] text-text-body">
-        <span className="opacity-60 cursor-not-allowed">
-          Bulk delete selected (coming soon)
-        </span>
+      <div className="flex items-center justify-end text-[13px] text-text-body">
         <span className="opacity-60 cursor-not-allowed">
           Send WhatsApp campaign (coming soon)
         </span>
@@ -335,43 +247,6 @@ async function computeMetrics(activeSince: Date, dormantBefore: Date) {
     }),
   ]);
   return { total, active, dormant, upgrading };
-}
-
-function computeStatus(
-  lastLoginAt: Date | null,
-  createdAt: Date,
-  nowMs: number,
-): "active" | "dormant" | "new" {
-  if (lastLoginAt && nowMs - lastLoginAt.getTime() <= ACTIVE_WINDOW_MS) {
-    return "active";
-  }
-  const reference = lastLoginAt ?? createdAt;
-  if (nowMs - reference.getTime() >= DORMANT_THRESHOLD_MS) {
-    return "dormant";
-  }
-  return "new";
-}
-
-function StatusPill({ status }: { status: "active" | "dormant" | "new" }) {
-  if (status === "active") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[11px] font-semibold border border-green-200">
-        Active
-      </span>
-    );
-  }
-  if (status === "dormant") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-semibold border border-gray-200">
-        Dormant
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold border border-blue-200">
-      New
-    </span>
-  );
 }
 
 function MetricCard({
@@ -419,14 +294,12 @@ function FilterBar({
     { key: "upgrading", label: "Upgrading" },
   ];
 
-  function buildHref(next: Partial<{ filter: FilterKey; sort: SortKey; q: string; page: number }>) {
+  function buildHref(next: Partial<{ filter: FilterKey }>) {
     const params = new URLSearchParams();
     const f = next.filter ?? currentFilter;
     if (f !== "all") params.set("filter", f);
-    const s = next.sort ?? currentSort;
-    if (s !== "newest") params.set("sort", s);
-    const q = next.q ?? query;
-    if (q) params.set("q", q);
+    if (currentSort !== "newest") params.set("sort", currentSort);
+    if (query) params.set("q", query);
     const qs = params.toString();
     return qs ? `/admin/prospects?${qs}` : "/admin/prospects";
   }
@@ -456,9 +329,6 @@ function FilterBar({
       >
         {currentFilter !== "all" && (
           <input type="hidden" name="filter" value={currentFilter} />
-        )}
-        {currentSort !== "newest" && (
-          <input type="hidden" name="sort" value={currentSort} />
         )}
         <input
           type="text"
@@ -539,56 +409,4 @@ function PaginationBar({
       </div>
     </div>
   );
-}
-
-function ExportButton({
-  href,
-  label,
-  icon,
-  disabled,
-}: {
-  href: string;
-  label: string;
-  icon?: React.ReactNode;
-  disabled?: boolean;
-}) {
-  // Phase 6b will implement the routes; until then the buttons render
-  // disabled so the UI shape is final on first ship.
-  if (disabled) {
-    return (
-      <span
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-gray-100 text-gray-400 rounded-md cursor-not-allowed"
-        title="Available in Phase 6b"
-      >
-        {icon}
-        {label}
-      </span>
-    );
-  }
-  return (
-    <a
-      href={href}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-ekush-orange text-white rounded-md hover:bg-ekush-orange-dark transition-colors"
-    >
-      {icon}
-      {label}
-    </a>
-  );
-}
-
-function relativeFromNow(d: Date, nowMs: number): string {
-  const ms = nowMs - d.getTime();
-  if (ms < 0) return "just now";
-  const sec = Math.floor(ms / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  if (day < 30) return `${day}d ago`;
-  const month = Math.floor(day / 30);
-  if (month < 12) return `${month}mo ago`;
-  const year = Math.floor(day / 365);
-  return `${year}y ago`;
 }
