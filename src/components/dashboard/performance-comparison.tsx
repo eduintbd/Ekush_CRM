@@ -15,6 +15,12 @@ const PERIOD_LABELS: Array<{ id: PeriodId; label: string }> = [
 
 type PeriodId = "sinceInception" | "5Y" | "3Y" | "1Y" | "6M" | "3M" | "YTD";
 type IndexCode = "DSEX" | "DS30";
+type FundCode = "EFUF" | "EGF" | "ESRF";
+
+// Funds rendered without an index comparison line. ESRF is a fixed-
+// income / stable-return fund so a price-return market index isn't a
+// meaningful peer — show only the fund's own series.
+const STANDALONE_FUNDS: ReadonlySet<FundCode> = new Set<FundCode>(["ESRF"]);
 
 interface FundBlock {
   code: string;
@@ -75,9 +81,11 @@ function findAnchor<T extends { date: string }>(series: T[], target: Date): T | 
 export function PerformanceComparison() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [chartFund, setChartFund] = useState<"EFUF" | "EGF">("EFUF");
+  const [chartFund, setChartFund] = useState<FundCode>("EFUF");
   const [chartIndex, setChartIndex] = useState<IndexCode>("DSEX");
   const [chartPeriod, setChartPeriod] = useState<PeriodId>("3Y");
+
+  const isStandalone = STANDALONE_FUNDS.has(chartFund);
 
   useEffect(() => {
     let alive = true;
@@ -89,20 +97,30 @@ export function PerformanceComparison() {
   }, []);
 
   const chart = useMemo(() => {
-    if (!data) return { rows: [] as Array<Record<string, unknown>>, windowStartLabel: "", fundReturn: null as number | null, indexReturn: null as number | null };
+    const empty = {
+      rows: [] as Array<Record<string, unknown>>,
+      windowStartLabel: "",
+      fundReturn: null as number | null,
+      indexReturn: null as number | null,
+    };
+    if (!data) return empty;
     const fund = data.funds.find((f) => f.code === chartFund);
-    const idx = data.indices.find((i) => i.code === chartIndex);
-    if (!fund || !idx) return { rows: [], windowStartLabel: "", fundReturn: null, indexReturn: null };
+    if (!fund) return empty;
 
     const asOf = new Date(data.asOf);
     const inception = fund.inceptionDate ? new Date(fund.inceptionDate) : null;
     const start = pickPeriodStart(asOf, chartPeriod, inception);
-    if (!start) return { rows: [], windowStartLabel: "", fundReturn: null, indexReturn: null };
+    if (!start) return empty;
 
-    const fundAnchor = findAnchor(fund.series, start);
-    const idxAnchor = findAnchor(idx.series, start);
-    const fundBase = fundAnchor?.investorReturn ?? 0;
-    const idxBase = idxAnchor?.price ?? 0;
+    const fundBase = findAnchor(fund.series, start)?.investorReturn ?? 0;
+
+    // Index data is only fetched / aligned when the fund isn't a
+    // standalone one. Stable Return Fund (ESRF) renders as a single
+    // line with no peer comparison.
+    const idx = isStandalone
+      ? null
+      : (data.indices.find((i) => i.code === chartIndex) ?? null);
+    const idxBase = idx ? (findAnchor(idx.series, start)?.price ?? 0) : 0;
 
     const inWindow = (d: string) => {
       const t = new Date(d).getTime();
@@ -111,27 +129,30 @@ export function PerformanceComparison() {
 
     const dateSet = new Set<string>();
     for (const r of fund.series) if (inWindow(r.date)) dateSet.add(r.date.slice(0, 10));
-    for (const r of idx.series) if (inWindow(r.date)) dateSet.add(r.date.slice(0, 10));
+    if (idx) for (const r of idx.series) if (inWindow(r.date)) dateSet.add(r.date.slice(0, 10));
     const dates = Array.from(dateSet).sort();
 
     const fundByDate = new Map(fund.series.map((r) => [r.date.slice(0, 10), r.investorReturn]));
-    const idxByDate = new Map(idx.series.map((r) => [r.date.slice(0, 10), r.price]));
+    const idxByDate = idx ? new Map(idx.series.map((r) => [r.date.slice(0, 10), r.price])) : null;
 
     const rows = dates.map((d) => {
       const fv = fundByDate.get(d);
-      const iv = idxByDate.get(d);
-      return {
+      const row: Record<string, unknown> = {
         date: d,
         [chartFund]: fv != null ? fv - fundBase : null,
-        [chartIndex]: iv != null && idxBase > 0 ? ((iv - idxBase) / idxBase) * 100 : null,
-      } as Record<string, unknown>;
+      };
+      if (idx && idxByDate) {
+        const iv = idxByDate.get(d);
+        row[chartIndex] = iv != null && idxBase > 0 ? ((iv - idxBase) / idxBase) * 100 : null;
+      }
+      return row;
     });
 
     const fundReturn = fund.returns[chartPeriod] ?? null;
-    const indexReturn = idx.returns[chartPeriod] ?? null;
+    const indexReturn = idx ? (idx.returns[chartPeriod] ?? null) : null;
 
     return { rows, windowStartLabel: start.toISOString().slice(0, 10), fundReturn, indexReturn };
-  }, [data, chartFund, chartIndex, chartPeriod]);
+  }, [data, chartFund, chartIndex, chartPeriod, isStandalone]);
 
   if (error) {
     return (
@@ -158,7 +179,7 @@ export function PerformanceComparison() {
       <div className="h-[130px] flex flex-col">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div>
-            <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">Performance Comparison</h3>
+            <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">History/ Performance Comparison</h3>
             <p className="text-[11px] text-text-body mt-0.5">
               As of {new Date(data.asOf).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
               {" "}· Ekush fund vs market index
@@ -171,27 +192,29 @@ export function PerformanceComparison() {
             <label className="text-[11px] text-text-body block mb-1">Fund</label>
             <select
               value={chartFund}
-              onChange={(e) => setChartFund(e.target.value as "EFUF" | "EGF")}
+              onChange={(e) => setChartFund(e.target.value as FundCode)}
               className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
             >
               {data.funds
-                .filter((f) => f.code === "EFUF" || f.code === "EGF")
+                .filter((f) => f.code === "EFUF" || f.code === "EGF" || f.code === "ESRF")
                 .map((f) => (
                   <option key={f.code} value={f.code}>{f.name}</option>
                 ))}
             </select>
           </div>
-          <div>
-            <label className="text-[11px] text-text-body block mb-1">Index</label>
-            <select
-              value={chartIndex}
-              onChange={(e) => setChartIndex(e.target.value as IndexCode)}
-              className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
-            >
-              <option value="DSEX">DSEX</option>
-              <option value="DS30">DS30</option>
-            </select>
-          </div>
+          {!isStandalone && (
+            <div>
+              <label className="text-[11px] text-text-body block mb-1">Index</label>
+              <select
+                value={chartIndex}
+                onChange={(e) => setChartIndex(e.target.value as IndexCode)}
+                className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
+              >
+                <option value="DSEX">DSEX</option>
+                <option value="DS30">DS30</option>
+              </select>
+            </div>
+          )}
           <div>
             <label className="text-[11px] text-text-body block mb-1">Period</label>
             <select
@@ -218,13 +241,15 @@ export function PerformanceComparison() {
             {fmtPct(chart.fundReturn)}
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: INDEX_COLOR }} />
-          <span className="text-text-body">{chartIndex}</span>
-          <span className={`font-mono font-semibold ${chart.indexReturn != null && chart.indexReturn >= 0 ? "text-green-600" : "text-red-500"}`}>
-            {fmtPct(chart.indexReturn)}
-          </span>
-        </div>
+        {!isStandalone && (
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-sm" style={{ background: INDEX_COLOR }} />
+            <span className="text-text-body">{chartIndex}</span>
+            <span className={`font-mono font-semibold ${chart.indexReturn != null && chart.indexReturn >= 0 ? "text-green-600" : "text-red-500"}`}>
+              {fmtPct(chart.indexReturn)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Chart — shared margins with InvestmentGrowth so plot rectangles
@@ -246,7 +271,9 @@ export function PerformanceComparison() {
                 contentStyle={{ fontSize: 11 }}
               />
               <Line type="monotone" dataKey={chartFund} stroke={FUND_COLOR} strokeWidth={2} dot={false} connectNulls />
-              <Line type="monotone" dataKey={chartIndex} stroke={INDEX_COLOR} strokeWidth={1.5} dot={false} connectNulls />
+              {!isStandalone && (
+                <Line type="monotone" dataKey={chartIndex} stroke={INDEX_COLOR} strokeWidth={1.5} dot={false} connectNulls />
+              )}
             </LineChart>
           </ResponsiveContainer>
         )}
