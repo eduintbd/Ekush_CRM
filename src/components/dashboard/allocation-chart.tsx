@@ -323,12 +323,15 @@ export function AllocationChart({ funds, asOfDate }: Props) {
             let polyPoints: string;
             let textAnchor: "start" | "end";
 
-            // Donut starts at 6 o'clock so the dominant slice covers
-            // the entire left half + most of right; the two small
-            // slices cluster in the lower-right quadrant. All three
-            // labels live on the right rail at y-positions that
-            // track each slice's actual position — leaders stay
-            // short and never cross the donut interior.
+            // Donut starts at 6 o'clock so the small slices cluster
+            // in the lower-right quadrant. Their mid-y values are
+            // both near the bottom (sin ≈ 0.87 and 0.99) so a
+            // single rail would stack their labels on top of each
+            // other — instead we split rank-1 / rank-2 across
+            // opposite rails. Rank 1 (the larger small slice) takes
+            // the right; rank 2 (the smallest) takes the left, with
+            // its leader bending out and ducking under the donut to
+            // reach the left side without crossing the interior.
             if (isPrimary) {
               anchorX = CX + R_OUT;
               anchorY = CY;
@@ -341,14 +344,19 @@ export function AllocationChart({ funds, asOfDate }: Props) {
               anchorY = CY + R_OUT * Math.sin(s.mid);
               const elbowX = anchorX + 14 * Math.cos(s.mid);
               const elbowY = anchorY + 14 * Math.sin(s.mid);
-              // Slot Y tracks the slice mid; clamped so the label
-              // box always stays inside the viewBox even if the
-              // slice mid sits very close to top or bottom.
               const slotY = Math.max(40, Math.min(VB_H - 22, anchorY + 4));
-              labelX = VB_W - 8;
-              labelY = slotY;
-              polyPoints = `${anchorX},${anchorY} ${elbowX},${elbowY} ${labelX - 60},${labelY}`;
-              textAnchor = "end";
+              const onRight = rank === 1;
+              if (onRight) {
+                labelX = VB_W - 8;
+                labelY = slotY;
+                polyPoints = `${anchorX},${anchorY} ${elbowX},${elbowY} ${labelX - 60},${labelY}`;
+                textAnchor = "end";
+              } else {
+                labelX = 8;
+                labelY = slotY;
+                polyPoints = `${anchorX},${anchorY} ${elbowX},${elbowY} ${labelX + 60},${labelY}`;
+                textAnchor = "start";
+              }
             }
 
             return (
