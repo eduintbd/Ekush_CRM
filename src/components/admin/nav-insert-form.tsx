@@ -20,6 +20,7 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
   const [fundId, setFundId] = useState(funds[0]?.id || "");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [nav, setNav] = useState("");
+  const [investorReturn, setInvestorReturn] = useState("");
   const [buyUnit, setBuyUnit] = useState("");
   const [sellUnit, setSellUnit] = useState("");
   const [dsex, setDsex] = useState("");
@@ -52,12 +53,13 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
       const res = await fetch("/api/admin/nav/insert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fundId, date, nav, buyUnit, sellUnit, dsex, ds30 }),
+        body: JSON.stringify({ fundId, date, nav, investorReturn, buyUnit, sellUnit, dsex, ds30 }),
       });
 
       if (res.ok) {
         setMessage({ type: "success", text: "NAV record saved" });
         setNav("");
+        setInvestorReturn("");
         setBuyUnit("");
         setSellUnit("");
         setDsex("");
@@ -84,7 +86,7 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
             Insert New NAV Entry
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-3 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-9 gap-3 items-end">
           <div className="lg:col-span-2">
             <label className="text-[11px] text-text-body block mb-1">Fund Name</label>
             <select
@@ -116,6 +118,20 @@ export function NavInsertForm({ funds }: { funds: Fund[] }) {
               value={nav}
               onChange={(e) => handleNavChange(e.target.value)}
               placeholder="e.g., 14.7540"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-ekush-orange font-mono"
+            />
+          </div>
+          <div>
+            {/* Investor Return is admin-entered as-is — no derivation
+                from NAV. Allows negative values (loss periods) and
+                zero (period-start anchor rows). */}
+            <label className="text-[11px] text-text-body block mb-1">Investor Return (%)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={investorReturn}
+              onChange={(e) => setInvestorReturn(e.target.value)}
+              placeholder="e.g., 45.60"
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-ekush-orange font-mono"
             />
           </div>

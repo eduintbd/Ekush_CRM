@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { fundId, date, nav, buyUnit, sellUnit, dsex, ds30 } = body;
+  const { fundId, date, nav, investorReturn, buyUnit, sellUnit, dsex, ds30 } = body;
 
   if (!fundId || !date || nav === undefined || nav === null) {
     return NextResponse.json(
@@ -33,12 +33,22 @@ export async function POST(req: NextRequest) {
     if (isNaN(n) || n <= 0) return { error: `Invalid ${label} value` };
     return n;
   };
+  // Investor Return is admin-entered cumulative dividend-adjusted total
+  // return %. Can legitimately be negative (loss period) or zero (period
+  // start anchor), so it can't go through parseOptionalPositive.
+  const parseOptionalFinite = (raw: unknown, label: string): number | null | { error: string } => {
+    if (raw === undefined || raw === null || raw === "") return null;
+    const n = parseFloat(String(raw));
+    if (!Number.isFinite(n)) return { error: `Invalid ${label} value` };
+    return n;
+  };
 
   const buyParsed = parseOptionalPositive(buyUnit, "Buy Unit");
   const sellParsed = parseOptionalPositive(sellUnit, "Sell Unit");
   const dsexParsed = parseOptionalPositive(dsex, "DSEX");
   const ds30Parsed = parseOptionalPositive(ds30, "DS30");
-  for (const p of [buyParsed, sellParsed, dsexParsed, ds30Parsed]) {
+  const irParsed = parseOptionalFinite(investorReturn, "Investor Return");
+  for (const p of [buyParsed, sellParsed, dsexParsed, ds30Parsed, irParsed]) {
     if (p && typeof p === "object" && "error" in p) {
       return NextResponse.json({ error: p.error }, { status: 400 });
     }
@@ -47,6 +57,7 @@ export async function POST(req: NextRequest) {
   const sellNum = sellParsed as number | null;
   const dsexNum = dsexParsed as number | null;
   const ds30Num = ds30Parsed as number | null;
+  const irNum = irParsed as number | null;
 
   const navDate = new Date(date);
   navDate.setHours(0, 0, 0, 0);
@@ -58,11 +69,19 @@ export async function POST(req: NextRequest) {
 
   const record = await prisma.navRecord.upsert({
     where: { fundId_date: { fundId: fund.id, date: navDate } },
-    update: { nav: navNum, buyUnit: buyNum, sellUnit: sellNum, dsex: dsexNum, ds30: ds30Num },
+    update: {
+      nav: navNum,
+      investorReturn: irNum,
+      buyUnit: buyNum,
+      sellUnit: sellNum,
+      dsex: dsexNum,
+      ds30: ds30Num,
+    },
     create: {
       fundId: fund.id,
       date: navDate,
       nav: navNum,
+      investorReturn: irNum,
       buyUnit: buyNum,
       sellUnit: sellNum,
       dsex: dsexNum,
@@ -94,6 +113,7 @@ export async function POST(req: NextRequest) {
         fundCode: fund.code,
         date: navDate.toISOString().split("T")[0],
         nav: navNum,
+        investorReturn: irNum,
         buyUnit: buyNum,
         sellUnit: sellNum,
         dsex: dsexNum,

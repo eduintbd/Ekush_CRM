@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FUND_CODES, FUND_NAMES, FACE_VALUE } from "@/lib/constants";
 import { NavInsertForm } from "@/components/admin/nav-insert-form";
 import { NavSheetDownloadButton } from "@/components/admin/nav-sheet-download-button";
+import { NavRowDeleteButton } from "@/components/admin/nav-row-delete-button";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -159,12 +160,13 @@ export default async function NavEntryPage({
                   <TableHead className="text-right">Sell Unit</TableHead>
                   <TableHead className="text-right">DSEX</TableHead>
                   <TableHead className="text-right">DS30</TableHead>
+                  <TableHead className="text-right w-12">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {records.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-text-muted py-8">
+                    <TableCell colSpan={9} className="text-center text-text-muted py-8">
                       No NAV records found
                     </TableCell>
                   </TableRow>
@@ -213,6 +215,13 @@ export default async function NavEntryPage({
                         </TableCell>
                         <TableCell className="text-right text-[13px] font-mono text-text-body">
                           {r.ds30 != null ? Number(r.ds30).toFixed(2) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <NavRowDeleteButton
+                            recordId={r.id}
+                            fundName={fund?.name || "this record"}
+                            date={r.date.toISOString().split("T")[0]}
+                          />
                         </TableCell>
                       </TableRow>
                     );
