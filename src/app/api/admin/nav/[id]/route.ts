@@ -35,14 +35,33 @@ export async function DELETE(
     include: { fund: true },
   });
   if (!record) {
-    // Log + echo the id so we can see exactly what the route received
-    // when a 404 happens — useful when the ID coming from the page
-    // looks valid but findUnique still returns null (e.g. stale render
-    // pointing at a row that was deleted, or a Vercel build/runtime
-    // mismatch).
-    console.error("[nav/delete] record not found for id:", JSON.stringify(id));
+    // Diagnostic: confirm we're connected to the right DB and surface
+    // a few real ids so we can compare against what the page rendered.
+    // Helps tell apart "id is invalid" vs "page render used stale/
+    // cached data that doesn't match the live DB".
+    const totalCount = await prisma.navRecord.count();
+    const sampleIds = await prisma.navRecord.findMany({
+      take: 3,
+      orderBy: { date: "desc" },
+      select: { id: true, date: true },
+    });
+    console.error("[nav/delete] not found", {
+      receivedId: id,
+      totalRecords: totalCount,
+      latestIds: sampleIds.map((r) => `${r.id} (${r.date.toISOString().slice(0, 10)})`),
+    });
     return NextResponse.json(
-      { error: `NAV record not found (id: ${id})` },
+      {
+        error: `NAV record not found (id: ${id})`,
+        debug: {
+          receivedId: id,
+          totalRecords: totalCount,
+          latestIds: sampleIds.map((r) => ({
+            id: r.id,
+            date: r.date.toISOString().slice(0, 10),
+          })),
+        },
+      },
       { status: 404 },
     );
   }
