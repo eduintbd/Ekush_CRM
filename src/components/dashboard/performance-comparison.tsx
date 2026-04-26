@@ -153,57 +153,64 @@ export function PerformanceComparison() {
 
   return (
     <div className="bg-white rounded-[10px] shadow-card p-6 h-full flex flex-col">
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <div>
-          <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">Performance Comparison</h3>
-          <p className="text-[11px] text-text-body mt-0.5">
-            As of {new Date(data.asOf).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-            {" "}· Ekush fund vs market index
-          </p>
+      {/* Fixed 130px header — same as InvestmentGrowth so the chart
+          area below starts at the same y in both cards. */}
+      <div className="h-[130px] flex flex-col">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div>
+            <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">Performance Comparison</h3>
+            <p className="text-[11px] text-text-body mt-0.5">
+              As of {new Date(data.asOf).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+              {" "}· Ekush fund vs market index
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-end gap-3 flex-wrap mb-3">
-        <div>
-          <label className="text-[11px] text-text-body block mb-1">Fund</label>
-          <select
-            value={chartFund}
-            onChange={(e) => setChartFund(e.target.value as "EFUF" | "EGF")}
-            className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
-          >
-            {data.funds
-              .filter((f) => f.code === "EFUF" || f.code === "EGF")
-              .map((f) => (
-                <option key={f.code} value={f.code}>{f.name}</option>
+        <div className="flex items-end gap-3 flex-wrap">
+          <div>
+            <label className="text-[11px] text-text-body block mb-1">Fund</label>
+            <select
+              value={chartFund}
+              onChange={(e) => setChartFund(e.target.value as "EFUF" | "EGF")}
+              className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
+            >
+              {data.funds
+                .filter((f) => f.code === "EFUF" || f.code === "EGF")
+                .map((f) => (
+                  <option key={f.code} value={f.code}>{f.name}</option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-[11px] text-text-body block mb-1">Index</label>
+            <select
+              value={chartIndex}
+              onChange={(e) => setChartIndex(e.target.value as IndexCode)}
+              className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
+            >
+              <option value="DSEX">DSEX</option>
+              <option value="DS30">DS30</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[11px] text-text-body block mb-1">Period</label>
+            <select
+              value={chartPeriod}
+              onChange={(e) => setChartPeriod(e.target.value as PeriodId)}
+              className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
+            >
+              {PERIOD_LABELS.map((p) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
               ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-[11px] text-text-body block mb-1">Index</label>
-          <select
-            value={chartIndex}
-            onChange={(e) => setChartIndex(e.target.value as IndexCode)}
-            className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
-          >
-            <option value="DSEX">DSEX</option>
-            <option value="DS30">DS30</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-[11px] text-text-body block mb-1">Period</label>
-          <select
-            value={chartPeriod}
-            onChange={(e) => setChartPeriod(e.target.value as PeriodId)}
-            className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
-          >
-            {PERIOD_LABELS.map((p) => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
-          </select>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-4 mb-3 text-[12px]">
+      {/* Legend row — pulled up with -mt to occupy zero net layout
+          space so the chart still starts exactly at the 130px mark.
+          Sits visually inside the spare bottom band of the header. */}
+      <div className="-mt-7 h-7 flex items-center gap-4 text-[12px]">
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm" style={{ background: FUND_COLOR }} />
           <span className="text-text-body">{chartFund}</span>
@@ -223,13 +230,15 @@ export function PerformanceComparison() {
         </p>
       </div>
 
-      <div className="flex-1 min-h-[260px]">
+      {/* Chart — shared margins with InvestmentGrowth so plot rectangles
+          (and therefore x-axis tick rows) line up to the pixel. */}
+      <div className="flex-1 min-h-[280px]">
         {chart.rows.length === 0 ? (
           <div className="h-full flex items-center justify-center text-[12px] text-text-muted">
             No data for the selected period.
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chart.rows} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} minTickGap={40} interval="preserveStartEnd" tickFormatter={(v: string) => v.slice(2)} />

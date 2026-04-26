@@ -123,55 +123,63 @@ export function InvestmentGrowth() {
 
   return (
     <div className="bg-white rounded-[10px] shadow-card p-6 h-full flex flex-col">
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">
-          Growth of 1 lac taka
-        </h3>
-        {chart.endValue != null && (
-          <div className="text-right shrink-0">
-            <p className="text-[11px] text-text-body">Current value</p>
-            <p className="text-[18px] font-semibold font-rajdhani text-ekush-orange">
-              {fmtBdt(chart.endValue)}
-            </p>
+      {/* Fixed 130px header so this card's chart area starts at the
+          exact same y as the PerformanceComparison sibling — the
+          x-axis baselines align across both cards in the row. */}
+      <div className="h-[130px] flex flex-col">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <h3 className="text-[16px] font-semibold text-text-dark font-rajdhani">
+            Growth of 1 lac taka
+          </h3>
+          {chart.endValue != null && (
+            <div className="text-right shrink-0">
+              <p className="text-[11px] text-text-body">Current value</p>
+              <p className="text-[18px] font-semibold font-rajdhani text-ekush-orange">
+                {fmtBdt(chart.endValue)}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-end gap-3 flex-wrap">
+          <div>
+            <label className="text-[11px] text-text-body block mb-1">Fund</label>
+            <select
+              value={fund}
+              onChange={(e) => setFund(e.target.value as FundCode)}
+              className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
+            >
+              {data.funds.map((f) => (
+                <option key={f.code} value={f.code}>{f.name}</option>
+              ))}
+            </select>
           </div>
-        )}
-      </div>
-
-      <div className="flex items-end gap-3 flex-wrap mb-3">
-        <div>
-          <label className="text-[11px] text-text-body block mb-1">Fund</label>
-          <select
-            value={fund}
-            onChange={(e) => setFund(e.target.value as FundCode)}
-            className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
-          >
-            {data.funds.map((f) => (
-              <option key={f.code} value={f.code}>{f.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-[11px] text-text-body block mb-1">Period</label>
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as PeriodId)}
-            className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
-          >
-            {PERIOD_OPTIONS.map((p) => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
-          </select>
+          <div>
+            <label className="text-[11px] text-text-body block mb-1">Period</label>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as PeriodId)}
+              className="h-8 px-2 text-[12px] border border-gray-200 rounded-md bg-white focus:outline-none focus:border-ekush-orange"
+            >
+              {PERIOD_OPTIONS.map((p) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-[260px]">
+      {/* Chart — shared margins with PerformanceComparison so the plot
+          rectangles (and therefore the x-axis tick row) line up to
+          the pixel. */}
+      <div className="flex-1 min-h-[280px]">
         {chart.rows.length < 2 ? (
           <div className="h-full flex items-center justify-center text-[12px] text-text-muted">
             Not enough NAV history for this period.
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={chart.rows} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chart.rows} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
               <defs>
                 <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#F27023" stopOpacity={0.45} />
