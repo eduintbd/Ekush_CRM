@@ -2,8 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
 import { uploadFile } from "@/lib/upload";
+import { getSession } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+  // Phase 7: detect a logged-in Tier-1 prospect at submission time.
+  // The new Investor row gets `linkedProspectId` set so admin can see
+  // the conversion path on the Pending KYC card, and the Prospect row
+  // gets `kycSubmitted=true` so /prospect/dashboard switches its banner
+  // from "Upgrade →" to "Your KYC is in review."
+  //
+  // Reading the session here (vs. reading a hidden form field) means
+  // a forged client cannot fake an attribution link to someone else's
+  // prospect record.
+  const session = await getSession().catch(() => null);
+  const conversionProspectId =
+    session?.user?.tier === "PROSPECT" && session.user.prospectId
+      ? session.user.prospectId
+      : null;
+
   const formData = await req.formData();
 
   const name = formData.get("name") as string;
@@ -77,6 +93,10 @@ export async function POST(req: NextRequest) {
               address: presentAddress || null,
               boId: boAccountNo || null,
               dividendOption,
+              // Phase 7: Tier-1 → Tier-2 conversion attribution. Null
+              // for direct sign-ups; set when a logged-in prospect is
+              // submitting KYC.
+              linkedProspectId: conversionProspectId,
             },
           },
         },
@@ -107,6 +127,18 @@ export async function POST(req: NextRequest) {
             nidNumber: nomineeNidNumber || null,
             share: 100,
           },
+        });
+      }
+
+      // Phase 7: flip the prospect's kycSubmitted flag inside the same
+      // transaction so the dashboard banner switches atomically with
+      // the investor row coming into existence. We don't soft-delete
+      // the prospect — the row stays active so the user can keep using
+      // /prospect/dashboard while admin reviews their KYC.
+      if (conversionProspectId) {
+        await tx.prospect.update({
+          where: { id: conversionProspectId },
+          data: { kycSubmitted: true },
         });
       }
 
