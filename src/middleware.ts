@@ -2,6 +2,25 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { STAFF_ROLES } from "@/lib/roles";
 
+// Paths the matcher gates — kept in one place so the realm checks
+// below stay in sync with what the matcher actually intercepts.
+const INVESTOR_ONLY_PATHS = [
+  "/dashboard",
+  "/portfolio",
+  "/transactions",
+  "/statements",
+  "/profile",
+  "/support",
+  "/documents",
+  "/learn",
+  "/notifications",
+  "/sip",
+];
+
+function pathMatchesAny(path: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -37,12 +56,33 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Admin routes — check role from user_metadata
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const role = (meta.role as string) ?? "";
+  const tier = ((meta.tier as string) ?? "INVESTOR").toUpperCase();
+  const isProspect = tier === "PROSPECT";
+  const isStaff = STAFF_ROLES.includes(role);
+
+  // Admin: only staff. Investors and prospects bounce to their own
+  // dashboards rather than /login (already authenticated).
   if (path.startsWith("/admin")) {
-    const role = (user.user_metadata?.role as string) ?? "";
-    if (!STAFF_ROLES.includes(role)) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+    if (isStaff) return supabaseResponse;
+    const dest = isProspect ? "/prospect/dashboard" : "/dashboard";
+    return NextResponse.redirect(new URL(dest, request.url));
+  }
+
+  // Prospect-tier user attempting an investor-only route → bounce to
+  // the prospect dashboard. Prevents stale bookmarks from showing
+  // empty / 500-prone investor pages.
+  if (isProspect && pathMatchesAny(path, INVESTOR_ONLY_PATHS)) {
+    return NextResponse.redirect(new URL("/prospect/dashboard", request.url));
+  }
+
+  // Investor-tier (or staff) user attempting /prospect/* → bounce them
+  // to the relevant dashboard. Staff still need /admin paths so we
+  // route them there.
+  if (!isProspect && path.startsWith("/prospect")) {
+    const dest = isStaff ? "/admin/dashboard" : "/dashboard";
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
   return supabaseResponse;
@@ -61,5 +101,6 @@ export const config = {
     "/notifications/:path*",
     "/sip/:path*",
     "/admin/:path*",
+    "/prospect/:path*",
   ],
 };
