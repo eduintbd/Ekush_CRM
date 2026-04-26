@@ -225,9 +225,6 @@ export function PerformanceComparison() {
             {fmtPct(chart.indexReturn)}
           </span>
         </div>
-        <p className="text-[11px] text-text-muted ml-auto">
-          Anchored at 0% on {chart.windowStartLabel || "—"}
-        </p>
       </div>
 
       {/* Chart — shared margins with InvestmentGrowth so plot rectangles

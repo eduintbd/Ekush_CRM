@@ -212,7 +212,11 @@ export function InvestmentGrowth() {
       </div>
 
       <p className="text-[8px] text-text-body mt-3 leading-relaxed">
-        Hypothetical value if invested in {fundBlock?.name ?? fund} from {chart.startLabel} to{" "}
+        This chart shows the result if you were invested in {fundBlock?.name ?? fund} from{" "}
+        {chart.startLabel
+          ? new Date(chart.startLabel).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+          : "—"}{" "}
+        to{" "}
         {new Date(data.asOf).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}.
         Past performance does not guarantee future results.
       </p>

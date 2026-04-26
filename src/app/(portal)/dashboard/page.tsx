@@ -51,14 +51,15 @@ export default async function DashboardPage() {
         <TaxRebateBanner />
       </div>
 
-      {/* Performance charts — NAV carousel + peer comparison */}
+      {/* Performance charts — peer comparison on the left, NAV carousel
+          on the right (positions swapped from the previous layout). */}
       <div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ErrorBoundary fallback={<div className="bg-white rounded-[10px] shadow-card p-6 text-center text-text-muted text-sm">Chart unavailable</div>}>
-            <InvestmentGrowth />
+            <PerformanceComparison />
           </ErrorBoundary>
           <ErrorBoundary fallback={<div className="bg-white rounded-[10px] shadow-card p-6 text-center text-text-muted text-sm">Chart unavailable</div>}>
-            <PerformanceComparison />
+            <InvestmentGrowth />
           </ErrorBoundary>
         </div>
       </div>
