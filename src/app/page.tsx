@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { MessageCircle, ArrowRight } from "lucide-react";
+import { isProspectsEnabled } from "@/lib/feature-flags";
 
 export default function HomePage() {
+  const prospectsOn = isProspectsEnabled();
   return (
     <div className="min-h-screen flex flex-col font-poppins">
       {/* Header */}
@@ -74,8 +77,57 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Two-tier CTAs */}
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-10 mb-12">
+          <div
+            className={`grid gap-4 ${
+              prospectsOn ? "md:grid-cols-2" : "md:grid-cols-1 max-w-md mx-auto"
+            }`}
+          >
+            {prospectsOn && (
+              <Link
+                href="/whatsapp-signup"
+                className="group bg-white rounded-card shadow-card p-6 hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-ekush-orange/40"
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-[8px] bg-ekush-orange/10 text-ekush-orange flex items-center justify-center">
+                    <MessageCircle className="w-5 h-5" />
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-text-body group-hover:text-ekush-orange transition-colors" />
+                </div>
+                <h3 className="text-[16px] font-bold text-text-dark font-rajdhani mb-1">
+                  Get fund updates on WhatsApp
+                </h3>
+                <p className="text-[13px] text-text-body leading-relaxed">
+                  Lightweight signup &mdash; no KYC. Receive NAV updates,
+                  factsheets, and advisor outreach.
+                </p>
+              </Link>
+            )}
+
+            <Link
+              href="/register"
+              className="group bg-ekush-orange text-white rounded-card shadow-card p-6 hover:-translate-y-1 transition-all duration-300 hover:bg-ekush-orange-dark"
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="w-11 h-11 rounded-[8px] bg-white/15 flex items-center justify-center">
+                  <ArrowRight className="w-5 h-5" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-white/80 group-hover:text-white transition-colors" />
+              </div>
+              <h3 className="text-[16px] font-bold font-rajdhani mb-1">
+                Open investment account
+              </h3>
+              <p className="text-[13px] text-white/85 leading-relaxed">
+                Complete the 4-step KYC and start investing once
+                approved by our team.
+              </p>
+            </Link>
+          </div>
+        </div>
+
         {/* Fund Cards */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid md:grid-cols-3 gap-6">
             {[
               { name: "Ekush First Unit Fund", code: "EFUF", nav: "14.635", ret: "108.33%", since: "2020-05-28", type: "Balanced" },
