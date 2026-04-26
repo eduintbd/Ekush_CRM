@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name, email, and password are required" }, { status: 400 });
   }
 
-  if (password.length < 6) {
-    return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+  if (password.length < 10) {
+    return NextResponse.json({ error: "Password must be at least 10 characters" }, { status: 400 });
   }
 
   // Only email is unique; phone and name may be duplicated.

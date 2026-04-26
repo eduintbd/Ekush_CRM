@@ -232,7 +232,7 @@ export default function RegisterPage() {
           profile.phone &&
           profile.password &&
           profile.password === profile.confirmPassword &&
-          profile.password.length >= 6
+          profile.password.length >= 10
         );
       case 1:
         return nidFront !== null;
@@ -613,8 +613,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async () => {
     setError("");
-    if (!profile.password || profile.password.length < 6) {
-      setError("Please enter your password (min 6 characters) on the Profile step to continue.");
+    if (!profile.password || profile.password.length < 10) {
+      setError("Please enter your password (min 10 characters) on the Profile step to continue.");
       setStep(0);
       return;
     }
@@ -734,7 +734,7 @@ export default function RegisterPage() {
                 <Input label="Email*" type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} placeholder="Email address" required />
                 <Input label="Phone Number*" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="01XXXXXXXXX" required />
                 <div className="hidden md:block" />
-                <Input label="Password* (min 6 chars)" type="password" value={profile.password} onChange={(e) => setProfile({ ...profile, password: e.target.value })} placeholder="Create password" required />
+                <Input label="Password* (min 10 chars)" type="password" value={profile.password} onChange={(e) => setProfile({ ...profile, password: e.target.value })} placeholder="Create password" required />
                 <Input label="Confirm Password*" type="password" value={profile.confirmPassword} onChange={(e) => setProfile({ ...profile, confirmPassword: e.target.value })} placeholder="Confirm password" required />
               </div>
               {profile.password && profile.confirmPassword && profile.password !== profile.confirmPassword && (

@@ -4,6 +4,12 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/prisma";
 import { compare } from "bcryptjs";
 import { cookies } from "next/headers";
+import { normalizeLoginInput, INVESTOR_CODE_RE } from "@/lib/login-input";
+import {
+  getRequestIp,
+  isRateLimited,
+  recordLoginAttempt,
+} from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const { login, password } = await req.json();
@@ -15,7 +21,33 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const loginTrimmed = (login as string).trim();
+  // Normalize before any DB lookup or rate-limit key. INVESTOR realm
+  // strips zero-width / control / Unicode lookalike chars and uppercases.
+  // The PROSPECT realm runs through its own route — this one is INVESTOR
+  // only.
+  const loginTrimmed = normalizeLoginInput(login as string, "INVESTOR");
+  const ipAddress = getRequestIp(req);
+  const rateKey = {
+    identifier: loginTrimmed.toLowerCase(),
+    ipAddress,
+    realm: "INVESTOR" as const,
+  };
+
+  // 0. Rate-limit gate — runs before any DB join so brute-force attempts
+  //    don't get a free user-existence oracle off the lookup time.
+  const limit = await isRateLimited(rateKey);
+  if (limit.limited) {
+    return NextResponse.json(
+      {
+        error: `Too many failed attempts. Try again in ${Math.ceil(limit.retryAfterSeconds / 60)} minute(s).`,
+        retryAfterSeconds: limit.retryAfterSeconds,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
+    );
+  }
 
   // 1. Find user in Prisma by email, phone, or investor code
   let user: Awaited<ReturnType<typeof prisma.user.findFirst>> & {
@@ -41,16 +73,29 @@ export async function POST(req: NextRequest) {
   }
 
   if (!user) {
+    await recordLoginAttempt({ ...rateKey, success: false });
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  // 1b. Active investors must log in with their Investor Code. Email/phone
+  // 1b. Active investors must log in with their Investor Code matching
+  // the strict regex (one uppercase letter + 1–5 digits). Email/phone
   // lookups are only allowed while the account is still PENDING (so
-  // approvals staff and KYC helpers can reach new sign-ups). Admin / staff
-  // users have no investor record, so this guard doesn't affect them.
+  // approvals staff and KYC helpers can reach new sign-ups). Admin /
+  // staff users have no investor record, so this guard skips them.
   if (user.status === "ACTIVE" && user.investor) {
-    const enteredUpper = loginTrimmed.toUpperCase();
+    const enteredUpper = loginTrimmed; // already uppercased by normalize
+    if (!INVESTOR_CODE_RE.test(enteredUpper)) {
+      await recordLoginAttempt({ ...rateKey, success: false });
+      return NextResponse.json(
+        {
+          error:
+            "Investor Code must be one uppercase letter followed by 1–5 digits (e.g. A00002).",
+        },
+        { status: 401 },
+      );
+    }
     if (enteredUpper !== user.investor.investorCode.toUpperCase()) {
+      await recordLoginAttempt({ ...rateKey, success: false });
       return NextResponse.json(
         {
           error:
@@ -63,6 +108,7 @@ export async function POST(req: NextRequest) {
 
   // 2. Check account lock
   if (user.lockedUntil && user.lockedUntil > new Date()) {
+    await recordLoginAttempt({ ...rateKey, success: false });
     return NextResponse.json(
       { error: "Account is temporarily locked. Please try again later." },
       { status: 401 }
@@ -76,6 +122,7 @@ export async function POST(req: NextRequest) {
     user.status === "DEACTIVATED" ||
     user.status === "LOCKED"
   ) {
+    await recordLoginAttempt({ ...rateKey, success: false });
     return NextResponse.json(
       { error: "Account is not active. Please contact support." },
       { status: 401 }
@@ -86,15 +133,18 @@ export async function POST(req: NextRequest) {
   const isValid = await compare(password, user.passwordHash);
 
   if (!isValid) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        failedLoginCount: { increment: 1 },
-        ...(user.failedLoginCount >= 4
-          ? { lockedUntil: new Date(Date.now() + 30 * 60 * 1000) }
-          : {}),
-      },
-    });
+    await Promise.all([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginCount: { increment: 1 },
+          ...(user.failedLoginCount >= 4
+            ? { lockedUntil: new Date(Date.now() + 30 * 60 * 1000) }
+            : {}),
+        },
+      }),
+      recordLoginAttempt({ ...rateKey, success: false }),
+    ]);
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
@@ -207,15 +257,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 8. Update Prisma login tracking
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      failedLoginCount: 0,
-      lockedUntil: null,
-      lastLoginAt: new Date(),
-    },
-  });
+  // 8. Update Prisma login tracking + audit row
+  await Promise.all([
+    prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginCount: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date(),
+      },
+    }),
+    recordLoginAttempt({ ...rateKey, success: true }),
+  ]);
 
   return NextResponse.json({ success: true, role: user.role });
 }
