@@ -35,7 +35,16 @@ export async function DELETE(
     include: { fund: true },
   });
   if (!record) {
-    return NextResponse.json({ error: "NAV record not found" }, { status: 404 });
+    // Log + echo the id so we can see exactly what the route received
+    // when a 404 happens — useful when the ID coming from the page
+    // looks valid but findUnique still returns null (e.g. stale render
+    // pointing at a row that was deleted, or a Vercel build/runtime
+    // mismatch).
+    console.error("[nav/delete] record not found for id:", JSON.stringify(id));
+    return NextResponse.json(
+      { error: `NAV record not found (id: ${id})` },
+      { status: 404 },
+    );
   }
 
   // Snapshot for the audit log before we delete.
