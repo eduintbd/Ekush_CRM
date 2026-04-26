@@ -130,6 +130,9 @@ function TabBody({
   const units = holding.totalCurrentUnits;
   const costValue = holding.totalCostValueCurrent;
   const avgCost = holding.avgCost || (units > 0 ? costValue / units : 0);
+  // Market value is units × current NAV. Cost value reflects what was
+  // paid; market value reflects what the units are worth right now.
+  const marketValue = units * fund.currentNav;
   const nf = new Intl.NumberFormat("en-IN");
   const nf2 = new Intl.NumberFormat("en-IN", {
     minimumFractionDigits: 2,
@@ -138,10 +141,11 @@ function TabBody({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Metric label="Units Held" value={nf.format(units)} />
         <Metric label="Avg. Cost / Unit" value={`BDT ${nf2.format(avgCost)}`} />
         <Metric label="Total Cost Value" value={`BDT ${nf2.format(costValue)}`} />
+        <Metric label="Total Market Value" value={`BDT ${nf2.format(marketValue)}`} />
       </div>
 
       <div className="flex items-center justify-between border-t border-gray-100 pt-4">

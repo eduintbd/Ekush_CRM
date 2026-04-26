@@ -78,6 +78,12 @@ export default async function UnitCertificatePrintPage({
   const totalValue = holding.totalCostValueCurrent;
   const costPricePerUnit = holding.avgCost || (units > 0 ? totalValue / units : 0);
   const totalInWords = numberToWordsBDT(totalValue);
+  // Market-value line shown after the (in words) row. Computed from
+  // the fund's current NAV — the cost figures above remain the
+  // canonical allotment record (and the QR-signed payload), this
+  // line is informational about present worth.
+  const navPerUnit = fund.currentNav;
+  const totalMarketValue = units * navPerUnit;
 
   const today = new Date();
   const issueDateISO = today.toISOString().slice(0, 10);
@@ -258,6 +264,23 @@ export default async function UnitCertificatePrintPage({
                 }}
               >
                 {totalInWords}.
+              </span>
+            </p>
+
+            <p style={{ margin: "0 0 8mm 0" }}>
+              <em>Total market value is </em>
+              <strong>
+                <em>BDT</em>
+              </strong>{" "}
+              <span style={{ ...fieldStyle, minWidth: "46mm" }}>
+                {nf2.format(totalMarketValue)}/=
+              </span>{" "}
+              <em>at NAV per unit </em>
+              <strong>
+                <em>BDT</em>
+              </strong>{" "}
+              <span style={{ ...fieldStyle, minWidth: "22mm" }}>
+                {nf2.format(navPerUnit)}
               </span>
             </p>
           </div>
