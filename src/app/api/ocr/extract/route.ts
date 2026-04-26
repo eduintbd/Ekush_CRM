@@ -51,7 +51,20 @@ Rules:
 - Output the JSON object ONLY.`,
 };
 
-const SUPPORTED_MEDIA = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+const SUPPORTED_IMAGE_MEDIA = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+const PDF_MEDIA = "application/pdf";
+const PDF_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+const PDF_MAX_PAGES = 2;
+
+// Page count for unencrypted PDFs: each page object carries `/Type /Page`
+// (with negative lookahead to avoid matching `/Pages`, the pages-tree root).
+// Returns 0 when the count cannot be determined (e.g. object-stream PDFs);
+// callers treat 0 as "unknown" rather than rejecting.
+function countPdfPages(buf: Buffer): number {
+  const text = buf.toString("binary");
+  const matches = text.match(/\/Type\s*\/Page(?![s\/A-Za-z])/g);
+  return matches ? matches.length : 0;
+}
 
 export async function POST(req: NextRequest) {
   // Guard: require a logged-in session OR allow the call during registration
@@ -78,11 +91,57 @@ export async function POST(req: NextRequest) {
   const prompt = PROMPTS[type] ?? PROMPTS.nid;
 
   const rawMedia = file.type || "image/jpeg";
-  const mediaType = SUPPORTED_MEDIA.has(rawMedia) ? rawMedia : "image/jpeg";
+  const isPdf = rawMedia === PDF_MEDIA;
+  const isImage = SUPPORTED_IMAGE_MEDIA.has(rawMedia);
+
+  if (!isPdf && !isImage) {
+    return NextResponse.json(
+      { error: "Unsupported file type. Upload a JPEG / PNG / WEBP image, or a PDF." },
+      { status: 415 },
+    );
+  }
+
+  if (isPdf && file.size > PDF_MAX_BYTES) {
+    return NextResponse.json(
+      { error: `PDF is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed is 2 MB.` },
+      { status: 413 },
+    );
+  }
 
   try {
     const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
+    const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString("base64");
+
+    if (isPdf) {
+      const pages = countPdfPages(buffer);
+      // pages === 0 means we couldn't reliably count (likely an object-stream
+      // PDF); allow it through and let Anthropic handle the upper bound.
+      if (pages > PDF_MAX_PAGES) {
+        return NextResponse.json(
+          { error: `PDF has ${pages} pages. Maximum allowed is ${PDF_MAX_PAGES}.` },
+          { status: 400 },
+        );
+      }
+    }
+
+    const sourceBlock = isPdf
+      ? {
+          type: "document" as const,
+          source: {
+            type: "base64" as const,
+            media_type: PDF_MEDIA as "application/pdf",
+            data: base64,
+          },
+        }
+      : {
+          type: "image" as const,
+          source: {
+            type: "base64" as const,
+            media_type: rawMedia as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+            data: base64,
+          },
+        };
 
     const client = new Anthropic({ apiKey });
     const response = await client.messages.create({
@@ -92,14 +151,7 @@ export async function POST(req: NextRequest) {
         {
           role: "user",
           content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
-                data: base64,
-              },
-            },
+            sourceBlock,
             { type: "text", text: prompt },
           ],
         },
