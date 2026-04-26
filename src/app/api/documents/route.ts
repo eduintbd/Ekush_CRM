@@ -3,7 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 
 import { prisma } from "@/lib/prisma";
-import { uploadFile } from "@/lib/upload";
+import {
+  uploadKycDocument,
+  KycUploadError,
+  PDF_ALLOWED_KYC_KINDS,
+} from "@/lib/upload";
+
+export const maxDuration = 60;
+export const runtime = "nodejs";
 
 export async function GET() {
   const session = await getSession();
@@ -37,19 +44,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
   }
 
-  const safeName = file.name.replace(/[^\w.\-]/g, "_");
-  const filePath = await uploadFile(
-    file,
-    `${investorId}/${Date.now()}_${safeName}`
-  );
+  let result;
+  try {
+    result = await uploadKycDocument(file, {
+      investorId,
+      allowPdf: PDF_ALLOWED_KYC_KINDS.has(type),
+    });
+  } catch (err) {
+    if (err instanceof KycUploadError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    throw err;
+  }
 
   const document = await prisma.document.create({
     data: {
       investorId,
       type,
-      fileName: file.name,
-      filePath,
-      mimeType: file.type || null,
+      fileName: result.displayName,
+      filePath: result.filePath,
+      mimeType: result.storedMimeType,
     },
   });
 

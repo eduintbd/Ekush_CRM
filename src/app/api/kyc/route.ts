@@ -3,7 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 
 import { prisma } from "@/lib/prisma";
-import { uploadFile } from "@/lib/upload";
+import {
+  uploadKycDocument,
+  KycUploadError,
+  PDF_ALLOWED_KYC_KINDS,
+} from "@/lib/upload";
+
+export const maxDuration = 60;
+export const runtime = "nodejs";
 
 export async function GET() {
   const session = await getSession();
@@ -42,20 +49,27 @@ export async function POST(req: NextRequest) {
   let documentUrl: string | null = null;
   let selfieUrl: string | null = null;
 
-  if (file && file.size > 0) {
-    const safeName = file.name.replace(/[^\w.\-]/g, "_");
-    documentUrl = await uploadFile(
-      file,
-      `kyc/${investorId}/${type}_${Date.now()}_${safeName}`
-    );
-  }
-
-  if (selfie && selfie.size > 0) {
-    const safeName = selfie.name.replace(/[^\w.\-]/g, "_");
-    selfieUrl = await uploadFile(
-      selfie,
-      `kyc/${investorId}/selfie_${Date.now()}_${safeName}`
-    );
+  try {
+    if (file && file.size > 0) {
+      const r = await uploadKycDocument(file, {
+        investorId,
+        allowPdf: PDF_ALLOWED_KYC_KINDS.has(type),
+      });
+      documentUrl = r.filePath;
+    }
+    if (selfie && selfie.size > 0) {
+      // Selfies are always images — never PDF.
+      const r = await uploadKycDocument(selfie, {
+        investorId,
+        allowPdf: false,
+      });
+      selfieUrl = r.filePath;
+    }
+  } catch (err) {
+    if (err instanceof KycUploadError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    throw err;
   }
 
   // Create KYC record and notification in parallel

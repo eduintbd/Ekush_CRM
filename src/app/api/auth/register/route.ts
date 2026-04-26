@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
-import { uploadFile } from "@/lib/upload";
+import {
+  uploadKycDocument,
+  KycUploadError,
+  PDF_ALLOWED_KYC_KINDS,
+} from "@/lib/upload";
 import { getSession } from "@/lib/auth";
+
+// KYC routes can spend several seconds re-encoding many images via
+// sharp + uploading to Blob. Vercel Pro gives us up to 60s; Hobby
+// caps at 60s for nodejs as of recent platform updates.
+export const maxDuration = 60;
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   // Phase 7: detect a logged-in Tier-1 prospect at submission time.
@@ -145,7 +155,11 @@ export async function POST(req: NextRequest) {
       return user;
     });
 
-    // Upload documents
+    // Upload documents through the Phase-8 hardening pipeline. Each
+    // file is size-checked, magic-byte verified, image-re-encoded
+    // (which strips EXIF / kills polyglots), and stored under a UUID
+    // filename in Vercel Blob — admins access via the gated
+    // /api/documents/[id] endpoint, never via the raw blob URL.
     const investorId = result.investor!.id;
     const docTypes = [
       { key: "nidFront", type: "NID_FRONT" },
@@ -159,22 +173,37 @@ export async function POST(req: NextRequest) {
       { key: "tinCert", type: "TIN_CERT" },
       { key: "chequeLeafPhoto", type: "CHEQUE_LEAF_PHOTO" },
       { key: "boAcknowledgement", type: "BO_ACKNOWLEDGEMENT" },
-    ];
+    ] as const;
 
     for (const { key, type } of docTypes) {
       const file = formData.get(key) as File | null;
-      if (file && file.size > 0) {
-        const ext = file.name.split(".").pop() || "jpg";
-        const filePath = await uploadFile(file, `registration/${investorId}/${type}.${ext}`);
+      if (!file || file.size === 0) continue;
+      try {
+        const result = await uploadKycDocument(file, {
+          investorId,
+          allowPdf: PDF_ALLOWED_KYC_KINDS.has(type),
+        });
         await prisma.document.create({
           data: {
             investorId,
             type,
-            fileName: file.name,
-            filePath,
-            mimeType: file.type || null,
+            fileName: result.displayName,
+            filePath: result.filePath,
+            mimeType: result.storedMimeType,
           },
         });
+      } catch (err) {
+        if (err instanceof KycUploadError) {
+          // Surface the first validation error from the document loop
+          // so the user knows which file failed. Earlier successful
+          // uploads stay in the DB — they belong to the just-created
+          // investor row and an admin can re-request the missing one.
+          return NextResponse.json(
+            { error: `${type}: ${err.message}` },
+            { status: err.status },
+          );
+        }
+        throw err;
       }
     }
 
