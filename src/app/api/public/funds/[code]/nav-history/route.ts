@@ -3,9 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { navCacheHeaders, resolveFund } from "../_helpers";
 
 // Paginated NAV rows + optional date range for the rebuild's NAV History
-// table that sits below the chart. Short ISR so a daily upload becomes
-// visible within 5 min even without a webhook trigger.
-export const revalidate = 300;
+// table and the layout-level Notice Board. Force-dynamic (no CRM ISR)
+// so admin inserts/deletes are immediately visible to the rebuild
+// fetcher — the rebuild's own data cache is the only layer left,
+// and admin write paths flush its tag via flushTag('fund-<code>-
+// nav-history') on every save.
+export const dynamic = "force-dynamic";
 
 const MAX_PER_PAGE = 100;
 const DEFAULT_PER_PAGE = 10;

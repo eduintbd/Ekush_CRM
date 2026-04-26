@@ -62,3 +62,35 @@ export async function flushTag(tag: string): Promise<void> {
 export async function flushAllFundsSection(section: string): Promise<void> {
   await Promise.all(FUND_CODES.map((c) => flushTag(fundTag(c, section))));
 }
+
+/**
+ * Mirrors the rebuild's PERFORMANCE_CACHE_TAG export
+ * (web/src/lib/api/performance.ts). The /performance-comparison
+ * endpoint isn't fund-scoped — it returns all funds' series in one
+ * response — so it gets a single global tag rather than per-fund.
+ */
+export const PERFORMANCE_TAG = "performance-comparison";
+
+/**
+ * Convenience: flush every cache layer that touches NAV data —
+ * each fund's nav-history tag plus the global performance tag.
+ * Called from the admin nav routes (insert / delete / bulk upload)
+ * so a single save propagates to the rebuild within seconds.
+ *
+ * Pass `code` to scope the nav-history flush to a single fund
+ * (per-row insert / delete); omit it for the bulk upload path
+ * which can touch all three funds in one request.
+ */
+export async function flushNavCaches(code?: string): Promise<void> {
+  if (code) {
+    await Promise.all([
+      flushTag(fundTag(code, "nav-history")),
+      flushTag(PERFORMANCE_TAG),
+    ]);
+  } else {
+    await Promise.all([
+      flushAllFundsSection("nav-history"),
+      flushTag(PERFORMANCE_TAG),
+    ]);
+  }
+}

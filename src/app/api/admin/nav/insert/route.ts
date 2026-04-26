@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { STAFF_ROLES } from "@/lib/roles";
+import { flushNavCaches } from "@/lib/marketing-revalidator";
 
 
 export async function POST(req: NextRequest) {
@@ -121,6 +122,11 @@ export async function POST(req: NextRequest) {
       }),
     },
   });
+
+  // Flush rebuild caches so the Notice Board, NAV history table, and
+  // performance/growth charts pick up this row immediately. flushNavCaches
+  // is fire-and-forget — never throws.
+  await flushNavCaches(fund.code);
 
   return NextResponse.json({ success: true, record });
 }

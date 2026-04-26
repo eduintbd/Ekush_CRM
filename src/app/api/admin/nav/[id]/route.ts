@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { STAFF_ROLES } from "@/lib/roles";
+import { flushNavCaches } from "@/lib/marketing-revalidator";
 
 // Vercel default function timeout is 10s, which the per-row holdings
 // re-snapshot blew past for funds with hundreds of investors — the
@@ -159,6 +160,11 @@ export async function DELETE(
       oldValue: JSON.stringify(snapshot),
     },
   });
+
+  // Drop the rebuild's cached nav-history + performance responses for
+  // this fund so the Notice Board, NAV history table, and growth /
+  // comparison charts reflect the deletion immediately.
+  await flushNavCaches(record.fund.code);
 
   return NextResponse.json({ success: true, wasLatest });
 }

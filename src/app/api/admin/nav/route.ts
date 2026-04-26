@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { STAFF_ROLES } from "@/lib/roles";
+import { flushNavCaches } from "@/lib/marketing-revalidator";
 
 
 import { prisma } from "@/lib/prisma";
@@ -120,6 +121,11 @@ export async function POST(req: NextRequest) {
       newValue: JSON.stringify({ date, navValues }),
     },
   });
+
+  // Bulk path can touch all three funds in one request — drop the
+  // rebuild's nav-history caches for every fund plus the global
+  // performance tag so the website reflects the upload immediately.
+  await flushNavCaches();
 
   return NextResponse.json({ success: true });
 }
