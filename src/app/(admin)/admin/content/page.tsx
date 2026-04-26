@@ -321,6 +321,12 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
   const [skipZero, setSkipZero] = useState(true);
   const [codeFilter, setCodeFilter] = useState("");
   const [sending, setSending] = useState(false);
+  // CUSTOM_ARTICLE template state — picked article + uploaded files.
+  // Both stay null/empty when a different template is active so they
+  // don't accidentally tag along with a portfolio send.
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [articleId, setArticleId] = useState<string>("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [result, setResult] = useState<{
     sent: number;
     failed: number;
@@ -343,6 +349,16 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
   };
   useEffect(() => { load(); }, []);
 
+  // Pull the published-or-draft article list once. Only consumed when
+  // CUSTOM_ARTICLE template is active, but cheap enough to fetch
+  // upfront so switching templates doesn't introduce a loading flash.
+  useEffect(() => {
+    fetch("/api/admin/content")
+      .then((r) => r.json())
+      .then((d) => (Array.isArray(d) ? setArticles(d) : setArticles([])))
+      .catch(() => setArticles([]));
+  }, []);
+
   const eligible = rows.filter((r) => {
     // When a code filter is entered, show the matching investor regardless of
     // email/fund filters — admin wants to look up contact info by code.
@@ -353,6 +369,7 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
     if (template === "EFUF_PORTFOLIO") return !skipZero || r.funds.EFUF?.hasPortfolio;
     if (template === "EGF_PORTFOLIO") return !skipZero || r.funds.EGF?.hasPortfolio;
     if (template === "ESRF_PORTFOLIO") return !skipZero || r.funds.ESRF?.hasPortfolio;
+    // CUSTOM_ARTICLE has no fund-relevant filter — anyone with email is eligible.
     return true;
   });
 
@@ -374,15 +391,34 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
     setSending(true);
     setResult(null);
     try {
-      const res = await fetch("/api/admin/mail/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          template,
-          investorIds: Array.from(selected),
-          skipZeroMarketValue: skipZero,
-        }),
-      });
+      // CUSTOM_ARTICLE goes to a separate multipart endpoint so file
+      // uploads can ride along; everything else stays on the JSON route
+      // that drives portfolio / tax / welcome flows.
+      let res: Response;
+      if (template === "CUSTOM_ARTICLE") {
+        if (!articleId) {
+          alert("Pick an article first.");
+          return;
+        }
+        const fd = new FormData();
+        fd.append("articleId", articleId);
+        fd.append("investorIds", JSON.stringify(Array.from(selected)));
+        for (const file of attachments) fd.append("attachments", file, file.name);
+        res = await fetch("/api/admin/mail/send-article", {
+          method: "POST",
+          body: fd,
+        });
+      } else {
+        res = await fetch("/api/admin/mail/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            template,
+            investorIds: Array.from(selected),
+            skipZeroMarketValue: skipZero,
+          }),
+        });
+      }
       const data = await res.json();
       if (res.ok) {
         setResult({
@@ -393,6 +429,11 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
           results: data.results,
         });
         setSelected(new Set());
+        // Wipe the article-side picker so a follow-up send doesn't
+        // accidentally reuse stale state.
+        if (template === "CUSTOM_ARTICLE") {
+          setAttachments([]);
+        }
         onSent();
       } else {
         alert(data.error || "Send failed");
@@ -425,20 +466,88 @@ function MailingCenter({ onSent }: { onSent: () => void }) {
             className="h-9 rounded-[10px] border border-input-border bg-white px-3 text-sm"
           />
         </div>
-        <label className="flex items-center gap-2 text-[12px] pt-5">
-          <input type="checkbox" checked={skipZero} onChange={(e) => setSkipZero(e.target.checked)} />
-          Skip investors with zero market value in the selected fund
-        </label>
+        {/* skipZero only meaningful for portfolio templates — hide it
+            when the active template doesn't gate on a fund. */}
+        {["EFUF_PORTFOLIO", "EGF_PORTFOLIO", "ESRF_PORTFOLIO"].includes(template) && (
+          <label className="flex items-center gap-2 text-[12px] pt-5">
+            <input type="checkbox" checked={skipZero} onChange={(e) => setSkipZero(e.target.checked)} />
+            Skip investors with zero market value in the selected fund
+          </label>
+        )}
         <div className="ml-auto pt-5 flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={load} disabled={loading}>
             <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          <Button size="sm" onClick={send} disabled={sending || selected.size === 0} className="bg-ekush-orange hover:bg-ekush-orange-dark text-white">
+          <Button
+            size="sm"
+            onClick={send}
+            disabled={
+              sending ||
+              selected.size === 0 ||
+              (template === "CUSTOM_ARTICLE" && !articleId)
+            }
+            className="bg-ekush-orange hover:bg-ekush-orange-dark text-white"
+          >
             {sending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
             Send to {selected.size} investor{selected.size === 1 ? "" : "s"}
           </Button>
         </div>
       </div>
+
+      {/* CUSTOM_ARTICLE-only second row: pick the article + optional
+          PDF/JPG attachments. Hidden for every other template. */}
+      {template === "CUSTOM_ARTICLE" && (
+        <div className="rounded-[10px] border border-ekush-orange/30 bg-amber-50/40 p-3 space-y-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="text-[12px] font-medium text-text-body block mb-1">
+                Article
+              </label>
+              <select
+                value={articleId}
+                onChange={(e) => setArticleId(e.target.value)}
+                className="w-full h-9 rounded-[10px] border border-input-border bg-white px-3 text-sm"
+              >
+                <option value="">Select an article…</option>
+                {articles.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                    {a.category ? ` — ${a.category}` : ""}
+                    {a.publishedAt ? "" : " (draft)"}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[12px] font-medium text-text-body block mb-1">
+                Attachments (PDF, JPG, PNG — max 10 MB each, 25 MB total)
+              </label>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                onChange={(e) =>
+                  setAttachments(e.target.files ? Array.from(e.target.files) : [])
+                }
+                className="w-full text-[12px] file:mr-3 file:rounded-md file:border file:border-input-border file:bg-white file:px-3 file:py-1.5 file:text-[12px] file:text-text-dark hover:file:bg-page-bg"
+              />
+              {attachments.length > 0 && (
+                <ul className="mt-2 space-y-1 text-[11px] text-text-muted">
+                  {attachments.map((f, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <FileText className="w-3 h-3" />
+                      <span className="truncate">{f.name}</span>
+                      <span className="ml-auto">
+                        {(f.size / 1024).toFixed(0)} KB
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {result && (() => {
         const failures = (result.results || []).filter((r) => r.status === "FAILED");

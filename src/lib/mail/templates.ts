@@ -337,4 +337,56 @@ export const TEMPLATE_OPTIONS = [
   { id: "ESRF_PORTFOLIO", label: "ESRF Investment Update", fundCode: "ESRF", fundName: "EKUSH STABLE RETURN FUND" },
   { id: "TAX_CERT", label: "Tax Certificate", fundCode: null, fundName: null },
   { id: "WELCOME", label: "Welcome Email", fundCode: null, fundName: null },
+  // Custom article template — picks an article (MarketCommentary) by id at
+  // send time and ships its body to selected investors with optional
+  // PDF / image attachments. fundCode is null because attachments and body
+  // are admin-authored per send, not derived from a fund.
+  { id: "CUSTOM_ARTICLE", label: "Custom Article", fundCode: null, fundName: null },
 ];
+
+export interface CustomArticleVars {
+  title: string;
+  bodyText: string;        // plain-text body as authored in /admin/content
+  category: string | null;
+  investorName: string;
+  investorCode: string;
+  hasAttachments: boolean;
+}
+
+/**
+ * Email shell for a market-update / commentary article. The article body
+ * lives in MarketCommentary.content as plain text (the admin form is a
+ * textarea, not a rich editor) so newlines are converted to <br/> here
+ * and any inline HTML from the author is escaped to keep the message
+ * safe regardless of what they paste in.
+ */
+export function customArticleEmail(v: CustomArticleVars): {
+  subject: string;
+  html: string;
+} {
+  const subject = v.category ? `${v.category} — ${v.title}` : v.title;
+  const safeTitle = escapeHtml(v.title);
+  const safeBody = escapeHtml(v.bodyText).replace(/\r?\n/g, "<br/>");
+  const safeName = escapeHtml(v.investorName);
+  const safeCode = escapeHtml(v.investorCode);
+  const safeCategory = v.category ? escapeHtml(v.category) : null;
+
+  return {
+    subject,
+    html: `
+      <div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #000; line-height: 1.55;">
+        <p>Dear <strong>${safeName}</strong> (Investor ID: <strong>${safeCode}</strong>),</p>
+        ${safeCategory ? `<p style="margin:0 0 4px;color:#F27023;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">${safeCategory}</p>` : ""}
+        <h2 style="margin:0 0 14px;font-size:18px;color:#0D0D0D;">${safeTitle}</h2>
+        <div style="margin:0 0 18px;">${safeBody}</div>
+        ${v.hasAttachments ? `<p style="margin:0 0 14px;color:#555;font-size:13px;">Please see the attached file${v.hasAttachments ? "(s)" : ""} for additional details.</p>` : ""}
+        <p>
+          If you have any questions or require further assistance, please feel free
+          to contact our representatives at <strong>01906-440541</strong> or
+          <strong>01303-957569</strong>.
+        </p>
+        <p style="margin-top: 18px;">Warm regards,<br />EKUSH Wealth Management Limited</p>
+      </div>
+    `.trim(),
+  };
+}
