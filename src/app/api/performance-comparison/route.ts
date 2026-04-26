@@ -156,12 +156,15 @@ export async function GET() {
         // Too far from the requested period-start to be meaningful (>90d gap)
         continue;
       }
-      // Compound period return: ((1 + endIR/100) / (1 + startIR/100) - 1) * 100.
-      // Subtraction (endIR - startIR) is mathematically wrong on cumulative
-      // returns and was the source of the dashboard discrepancy.
-      const denom = 1 + start.investorReturn / 100;
-      if (denom === 0) continue;
-      returns[p] = ((1 + end.investorReturn / 100) / denom - 1) * 100;
+      // Period return is the absolute change in the cumulative investor-
+      // return column: IR_end − IR_start. This matches the convention
+      // used by the Growth-of-1-lac chart (which plots
+      // 100,000 × (1 + (IR_t − IR_start)/100)) so the two surfaces show
+      // consistent numbers — pre-fix the legend used a compound formula
+      // ((1+IR_end/100)/(1+IR_start/100)−1)×100 which diverged from the
+      // growth chart for longer periods. Index returns below stay on
+      // the relative formula since DSEX/DS30 are price-return series.
+      returns[p] = end.investorReturn - start.investorReturn;
     }
     return { returns, inception };
   }
