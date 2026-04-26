@@ -3,6 +3,15 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { STAFF_ROLES } from "@/lib/roles";
 
+// Vercel default function timeout is 10s, which the per-row holdings
+// re-snapshot blew past for funds with hundreds of investors — the
+// first observed delete returned 500 at 18.27s but the navRecord
+// itself had already been deleted by then, leaving the cascade
+// half-applied. 60s gives the bulk-SQL cascade ample headroom even
+// for the largest fund.
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 /**
  * Delete a single NAV record.
  *
@@ -109,41 +118,35 @@ export async function DELETE(
       data: { currentNav: newCurrent, previousNav: newPrevious },
     });
 
-    // Re-snapshot every holding in this fund to the new currentNav —
-    // mirrors /api/admin/nav's bulk-upsert holding-update block. Skip
-    // when no rows remain rather than zero everything out.
+    // Re-snapshot every holding in this fund as ONE bulk UPDATE
+    // instead of N per-row Prisma updates. The previous per-row loop
+    // serialized through pgbouncer's connection_limit=1 and easily
+    // exceeded the function timeout for funds with hundreds of
+    // investors (the first reported delete failed at 18.27s with the
+    // navRecord itself already gone). Single round-trip stays under
+    // a second even for thousands of rows.
     if (remaining.length > 0) {
-      const holdings = await prisma.fundHolding.findMany({
-        where: { fundId: record.fundId },
-      });
-      await Promise.all(
-        holdings.map((h) => {
-          const units = Number(h.totalCurrentUnits);
-          const newMv = units * newCurrent;
-          const costValue = Number(h.totalCostValueCurrent);
-          return prisma.fundHolding.update({
-            where: { id: h.id },
-            data: {
-              nav: newCurrent,
-              totalMarketValue: newMv,
-              totalUnrealizedGain: newMv - costValue,
-              lsMarketValue: Number(h.lsCurrentUnits) * newCurrent,
-              sipMarketValue: Number(h.sipCurrentUnits) * newCurrent,
-              marketValueSellable: Number(h.totalSellableUnits) * newCurrent,
-            },
-          });
-        }),
-      );
+      await prisma.$executeRaw`
+        UPDATE fund_holdings
+        SET
+          "nav" = ${newCurrent},
+          "totalMarketValue" = "totalCurrentUnits" * ${newCurrent},
+          "totalUnrealizedGain" = ("totalCurrentUnits" * ${newCurrent}) - "totalCostValueCurrent",
+          "lsMarketValue" = "lsCurrentUnits" * ${newCurrent},
+          "sipMarketValue" = "sipCurrentUnits" * ${newCurrent},
+          "marketValueSellable" = "totalSellableUnits" * ${newCurrent}
+        WHERE "fundId" = ${record.fundId}
+      `;
 
-      // Recalculate AUM from the freshly-snapshotted market values.
-      const aum = await prisma.fundHolding.aggregate({
-        where: { fundId: record.fundId },
-        _sum: { totalMarketValue: true },
-      });
-      await prisma.fund.update({
-        where: { id: record.fundId },
-        data: { totalAum: aum._sum.totalMarketValue || 0 },
-      });
+      // AUM as a single SQL aggregate-and-update.
+      await prisma.$executeRaw`
+        UPDATE funds
+        SET "totalAum" = COALESCE(
+          (SELECT SUM("totalMarketValue") FROM fund_holdings WHERE "fundId" = ${record.fundId}),
+          0
+        )
+        WHERE "id" = ${record.fundId}
+      `;
     }
   }
 
