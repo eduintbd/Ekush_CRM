@@ -13,7 +13,7 @@ datasource db {
 // UserStatus: PENDING, ACTIVE, SUSPENDED, CLOSED
 
 model User {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   // Email is NOT unique — family members investing under different investor
   // codes may legitimately share a single email. Login resolves ambiguity by
   // preferring the investor-code match; email lookups use findFirst.
@@ -23,29 +23,30 @@ model User {
   // row; staff accounts don't have an Investor relation so we store it here.
   fullName         String?
   passwordHash     String
-  supabaseId       String?  @unique
+  supabaseId       String?   @unique
   // Values are constrained by src/lib/roles.ts: SUPER_ADMIN | MAKER | CHECKER
   // | VIEWER for staff, or INVESTOR for end-user accounts.
-  role             String   @default("INVESTOR")
-  status           String   @default("PENDING") // INVITED | ACTIVE | LOCKED | DEACTIVATED | PENDING | SUSPENDED | CLOSED
-  twoFactorEnabled Boolean  @default(false)
+  role             String    @default("INVESTOR")
+  status           String    @default("PENDING") // INVITED | ACTIVE | LOCKED | DEACTIVATED | PENDING | SUSPENDED | CLOSED
+  twoFactorEnabled Boolean   @default(false)
   twoFactorSecret  String?
-  failedLoginCount Int      @default(0)
+  failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   // Who invited this user (staff only; investors self-register).
   createdById      String?
 
-  createdBy     User?          @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdUsers  User[]         @relation("UserCreatedBy")
-  invitesSent   Invitation[]   @relation("InvitedBy")
+  createdBy     User?                @relation("UserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers  User[]               @relation("UserCreatedBy")
+  invitesSent   Invitation[]         @relation("InvitedBy")
   resetTokens   PasswordResetToken[]
   investor      Investor?
   auditLogs     AuditLog[]
   notifications Notification[]
   sessions      Session[]
+  totp          UserTotp?
 
   @@index([status])
   @@index([role])
@@ -57,19 +58,19 @@ model User {
 // (hash is stored here; raw token is emailed). On acceptance, the invitee
 // sets a password and we mark acceptedAt.
 model Invitation {
-  id         String    @id @default(cuid())
-  email      String
-  fullName   String
-  role       String    // SUPER_ADMIN | MAKER | CHECKER | VIEWER
-  tokenHash  String    @unique
-  expiresAt  DateTime
-  acceptedAt DateTime?
-  note       String?
+  id          String    @id @default(cuid())
+  email       String
+  fullName    String
+  role        String // SUPER_ADMIN | MAKER | CHECKER | VIEWER
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  note        String?
   invitedById String?
 
-  invitedBy  User?     @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  invitedBy User? @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
 
-  createdAt  DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([email])
   @@index([expiresAt])
@@ -107,36 +108,43 @@ model Session {
 // InvestorType: INDIVIDUAL, COMPANY_ORGANIZATION, MUTUAL_FUND, PROVIDENT_FUND, GRATUITY_FUND
 
 model Investor {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  investorCode String   @unique
-  name         String
-  title        String?
-  investorType String   @default("INDIVIDUAL")
-  nidNumber    String?
-  tinNumber    String?
-  dateOfBirth  DateTime?
-  address      String?
-  riskProfile  String?
-  boId         String?
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  investorCode       String    @unique
+  name               String
+  title              String?
+  investorType       String    @default("INDIVIDUAL")
+  nidNumber          String?
+  tinNumber          String?
+  dateOfBirth        DateTime?
+  address            String?
+  riskProfile        String?
+  boId               String?
   // DP (Depository Participant) ID and brokerage house — completes the BO/demat
   // account triple. Populated from the 'BO ID- NEW / DP ID- NEW / Brokerage
   // House Name- NEW' columns in Investors Database.xlsx.
-  dpId            String?
-  brokerageHouse  String?
+  dpId               String?
+  brokerageHouse     String?
   // Family names — sourced from 'Father Name / Mother Name / Spouse Name'
   // columns in the Investors Database workbook. Used on printed forms.
-  fatherName      String?
-  motherName      String?
-  spouseName      String?
-  dividendOption String @default("CASH") // CASH | CIP
+  fatherName         String?
+  motherName         String?
+  spouseName         String?
+  dividendOption     String    @default("CASH") // CASH | CIP
   // Digital signature image URL (optional — wet signature on file is the fallback).
   // Used on auto-generated DDI forms.
-  signatureUrl String?
+  signatureUrl       String?
   // Timestamp of the one-time welcome email sent on PENDING→ACTIVE approval.
   // Null means never sent — manual "Send Now" in the admin edit form uses
   // this flag to show the retry UI.
   welcomeEmailSentAt DateTime?
+
+  // Tier-1→Tier-2 conversion attribution. Set when a logged-in Prospect
+  // submits the existing 4-step KYC and an Investor row is created. Null
+  // for direct sign-ups (no prior prospect record). 1:1 — one Prospect
+  // converts to at most one Investor.
+  linkedProspectId String?   @unique
+  linkedProspect   Prospect? @relation(fields: [linkedProspectId], references: [id], onDelete: SetNull)
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   holdings        FundHolding[]
@@ -148,11 +156,11 @@ model Investor {
   nominees        Nominee[]
   consents        Consent[]
   documents       Document[]
-  serviceRequests  ServiceRequest[]
-  sipPlans         SipPlan[]
-  investmentGoals  InvestmentGoal[]
-  mailLogs         MailLog[]
-  ddiInstructions  DdiInstruction[]
+  serviceRequests ServiceRequest[]
+  sipPlans        SipPlan[]
+  investmentGoals InvestmentGoal[]
+  mailLogs        MailLog[]
+  ddiInstructions DdiInstruction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -278,8 +286,8 @@ model Transaction {
   id              String   @id @default(cuid())
   investorId      String
   fundId          String
-  channel         String   // LS or SIP
-  direction       String   // BUY or SELL
+  channel         String // LS or SIP
+  direction       String // BUY or SELL
   amount          Float    @default(0)
   nav             Float    @default(0)
   units           Float    @default(0)
@@ -292,7 +300,7 @@ model Transaction {
   uniqueCode      String?
   orderDate       DateTime
   status          String   @default("EXECUTED")
-  paymentMethod   String?  // BANK_TRANSFER | DDI
+  paymentMethod   String? // BANK_TRANSFER | DDI
   paymentRef      String?
   notes           String?
 
@@ -321,7 +329,7 @@ model DdiInstruction {
   fundId          String
   transactionId   String?  @unique
   amount          Float
-  signatureUrl    String?  // snapshot at signing time; null = wet sig on file
+  signatureUrl    String? // snapshot at signing time; null = wet sig on file
   termsAccepted   Boolean  @default(false)
   status          String   @default("PENDING_REVIEW") // PENDING_REVIEW | APPROVED | REJECTED | EXECUTED | CANCELLED
   applicationDate DateTime @default(now())
@@ -397,7 +405,7 @@ model Dividend {
 // investor-per-payout) because the per-investor aggregation doesn't
 // reliably reproduce the headline number the business announces.
 model DividendHistory {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   fundId            String
   year              Int
   annualDividendPct Float
@@ -461,10 +469,10 @@ model TaxCertificate {
 model FinancialStatement {
   id          String    @id @default(cuid())
   fundId      String
-  type        String    // BS, IS, CF, EQUITY
+  type        String // BS, IS, CF, EQUITY
   periodStart DateTime?
   periodEnd   DateTime?
-  data        String    // JSON stored as text (SQLite doesn't support Json)
+  data        String // JSON stored as text (SQLite doesn't support Json)
 
   fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
 
@@ -629,7 +637,7 @@ model ServiceRequest {
 }
 
 model TicketComment {
-  id               String @id @default(cuid())
+  id               String  @id @default(cuid())
   serviceRequestId String
   authorId         String
   content          String
@@ -665,12 +673,12 @@ model Notification {
 // ApprovalStatus: PENDING, APPROVED, REJECTED
 
 model ApprovalQueue {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   entityType String
   entityId   String
   makerId    String
   checkerId  String?
-  status     String   @default("PENDING")
+  status     String  @default("PENDING")
   notes      String?
 
   createdAt DateTime @default(now())
@@ -685,7 +693,7 @@ model ApprovalQueue {
 model AppSetting {
   id        String   @id @default(cuid())
   key       String   @unique
-  value     String   // JSON or plain text
+  value     String // JSON or plain text
   updatedAt DateTime @updatedAt
 
   @@map("app_settings")
@@ -749,7 +757,7 @@ model AuditLog {
 // ─── Document Vault ──────────────────────────────────────────────
 
 model Document {
-  id         String @id @default(cuid())
+  id         String  @id @default(cuid())
   investorId String
   type       String
   fileName   String
@@ -767,9 +775,9 @@ model Document {
 // ─── Fund Report (admin-uploaded Excel reports per fund) ─────────
 
 model FundReport {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   fundId     String
-  reportType String   // FIN_STATS, INVESTORS, PORTFOLIO, NAV_HISTORY, EXPENSES, HOLDINGS
+  reportType String // FIN_STATS, INVESTORS, PORTFOLIO, NAV_HISTORY, EXPENSES, HOLDINGS
   title      String
   fileName   String
   filePath   String
@@ -789,18 +797,18 @@ model FundReport {
 // ─── Daily Fund Upload (FIN STATS / INVESTORS Excel, drives ingestion) ──
 
 model DailyFundUpload {
-  id             String   @id @default(cuid())
-  fundId         String
-  uploadType     String   // FIN_STATS | INVESTORS
-  reportDate     DateTime // the "as of" date encoded in the file
-  fileName       String
-  filePath       String
-  mimeType       String?
-  uploadedBy     String?
-  status         String   @default("PENDING") // PENDING | PROCESSING | PROCESSED | FAILED
-  processedAt    DateTime?
-  error          String?
-  rowsProcessed  Int?
+  id            String    @id @default(cuid())
+  fundId        String
+  uploadType    String // FIN_STATS | INVESTORS
+  reportDate    DateTime // the "as of" date encoded in the file
+  fileName      String
+  filePath      String
+  mimeType      String?
+  uploadedBy    String?
+  status        String    @default("PENDING") // PENDING | PROCESSING | PROCESSED | FAILED
+  processedAt   DateTime?
+  error         String?
+  rowsProcessed Int?
 
   fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
 
@@ -814,9 +822,9 @@ model DailyFundUpload {
 // ─── Comparison Report (PDFs like UCB Weekly MF Review) ──────────
 
 model ComparisonReport {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   title      String
-  source     String?  // e.g., "UCB Stock Brokerage"
+  source     String? // e.g., "UCB Stock Brokerage"
   reportDate DateTime?
   fileName   String
   filePath   String
@@ -849,16 +857,16 @@ model MarketCommentary {
 // GoalStatus: ACTIVE, ACHIEVED, ABANDONED
 
 model InvestmentGoal {
-  id               String   @id @default(cuid())
-  investorId       String
-  name             String
-  targetAmount     Float
-  lumpsumAmount    Float    @default(0)
-  monthlySip       Float    @default(0)
-  expectedReturn   Float    @default(10)
-  timePeriodYears  Int      @default(5)
-  deadline         DateTime
-  status           String   @default("ACTIVE")
+  id              String   @id @default(cuid())
+  investorId      String
+  name            String
+  targetAmount    Float
+  lumpsumAmount   Float    @default(0)
+  monthlySip      Float    @default(0)
+  expectedReturn  Float    @default(10)
+  timePeriodYears Int      @default(5)
+  deadline        DateTime
+  status          String   @default("ACTIVE")
 
   investor Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
 
@@ -888,9 +896,9 @@ model Video {
   youtubeUrl   String
   videoId      String   @unique
   title        String
-  category     String   // basics | strategy | tax | industry
+  category     String // basics | strategy | tax | industry
   thumbnailUrl String
-  duration     String   // "14:32" — formatted at fetch time, not re-parsed
+  duration     String // "14:32" — formatted at fetch time, not re-parsed
   viewCount    Int      @default(0)
   likeCount    Int      @default(0)
   publishedAt  DateTime
@@ -915,11 +923,11 @@ model Video {
 model Article {
   id              String   @id @default(cuid())
   articleUrl      String
-  publisher       String   // tbs | financial_express | other
+  publisher       String // tbs | financial_express | other
   title           String
   excerpt         String
   coverImageUrl   String
-  category        String   // opinion | analysis | feature | interview
+  category        String // opinion | analysis | feature | interview
   publishedAt     DateTime
   readTimeMinutes Int
   displayOrder    Int      @default(0)
@@ -935,9 +943,9 @@ model Article {
 model LearnTopic {
   id           String   @id @default(cuid())
   title        String
-  summary      String   // one-liner shown in the list row ("Read · 4 min · …")
+  summary      String // one-liner shown in the list row ("Read · 4 min · …")
   body         String   @db.Text // HTML from TipTap
-  iconKey      String   // cube | layers | bank | chart  (extendable)
+  iconKey      String // cube | layers | bank | chart  (extendable)
   // Multi-image gallery. The rebuild renders each image at its
   // native aspect ratio inside a coverflow slide; 2+ images turn the
   // card into a nested swipeable deck. Empty array → iconKey fallback.
@@ -947,7 +955,7 @@ model LearnTopic {
   // `images` is empty and `imageUrl` is set. Drop once every row has
   // migrated to the array column.
   imageUrl     String?
-  category     String   // basics (only used today)
+  category     String // basics (only used today)
   displayOrder Int      @default(0)
   isPublished  Boolean  @default(false)
 
@@ -992,23 +1000,23 @@ model LearnTopic {
 // scope routes them to call/WhatsApp. Bilingual (en + bn) in every
 // content field.
 model AhonaSettings {
-  id                 String   @id @default("singleton")
-  enabledOnWebsite   Boolean  @default(false)
-  enabledOnPortal    Boolean  @default(false)
+  id               String   @id @default("singleton")
+  enabledOnWebsite Boolean  @default(false)
+  enabledOnPortal  Boolean  @default(false)
   // Greeting shown at the top of the panel before any menu choice.
-  greetingEn         String   @default("Hi, I'm Ahona — how can I help?")
-  greetingBn         String   @default("নমস্কার, আমি আহনা — কীভাবে সাহায্য করতে পারি?")
+  greetingEn       String   @default("Hi, I'm Ahona — how can I help?")
+  greetingBn       String   @default("নমস্কার, আমি আহনা — কীভাবে সাহায্য করতে পারি?")
   // Phone + WhatsApp the contact-card leaves render as buttons. Stored
   // as digits-only (international, no leading +) so the wa.me/tel:
   // links can use them verbatim.
-  phoneNumber        String?
-  whatsappNumber     String?
+  phoneNumber      String?
+  whatsappNumber   String?
   // Free-form text shown alongside the contact card so admins can
   // tell users when the line is staffed.
-  workingHoursEn     String?
-  workingHoursBn     String?
-  updatedAt          DateTime @updatedAt
-  updatedBy          String?
+  workingHoursEn   String?
+  workingHoursBn   String?
+  updatedAt        DateTime @updatedAt
+  updatedBy        String?
 
   @@map("ahona_settings")
 }
@@ -1017,23 +1025,23 @@ model AhonaSettings {
 // surface controls which mount point sees it; isContactCard turns
 // the leaf into the phone/WhatsApp pair instead of a text response.
 model AhonaQuickReply {
-  id             String   @id @default(cuid())
-  parentId       String?
-  displayOrder   Int      @default(0)
+  id            String  @id @default(cuid())
+  parentId      String?
+  displayOrder  Int     @default(0)
   // Which mount sees this node: PUBLIC (only ekushwml.com), PORTAL
   // (only the investor portal), BOTH.
-  surface        String   @default("BOTH")
-  labelEn        String
-  labelBn        String
+  surface       String  @default("BOTH")
+  labelEn       String
+  labelBn       String
   // Plain-text reply rendered as paragraphs (\n preserved). HTML is
   // stripped on render; we don't want a hostile-admin XSS path.
-  responseEn     String   @default("")
-  responseBn     String   @default("")
+  responseEn    String  @default("")
+  responseBn    String  @default("")
   // When true, the response area renders the AhonaSettings phone +
   // WhatsApp buttons instead of the response text. Lets every menu
   // tree have a "Talk to us" leaf without admin retyping the number.
-  isContactCard  Boolean  @default(false)
-  isPublished    Boolean  @default(true)
+  isContactCard Boolean @default(false)
+  isPublished   Boolean @default(true)
 
   parent   AhonaQuickReply?  @relation("AhonaQuickReplyChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children AhonaQuickReply[] @relation("AhonaQuickReplyChildren")
@@ -1057,7 +1065,7 @@ model WhatsNewSetting {
   // the public side-tab hides the WhatsApp button.
   whatsappNumber String?
   updatedAt      DateTime @updatedAt
-  updatedBy      String?  // user id of the admin who last saved
+  updatedBy      String? // user id of the admin who last saved
 
   @@map("whats_new_settings")
 }
@@ -1073,31 +1081,31 @@ model WhatsNewSetting {
 //   topHoldings:     [{ticker: "SQUAREPHARMA", name: "Square Pharma",
 //                      weightPct: 7.2}, ...]
 model FundFactSheet {
-  id              String   @id @default(cuid())
+  id               String    @id @default(cuid())
   // Fund code as used in the rebuild's URL slug — "EFUF" / "EGF" /
   // "ESRF". Unique so the admin form is an upsert against this code.
-  fundCode        String   @unique
-  asOfDate        DateTime   // quarter-end the data reflects
+  fundCode         String    @unique
+  asOfDate         DateTime // quarter-end the data reflects
   // Asset allocation: the three buckets derived from the portfolio
   // statement — Stocks (Listed + Non-Listed), Bonds (typically 0%),
   // and Cash & Equivalents. Kept as free-form JSON so admins can
   // relabel or add categories without a migration.
-  assetAllocation Json     @default("[]")
+  assetAllocation  Json      @default("[]")
   // Sector allocation: Bank / Pharmaceuticals / Close-end MF / etc.
   // Summed from the "% of total Investment" column on the listed
   // portfolio, grouped by the un-numbered sector header above each
   // block of rows. Stored as [{sector, weightPct}, ...].
-  sectorAllocation Json    @default("[]")
-  topHoldings     Json     @default("[]")
+  sectorAllocation Json      @default("[]")
+  topHoldings      Json      @default("[]")
   // Source tracking: which portfolio-statement PDF the data was
   // pulled from (URL). Null until the first auto-extract lands.
-  sourcePdfUrl    String?
-  autoExtractedAt DateTime?
+  sourcePdfUrl     String?
+  autoExtractedAt  DateTime?
   // Touched on every admin save so the public API can show a
   // "Last updated" hint if we ever want it.
-  updatedBy       String?  // user id of the admin who last saved
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedBy        String? // user id of the admin who last saved
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@map("fund_fact_sheets")
 }
@@ -1122,10 +1130,10 @@ model FrontPagePopup {
 model ResearchReport {
   id           String   @id @default(cuid())
   title        String
-  description  String   // 1–2 sentences shown on the public card
-  pdfUrl       String   // Vercel Blob URL, required
-  pdfSizeBytes Int?     // populated by the upload handler so the card
-                        // can show "PDF · 2.3 MB"
+  description  String // 1–2 sentences shown on the public card
+  pdfUrl       String // Vercel Blob URL, required
+  pdfSizeBytes Int? // populated by the upload handler so the card
+  // can show "PDF · 2.3 MB"
   displayOrder Int      @default(0)
   isPublished  Boolean  @default(false)
   createdAt    DateTime @default(now())
@@ -1133,4 +1141,138 @@ model ResearchReport {
 
   @@index([isPublished, displayOrder])
   @@map("research_reports")
+}
+
+// ─── Prospect (Tier 1) ───────────────────────────────────────────
+// Lightweight lead captured via the homepage WhatsApp signup. No KYC, no
+// User row, no investor code — just a phone-keyed record so marketing
+// can nurture them. When a prospect later completes KYC and is approved
+// by admin, an Investor row is created and `Investor.linkedProspectId`
+// points back here for conversion attribution.
+
+model Prospect {
+  id            String  @id @default(cuid())
+  // Phone is the login identifier. Stored digits-only (no leading +,
+  // no spaces, no dashes) so it round-trips cleanly to the Supabase
+  // synthetic email "<phone>@prospect.ekush.local".
+  phone         String  @unique
+  phoneVerified Boolean @default(false)
+  // Mirror auth.users.id from Supabase Auth, set after the synthetic-email
+  // signup completes. Same pattern as User.supabaseId.
+  supabaseId    String? @unique
+
+  name         String
+  email        String?
+  passwordHash String
+
+  // One of: "exploring" | "mutual_funds" | "sukuk" | "dpm" | "other".
+  // Validated app-side; kept loose here so marketing can extend without
+  // schema migration.
+  interest String
+  // Free-text attribution: "homepage_cta" | "facebook_ad"
+  // | "click_to_whatsapp" | "referral" | … Loose by design.
+  source   String?
+
+  marketingConsent   Boolean   @default(false)
+  marketingConsentAt DateTime?
+
+  // True once the prospect has submitted the 4-step KYC. Stays true
+  // even after admin approval so /admin/prospects can show the
+  // "↗ KYC submitted" badge throughout the conversion lifecycle.
+  kycSubmitted Boolean @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+  // Soft delete — set when the prospect or admin deletes the account.
+  // Cron purges rows older than `deletedAt + 30 days`.
+  deletedAt   DateTime?
+
+  // Back-reference to the Investor record created on KYC approval.
+  // Optional 1:1 — populated only after conversion.
+  linkedInvestor Investor?
+
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@map("prospects")
+}
+
+// ─── OTP codes ───────────────────────────────────────────────────
+// SMS one-time-passwords for prospect signup. Hashed at rest (never
+// store the plain 6-digit code). Cron purges rows past `expiresAt`.
+
+model OtpCode {
+  id       String @id @default(cuid())
+  phone    String
+  // bcrypt(code). The plaintext code is sent to the user via SMS and
+  // never stored.
+  codeHash String
+  // v1 supports "PROSPECT_SIGNUP". Future: "PROSPECT_LOGIN_2FA",
+  // "PHONE_CHANGE", etc.
+  purpose  String @default("PROSPECT_SIGNUP")
+
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  // Failed verify attempts on this row — guards against brute-forcing
+  // the 6-digit space.
+  attempts    Int       @default(0)
+  // Resend counter, scoped to (phone, purpose). The signup flow rejects
+  // a 4th resend within the rolling window per the brief.
+  resendCount Int       @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([phone, purpose])
+  @@index([expiresAt])
+  @@map("otp_codes")
+}
+
+// ─── User TOTP (admin 2FA) ───────────────────────────────────────
+// One row per admin/staff account. Existing `User.twoFactorEnabled` and
+// `User.twoFactorSecret` columns are vestigial (no code currently writes
+// them); this dedicated table keeps the secret in a smaller surface area
+// and leaves room for recovery-code expansion later.
+
+model UserTotp {
+  id     String @id @default(cuid())
+  userId String @unique
+  // Base32-encoded TOTP secret. v1 stores raw; column-level encryption
+  // is a Phase 8 follow-up.
+  secret String
+
+  // Set when the user successfully verifies their first 6-digit code on
+  // the QR-scan enrollment screen. Null = enrollment started but not
+  // confirmed (the row exists so a refresh doesn't lose the secret).
+  enrolledAt DateTime?
+  // Last successful TOTP verification — used for replay protection
+  // (reject the same code twice in a row within its 30-second window).
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_totp")
+}
+
+// ─── Login attempts (rate limit) ─────────────────────────────────
+// One row per login attempt across both realms (investor / prospect).
+// The login routes count failed rows in the last 15 minutes for the
+// (identifier, ip) pair and block at 5. Cron purges rows older than 24h.
+
+model LoginAttempt {
+  id         String  @id @default(cuid())
+  // Verbatim login string the caller submitted (investor code, phone,
+  // or email). Lower-cased and trimmed before insert by the caller.
+  identifier String
+  ipAddress  String
+  // "INVESTOR" | "PROSPECT" — keeps counters isolated so a hot prospect
+  // tab doesn't lock out the investor tab and vice versa.
+  realm      String
+  success    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([identifier, ipAddress, realm, createdAt])
+  @@index([createdAt])
+  @@map("login_attempts")
 }
