@@ -7,7 +7,9 @@ import { parseLearnTopicInput } from "../parsers";
 
 // See ../route.ts for why we purge every category variant explicitly.
 const BASE_TAG = "knowledge-learn-topics";
+const PORTAL_BANNER_TAG = "portal-banner";
 const PUBLIC_BASE_PATH = "/api/public/learn-topics";
+const PUBLIC_PORTAL_BANNER_PATH = "/api/public/portal-banner";
 const PUBLIC_CATEGORY_PATHS = [
   `${PUBLIC_BASE_PATH}?category=basics`,
   `${PUBLIC_BASE_PATH}?category=faq`,
@@ -17,6 +19,7 @@ const tagForCategory = (cat: string) => `${BASE_TAG}-${cat}`;
 
 function purgePublicPaths() {
   revalidatePath(PUBLIC_BASE_PATH);
+  revalidatePath(PUBLIC_PORTAL_BANNER_PATH);
   for (const p of PUBLIC_CATEGORY_PATHS) revalidatePath(p);
 }
 
@@ -41,7 +44,7 @@ export async function PATCH(
 
   const previous = await prisma.learnTopic.findUnique({
     where: { id: params.id },
-    select: { category: true },
+    select: { category: true, showInPortalBanner: true },
   });
   const topic = await prisma.learnTopic.update({
     where: { id: params.id },
@@ -56,6 +59,12 @@ export async function PATCH(
     await flushTag(tagForCategory(previous.category));
   }
   await flushTag(tagForCategory(topic.category));
+  // Flush the portal-banner tag whenever the flag was on either side
+  // of the edit — covers all four state transitions (off→on, on→off,
+  // on→on with content edits, off→off-but-content-edits-on-others).
+  if (topic.showInPortalBanner || previous?.showInPortalBanner) {
+    await flushTag(PORTAL_BANNER_TAG);
+  }
 
   return NextResponse.json({ topic });
 }
@@ -69,13 +78,14 @@ export async function DELETE(
 
   const existing = await prisma.learnTopic.findUnique({
     where: { id: params.id },
-    select: { category: true },
+    select: { category: true, showInPortalBanner: true },
   });
   await prisma.learnTopic.delete({ where: { id: params.id } });
 
   purgePublicPaths();
   await flushTag(BASE_TAG);
   if (existing) await flushTag(tagForCategory(existing.category));
+  if (existing?.showInPortalBanner) await flushTag(PORTAL_BANNER_TAG);
 
   return NextResponse.json({ success: true });
 }

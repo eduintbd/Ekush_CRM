@@ -24,6 +24,11 @@ export type LearnTopicInput = {
   // What's New side-tab opt-in.
   showInWhatsNew: boolean;
   whatsNewOrder: number | null;
+  // Investor portal /dashboard hero banner opt-in. Same shape as the
+  // What's New pair. /api/public/portal-banner filters on
+  // isPublished && showInPortalBanner.
+  showInPortalBanner: boolean;
+  portalBannerOrder: number | null;
   // Optional CTA pinned to the What's New slide. Both fields are
   // either non-empty together or both null — partial input is
   // collapsed to null so the public API never ships a half-built CTA.
@@ -85,6 +90,23 @@ export function parseLearnTopicInput(
     whatsNewOrder = Math.trunc(n);
   }
 
+  // portalBannerOrder follows the same parsing contract as
+  // whatsNewOrder — null/undefined/"" all collapse to null
+  // (unordered), an explicit integer pins the slot.
+  const portalBannerOrderRaw = body.portalBannerOrder;
+  let portalBannerOrder: number | null = null;
+  if (
+    portalBannerOrderRaw !== null &&
+    portalBannerOrderRaw !== undefined &&
+    portalBannerOrderRaw !== ""
+  ) {
+    const n = Number(portalBannerOrderRaw);
+    if (!Number.isFinite(n)) {
+      return { error: "portalBannerOrder must be an integer or null" };
+    }
+    portalBannerOrder = Math.trunc(n);
+  }
+
   // CTA: collapse partial input (one field set, the other blank) to
   // null/null so the public API never emits a half-built button.
   const ctaUrlRaw = str(body.ctaUrl);
@@ -118,6 +140,8 @@ export function parseLearnTopicInput(
     showOnTopic,
     showInWhatsNew: !!body.showInWhatsNew,
     whatsNewOrder,
+    showInPortalBanner: !!body.showInPortalBanner,
+    portalBannerOrder,
     ctaUrl,
     ctaLabel,
   };

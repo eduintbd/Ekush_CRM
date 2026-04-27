@@ -14,7 +14,9 @@ import { parseLearnTopicInput } from "./parsers";
 // explicitly purge the base path AND every category variant we
 // ship today.
 const BASE_TAG = "knowledge-learn-topics";
+const PORTAL_BANNER_TAG = "portal-banner";
 const PUBLIC_BASE_PATH = "/api/public/learn-topics";
+const PUBLIC_PORTAL_BANNER_PATH = "/api/public/portal-banner";
 const PUBLIC_CATEGORY_PATHS = [
   `${PUBLIC_BASE_PATH}?category=basics`,
   `${PUBLIC_BASE_PATH}?category=faq`,
@@ -24,6 +26,7 @@ const tagForCategory = (cat: string) => `${BASE_TAG}-${cat}`;
 
 function purgePublicPaths() {
   revalidatePath(PUBLIC_BASE_PATH);
+  revalidatePath(PUBLIC_PORTAL_BANNER_PATH);
   for (const p of PUBLIC_CATEGORY_PATHS) revalidatePath(p);
 }
 
@@ -59,5 +62,6 @@ export async function POST(req: NextRequest) {
   purgePublicPaths();
   await flushTag(BASE_TAG);
   await flushTag(tagForCategory(topic.category));
+  if (topic.showInPortalBanner) await flushTag(PORTAL_BANNER_TAG);
   return NextResponse.json({ topic });
 }

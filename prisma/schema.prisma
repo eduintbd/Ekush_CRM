@@ -977,6 +977,15 @@ model LearnTopic {
   // toggle a topic into What's New without typing a number.
   whatsNewOrder  Int?
 
+  // Investor portal /dashboard hero banner opt-in. Same shape as the
+  // What's New pair: a boolean flag plus an optional order. Topics
+  // with showInPortalBanner=true (and isPublished=true) are returned
+  // by /api/public/portal-banner and rotate through the dashboard
+  // banner carousel. When zero topics opt in the static
+  // <TaxRebateBanner /> renders as the fallback.
+  showInPortalBanner Boolean @default(false)
+  portalBannerOrder  Int?
+
   // Optional CTA shown on the What's New slide — e.g. "Open Portal"
   // → portal login. Both fields are required together (null/null
   // hides the CTA). Validated at the API parser, not enforced in
@@ -990,6 +999,7 @@ model LearnTopic {
   @@index([category, isPublished, displayOrder])
   @@index([showOnTopic, isPublished, displayOrder])
   @@index([showInWhatsNew, whatsNewOrder])
+  @@index([showInPortalBanner, portalBannerOrder])
   @@map("learn_topics")
 }
 

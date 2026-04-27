@@ -36,6 +36,11 @@ export type LearnTopicFormInitial = {
   // first, null falls to the end (sorted by createdAt desc).
   showInWhatsNew: boolean;
   whatsNewOrder: number | null;
+  // Investor portal /dashboard hero banner opt-in. Same shape as
+  // showInWhatsNew + whatsNewOrder. Recommended cover-image size for
+  // this surface is 1600 × 485 px (3.3:1).
+  showInPortalBanner: boolean;
+  portalBannerOrder: number | null;
   // Optional CTA pinned to the What's New slide ("Open Portal" → URL).
   // Both fields together or both null; the form blocks half-built
   // states so the API parser never has to.
@@ -70,6 +75,8 @@ const EMPTY: LearnTopicFormInitial = {
   showOnTopic: true,
   showInWhatsNew: false,
   whatsNewOrder: null,
+  showInPortalBanner: false,
+  portalBannerOrder: null,
   ctaUrl: null,
   ctaLabel: null,
 };
@@ -456,6 +463,61 @@ export function LearnTopicForm({
             <p className="text-[11px] text-[#8A8A8A]">
               Both fields are required together. Leave both empty to hide the
               CTA on this slide.
+            </p>
+          </div>
+        ) : null}
+
+        {/* ── Portal banner surface flag ────────────────────────── */}
+        <label className="mt-2 flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-gray-50">
+          <input
+            type="checkbox"
+            checked={form.showInPortalBanner}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, showInPortalBanner: e.target.checked }))
+            }
+            className="mt-1 h-4 w-4 accent-ekush-orange"
+          />
+          <span className="flex-1">
+            <span className="block text-[13px] font-medium">
+              Show on Portal dashboard
+            </span>
+            <span className="mt-0.5 block text-[11px] text-[#8A8A8A]">
+              Topic&rsquo;s cover image appears in the rotating hero banner on
+              the investor portal /dashboard. Recommended image size:{" "}
+              <strong>1600 × 485 px (3.3:1)</strong>. Keep the left 40% clear
+              for overlaid title and CTA. Requires Published + at least one
+              image.
+            </span>
+          </span>
+        </label>
+
+        {form.showInPortalBanner ? (
+          <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
+            <label className="flex items-center gap-3">
+              <span className="w-32 text-[12px] text-[#4A4A4A]">
+                Display order
+              </span>
+              <input
+                type="number"
+                step="1"
+                value={form.portalBannerOrder ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    portalBannerOrder: v === "" ? null : Number(v),
+                  }));
+                }}
+                placeholder="(unordered — sorted by date)"
+                className="w-56 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-ekush-orange focus:outline-none"
+              />
+              <span className="text-[11px] text-[#8A8A8A]">
+                Lower number first. Leave blank to sort by date.
+              </span>
+            </label>
+            <p className="text-[11px] text-[#8A8A8A]">
+              The CTA fields above are shared with What&rsquo;s New — if both
+              surfaces are enabled, the same label/URL is used for both.
             </p>
           </div>
         ) : null}

@@ -56,6 +56,8 @@ export default async function EditLearnTopicPage({
           showOnTopic: topic.showOnTopic,
           showInWhatsNew: topic.showInWhatsNew,
           whatsNewOrder: topic.whatsNewOrder,
+          showInPortalBanner: topic.showInPortalBanner,
+          portalBannerOrder: topic.portalBannerOrder,
           ctaUrl: topic.ctaUrl,
           ctaLabel: topic.ctaLabel,
         }}

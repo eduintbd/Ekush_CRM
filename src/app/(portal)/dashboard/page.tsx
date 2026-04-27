@@ -1,13 +1,66 @@
 import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { QuickActions } from "@/components/QuickActions";
 import TaxRebateBanner from "@/components/TaxRebateBanner";
+import {
+  PortalBannerCarousel,
+  type PortalBannerItem,
+} from "@/components/dashboard/portal-banner-carousel";
 import { InvestmentGrowth } from "@/components/dashboard/investment-growth";
 import { PerformanceComparison } from "@/components/dashboard/performance-comparison";
 import { ServiceShortcuts } from "@/components/dashboard/service-shortcuts";
 import { ErrorBoundary } from "@/components/error-boundary";
 
+// Server-side fetcher for the rotating banner. Reads admin-curated
+// LearnTopics with showInPortalBanner=true via a direct Prisma call
+// (same DB the public route would query) — saves the round-trip to
+// /api/public/portal-banner since we're already inside the CRM. The
+// list is small + cached at the page level by Next's RSC dedupe.
+async function loadPortalBannerItems(): Promise<PortalBannerItem[]> {
+  try {
+    const rows = await prisma.learnTopic.findMany({
+      where: { isPublished: true, showInPortalBanner: true },
+      orderBy: [
+        { portalBannerOrder: { sort: "asc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
+      select: {
+        id: true,
+        title: true,
+        summary: true,
+        images: true,
+        imageUrl: true,
+        ctaUrl: true,
+        ctaLabel: true,
+      },
+    });
+    return rows
+      .map((r): PortalBannerItem | null => {
+        const imageUrl =
+          (Array.isArray(r.images) && r.images[0]) || r.imageUrl || null;
+        if (!imageUrl) return null;
+        return {
+          id: r.id,
+          title: r.title,
+          summary: r.summary,
+          imageUrl,
+          ctaUrl: r.ctaUrl,
+          ctaLabel: r.ctaLabel,
+        };
+      })
+      .filter((x): x is PortalBannerItem => x !== null);
+  } catch {
+    // Worst-case: DB hiccup. Empty array makes the dashboard fall
+    // back to the static TaxRebateBanner — never a broken layout.
+    return [];
+  }
+}
+
 export default async function DashboardPage() {
-  const session = await getSession();
+  const [session, bannerItems] = await Promise.all([
+    getSession(),
+    loadPortalBannerItems(),
+  ]);
 
   // Only show the pending-verification banner for self-registered accounts that
   // still hold a placeholder investor code (PENDING-XXXXX). Real investors
@@ -46,9 +99,16 @@ export default async function DashboardPage() {
 
       {/* Promotional banner — full container width so its left/right
           edges line up exactly with the chart row below. (Both are
-          direct children of the same max-w-7xl px-8 layout shell.) */}
+          direct children of the same max-w-7xl px-8 layout shell.)
+          When admin has flagged ≥1 LearnTopic for the portal banner,
+          the carousel renders those slides; otherwise the static
+          TaxRebateBanner stays in place as the fallback. */}
       <div className="!mt-5 !mb-4">
-        <TaxRebateBanner />
+        {bannerItems.length > 0 ? (
+          <PortalBannerCarousel items={bannerItems} />
+        ) : (
+          <TaxRebateBanner />
+        )}
       </div>
 
       {/* Performance charts — peer comparison on the left, NAV carousel
