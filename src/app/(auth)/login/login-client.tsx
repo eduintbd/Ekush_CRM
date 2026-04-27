@@ -177,14 +177,14 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
             >
               <Input
                 label="Investor Code"
-                placeholder="e.g., A00002"
+                placeholder="e.g., A00730"
                 value={investorCode}
                 onChange={(e) => setInvestorCode(e.target.value.toUpperCase())}
                 onDrop={refuseFileDrop}
                 autoComplete="off"
                 spellCheck={false}
-                maxLength={6}
-                pattern="^[A-Z][0-9]{1,5}$"
+                maxLength={7}
+                pattern="^[A-Z][0-9]{1,6}$"
                 style={{ textTransform: "uppercase" }}
                 required
                 disabled={requires2fa}

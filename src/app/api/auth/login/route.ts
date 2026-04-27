@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Investor Code must be one uppercase letter followed by 1–5 digits (e.g. A00002).",
+            "Investor Code must be one uppercase letter followed by 1–6 digits (e.g. A00730 or A123456).",
         },
         { status: 401 },
       );
