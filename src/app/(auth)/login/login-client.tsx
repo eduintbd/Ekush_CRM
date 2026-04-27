@@ -335,6 +335,16 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
           Bangladesh Securities and Exchange Commission (BSEC) of the Government of
           the People&rsquo;s Republic of Bangladesh.
         </p>
+
+        <p className="text-center text-[11px] text-text-muted mt-3">
+          Staff member?{" "}
+          <Link
+            href="/staff-login"
+            className="text-ekush-orange hover:underline font-medium"
+          >
+            Sign in with office email &rarr;
+          </Link>
+        </p>
       </div>
 
       {signupGateOpen && (
