@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Check, X } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Check, MessageCircle, X } from "lucide-react";
 import { STAFF_ROLES } from "@/lib/roles";
 
 // Two-tab login. Investor (default) keeps the existing investor-code
@@ -118,8 +119,8 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-page-bg font-poppins">
-      <div className="w-full max-w-[420px] px-6">
+    <div className="min-h-screen flex items-center justify-center bg-page-bg font-poppins py-10">
+      <div className="w-full max-w-[560px] px-6">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -131,8 +132,55 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
           <p className="text-xs text-text-body tracking-wider uppercase">Investor Portal</p>
         </div>
 
+        {/* Two-tier signup CTAs (above the login form). The WhatsApp
+            CTA is gated by PROSPECTS_ENABLED — when off, only the
+            Open Investment Account CTA shows, centered. */}
+        <div
+          className={`grid gap-3 mb-6 ${
+            prospectsEnabled ? "sm:grid-cols-2" : "grid-cols-1 max-w-[360px] mx-auto"
+          }`}
+        >
+          {prospectsEnabled && (
+            <Link
+              href="/whatsapp-signup"
+              className="group bg-white rounded-card shadow-card p-4 hover:-translate-y-0.5 transition-all duration-300 border-2 border-transparent hover:border-ekush-orange/40"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="w-9 h-9 rounded-[8px] bg-ekush-orange/10 text-ekush-orange flex items-center justify-center">
+                  <MessageCircle className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-text-body group-hover:text-ekush-orange transition-colors" />
+              </div>
+              <h3 className="text-[14px] font-bold text-text-dark font-rajdhani leading-snug">
+                Get fund updates on WhatsApp
+              </h3>
+              <p className="text-[12px] text-text-body leading-snug mt-1">
+                Lightweight signup &mdash; no KYC.
+              </p>
+            </Link>
+          )}
+
+          <Link
+            href="/register"
+            className="group bg-ekush-orange text-white rounded-card shadow-card p-4 hover:-translate-y-0.5 transition-all duration-300 hover:bg-ekush-orange-dark"
+          >
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="w-9 h-9 rounded-[8px] bg-white/15 flex items-center justify-center">
+                <ArrowRight className="w-4 h-4" />
+              </div>
+              <ArrowRight className="w-4 h-4 text-white/80 group-hover:text-white transition-colors" />
+            </div>
+            <h3 className="text-[14px] font-bold font-rajdhani leading-snug">
+              Open investment account
+            </h3>
+            <p className="text-[12px] text-white/85 leading-snug mt-1">
+              Complete the 4-step KYC.
+            </p>
+          </Link>
+        </div>
+
         {/* Form Card */}
-        <div className="bg-white rounded-card shadow-card p-8">
+        <div className="max-w-[420px] mx-auto bg-white rounded-card shadow-card p-8">
           {prospectsEnabled ? (
             <div
               role="tablist"
@@ -281,7 +329,7 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
           </div>
         </div>
 
-        <p className="text-center text-[11px] text-text-body mt-6 leading-relaxed">
+        <p className="max-w-[420px] mx-auto text-center text-[11px] text-text-body mt-6 leading-relaxed">
           Ekush Wealth Management Limited (Ekush) is a registered Asset Management
           Company (license no. BSEC/AMC/2019/44, dated November 20, 2019) under the
           Bangladesh Securities and Exchange Commission (BSEC) of the Government of
