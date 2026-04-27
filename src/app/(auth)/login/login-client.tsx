@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Eye, EyeOff, MessageCircle } from "lucide-react";
 import { STAFF_ROLES } from "@/lib/roles";
+import { OpenAccountCta } from "@/components/auth/open-account-cta";
 
 // Two-tab login. Investor (default) keeps the existing investor-code
 // flow exactly as it was. Prospect adds phone-number sign-in for the
@@ -143,23 +144,7 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
             </Link>
           )}
 
-          <Link
-            href="/register"
-            className="group bg-ekush-orange text-white rounded-card shadow-card p-4 hover:-translate-y-0.5 transition-all duration-300 hover:bg-ekush-orange-dark"
-          >
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="w-9 h-9 rounded-[8px] bg-white/15 flex items-center justify-center">
-                <ArrowRight className="w-4 h-4" />
-              </div>
-              <ArrowRight className="w-4 h-4 text-white/80 group-hover:text-white transition-colors" />
-            </div>
-            <h3 className="text-[14px] font-bold font-rajdhani leading-snug">
-              Open investment account
-            </h3>
-            <p className="text-[12px] text-white/85 leading-snug mt-1">
-              Complete the 4-step KYC.
-            </p>
-          </Link>
+          <OpenAccountCta variant="compact" />
         </div>
 
         {/* Form Card */}

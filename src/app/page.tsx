@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import { isProspectsEnabled } from "@/lib/feature-flags";
+import { OpenAccountCta } from "@/components/auth/open-account-cta";
 
 export default function HomePage() {
   const prospectsOn = isProspectsEnabled();
@@ -105,24 +106,7 @@ export default function HomePage() {
               </Link>
             )}
 
-            <Link
-              href="/register"
-              className="group bg-ekush-orange text-white rounded-card shadow-card p-6 hover:-translate-y-1 transition-all duration-300 hover:bg-ekush-orange-dark"
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="w-11 h-11 rounded-[8px] bg-white/15 flex items-center justify-center">
-                  <ArrowRight className="w-5 h-5" />
-                </div>
-                <ArrowRight className="w-5 h-5 text-white/80 group-hover:text-white transition-colors" />
-              </div>
-              <h3 className="text-[16px] font-bold font-rajdhani mb-1">
-                Open investment account
-              </h3>
-              <p className="text-[13px] text-white/85 leading-relaxed">
-                Complete the 4-step KYC and start investing once
-                approved by our team.
-              </p>
-            </Link>
+            <OpenAccountCta variant="full" />
           </div>
         </div>
 
