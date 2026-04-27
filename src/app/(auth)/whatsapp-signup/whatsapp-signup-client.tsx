@@ -179,11 +179,193 @@ export function WhatsAppSignupClient() {
           </p>
         </div>
 
+        {/* Both step JSX blocks are inlined directly into the parent
+            return — they share state and handlers via closure. They
+            were previously extracted as <FormStep /> / <OtpStep />
+            inner-function components, which React treated as a fresh
+            component on every parent re-render and unmounted the
+            inputs mid-keystroke (focus loss, "type one char then
+            click again" UX). Inlining keeps the same JSX without the
+            re-mount cycle. */}
         <div className="bg-white rounded-card shadow-card p-8">
           {step === "form" ? (
-            <FormStep />
+            <>
+              <h2 className="text-xl font-bold text-text-dark font-rajdhani mb-1">
+                Tell us about yourself
+              </h2>
+              <p className="text-[13px] text-text-body mb-6">
+                We&rsquo;ll send you a verification code on WhatsApp.
+              </p>
+
+              {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+
+              <form onSubmit={handleSubmitForm} className="space-y-4" noValidate>
+                <Input
+                  label="Full Name"
+                  placeholder="Your name as on your NID"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                  required
+                />
+
+                <div>
+                  <label className="block text-[13px] text-text-label mb-1.5">
+                    WhatsApp Number
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="flex items-center px-3 rounded-[10px] border border-input-border bg-input-bg text-text-dark text-[14px] font-semibold">
+                      +880
+                    </div>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="^[0-9]{10,11}$"
+                      maxLength={11}
+                      placeholder="01712345678"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                      autoComplete="off"
+                      spellCheck={false}
+                      required
+                      className="flex-1 h-[44px] rounded-[10px] border border-input-border bg-input-bg px-3 text-[14px] text-text-dark focus:outline-none focus:border-ekush-orange transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <Input
+                  label="Email (optional)"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+
+                <div className="relative">
+                  <Input
+                    label="Password (min 10 chars)"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-[38px] text-text-body hover:text-text-dark transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-[13px] text-text-label mb-1.5">
+                    Area of Interest
+                  </label>
+                  <select
+                    value={interest}
+                    onChange={(e) => setInterest(e.target.value)}
+                    className="w-full h-[44px] rounded-[10px] border border-input-border bg-input-bg px-3 text-[14px] text-text-dark focus:outline-none focus:border-ekush-orange transition-colors"
+                  >
+                    {INTEREST_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <label className="flex items-start gap-2 text-[12px] text-text-body cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={marketingConsent}
+                    onChange={(e) => setMarketingConsent(e.target.checked)}
+                    className="mt-0.5 accent-ekush-orange"
+                    required
+                  />
+                  <span>
+                    I agree to receive fund updates from Ekush WML on
+                    WhatsApp/SMS. Opt out anytime.
+                  </span>
+                </label>
+
+                <Button
+                  type="submit"
+                  className="w-full h-[50px] text-[15px]"
+                  disabled={loading}
+                >
+                  {loading ? "Sending code..." : "Send Verification Code"}
+                </Button>
+              </form>
+            </>
           ) : (
-            <OtpStep />
+            <>
+              <h2 className="text-xl font-bold text-text-dark font-rajdhani mb-1">
+                Enter verification code
+              </h2>
+              {info ? (
+                <p className="text-[13px] text-text-body mb-6">{info}</p>
+              ) : null}
+
+              {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+
+              <form onSubmit={handleVerify} className="space-y-5" noValidate>
+                <div>
+                  <label className="block text-[13px] text-text-label mb-1.5">
+                    6-digit code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="^[0-9]{6}$"
+                    maxLength={6}
+                    placeholder="123456"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    autoComplete="one-time-code"
+                    spellCheck={false}
+                    required
+                    className="w-full h-[50px] rounded-[10px] border border-input-border bg-input-bg px-3 text-center text-[20px] tracking-[0.4em] font-semibold text-text-dark focus:outline-none focus:border-ekush-orange transition-colors"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-[50px] text-[15px]"
+                  disabled={loading}
+                >
+                  {loading ? "Verifying..." : "Verify & Continue"}
+                </Button>
+              </form>
+
+              <div className="mt-5 text-center">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resendCooldown > 0 || loading}
+                  className="text-[13px] text-ekush-orange hover:underline disabled:text-text-body disabled:no-underline disabled:cursor-not-allowed"
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCode("");
+                  setError("");
+                  setInfo("");
+                  setStep("form");
+                }}
+                className="block mx-auto mt-4 text-[12px] text-text-body hover:text-text-dark"
+              >
+                &larr; Edit details
+              </button>
+            </>
           )}
         </div>
 
@@ -196,192 +378,6 @@ export function WhatsAppSignupClient() {
       </div>
     </div>
   );
-
-  // Inlined as closures so they share state without prop-drilling. No
-  // measurable perf cost at this size.
-  function FormStep() {
-    return (
-      <>
-        <h2 className="text-xl font-bold text-text-dark font-rajdhani mb-1">
-          Tell us about yourself
-        </h2>
-        <p className="text-[13px] text-text-body mb-6">
-          We&rsquo;ll send you a verification code on WhatsApp.
-        </p>
-
-        {error ? <ErrorBanner>{error}</ErrorBanner> : null}
-
-        <form onSubmit={handleSubmitForm} className="space-y-4" noValidate>
-          <Input
-            label="Full Name"
-            placeholder="Your name as on your NID"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="name"
-            required
-          />
-
-          <div>
-            <label className="block text-[13px] text-text-label mb-1.5">
-              WhatsApp Number
-            </label>
-            <div className="flex gap-2">
-              <div className="flex items-center px-3 rounded-[10px] border border-input-border bg-input-bg text-text-dark text-[14px] font-semibold">
-                +880
-              </div>
-              <input
-                type="tel"
-                inputMode="numeric"
-                pattern="^[0-9]{10,11}$"
-                maxLength={11}
-                placeholder="01712345678"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                autoComplete="off"
-                spellCheck={false}
-                required
-                className="flex-1 h-[44px] rounded-[10px] border border-input-border bg-input-bg px-3 text-[14px] text-text-dark focus:outline-none focus:border-ekush-orange transition-colors"
-              />
-            </div>
-          </div>
-
-          <Input
-            label="Email (optional)"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-          />
-
-          <div className="relative">
-            <Input
-              label="Password (min 10 chars)"
-              type={showPassword ? "text" : "password"}
-              placeholder="Create password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-[38px] text-text-body hover:text-text-dark transition-colors"
-              tabIndex={-1}
-            >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
-
-          <div>
-            <label className="block text-[13px] text-text-label mb-1.5">
-              Area of Interest
-            </label>
-            <select
-              value={interest}
-              onChange={(e) => setInterest(e.target.value)}
-              className="w-full h-[44px] rounded-[10px] border border-input-border bg-input-bg px-3 text-[14px] text-text-dark focus:outline-none focus:border-ekush-orange transition-colors"
-            >
-              {INTEREST_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <label className="flex items-start gap-2 text-[12px] text-text-body cursor-pointer">
-            <input
-              type="checkbox"
-              checked={marketingConsent}
-              onChange={(e) => setMarketingConsent(e.target.checked)}
-              className="mt-0.5 accent-ekush-orange"
-              required
-            />
-            <span>
-              I agree to receive fund updates from Ekush WML on WhatsApp/SMS.
-              Opt out anytime.
-            </span>
-          </label>
-
-          <Button
-            type="submit"
-            className="w-full h-[50px] text-[15px]"
-            disabled={loading}
-          >
-            {loading ? "Sending code..." : "Send Verification Code"}
-          </Button>
-        </form>
-      </>
-    );
-  }
-
-  function OtpStep() {
-    return (
-      <>
-        <h2 className="text-xl font-bold text-text-dark font-rajdhani mb-1">
-          Enter verification code
-        </h2>
-        {info ? <p className="text-[13px] text-text-body mb-6">{info}</p> : null}
-
-        {error ? <ErrorBanner>{error}</ErrorBanner> : null}
-
-        <form onSubmit={handleVerify} className="space-y-5" noValidate>
-          <div>
-            <label className="block text-[13px] text-text-label mb-1.5">
-              6-digit code
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="^[0-9]{6}$"
-              maxLength={6}
-              placeholder="123456"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              autoComplete="one-time-code"
-              spellCheck={false}
-              required
-              className="w-full h-[50px] rounded-[10px] border border-input-border bg-input-bg px-3 text-center text-[20px] tracking-[0.4em] font-semibold text-text-dark focus:outline-none focus:border-ekush-orange transition-colors"
-            />
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full h-[50px] text-[15px]"
-            disabled={loading}
-          >
-            {loading ? "Verifying..." : "Verify & Continue"}
-          </Button>
-        </form>
-
-        <div className="mt-5 text-center">
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={resendCooldown > 0 || loading}
-            className="text-[13px] text-ekush-orange hover:underline disabled:text-text-body disabled:no-underline disabled:cursor-not-allowed"
-          >
-            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            setCode("");
-            setError("");
-            setInfo("");
-            setStep("form");
-          }}
-          className="block mx-auto mt-4 text-[12px] text-text-body hover:text-text-dark"
-        >
-          ← Edit details
-        </button>
-      </>
-    );
-  }
 }
 
 function ErrorBanner({ children }: { children: React.ReactNode }) {
