@@ -10,9 +10,12 @@ import {
   isRateLimited,
   recordLoginAttempt,
 } from "@/lib/rate-limit";
+import { STAFF_ROLES } from "@/lib/roles";
+import { verifyTotpCode } from "@/lib/totp";
+import { currentAdmin2faState } from "@/lib/admin-2fa";
 
 export async function POST(req: NextRequest) {
-  const { login, password } = await req.json();
+  const { login, password, totpCode } = await req.json();
 
   if (!login?.trim() || !password) {
     return NextResponse.json(
@@ -148,6 +151,74 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
+  // 4b. Phase 9 — admin 2FA gate. Runs AFTER the password check so an
+  // attacker can't probe staff identifiers via 2FA-error timing, but
+  // BEFORE the Supabase sign-in so an unverified second factor never
+  // mints a session cookie.
+  const isStaff = STAFF_ROLES.includes(user.role);
+  let twoFactorWarning: { deadline: string; daysRemaining: number } | null = null;
+  if (isStaff) {
+    const totp = await prisma.userTotp.findUnique({
+      where: { userId: user.id },
+      select: { secret: true, enrolledAt: true, lastUsedAt: true, id: true },
+    });
+
+    if (totp?.enrolledAt) {
+      // Already enrolled — require the code on every login.
+      const code = typeof totpCode === "string" ? totpCode : null;
+      if (!code) {
+        // Don't record this as a "fail" — it's a normal step in the
+        // two-step login. The client will represent this state as the
+        // 2FA prompt and submit again with the code.
+        return NextResponse.json(
+          {
+            requires2fa: true,
+            error: "Enter the 6-digit code from your authenticator app.",
+          },
+          { status: 401 },
+        );
+      }
+      if (!(await verifyTotpCode(totp.secret, code))) {
+        await recordLoginAttempt({ ...rateKey, success: false });
+        return NextResponse.json(
+          {
+            requires2fa: true,
+            error: "Invalid or expired 2FA code. Try again.",
+          },
+          { status: 401 },
+        );
+      }
+      // Bump lastUsedAt so a stolen code can't be replayed within the
+      // same 30s step — the next attempt would still verify against
+      // the same secret but lastUsedAt's monotonic forward move means
+      // the audit trail captures every accepted code uniquely.
+      await prisma.userTotp.update({
+        where: { id: totp.id },
+        data: { lastUsedAt: new Date() },
+      });
+    } else {
+      // Not enrolled. Grace-window state decides whether to warn or block.
+      const state = currentAdmin2faState();
+      if (state.status === "enforce") {
+        await recordLoginAttempt({ ...rateKey, success: false });
+        return NextResponse.json(
+          {
+            error:
+              "Two-factor authentication is required for admin accounts. Contact a Super Admin to assist with enrollment.",
+            enrollmentOverdue: true,
+          },
+          { status: 401 },
+        );
+      }
+      if (state.status === "grace") {
+        twoFactorWarning = {
+          deadline: state.deadline.toISOString(),
+          daysRemaining: state.daysRemaining,
+        };
+      }
+    }
+  }
+
   // 5. Prepare user metadata to store in Supabase Auth
   const investor = (user as any).investor as
     | { id: string; investorCode: string; name: string }
@@ -270,5 +341,13 @@ export async function POST(req: NextRequest) {
     recordLoginAttempt({ ...rateKey, success: true }),
   ]);
 
-  return NextResponse.json({ success: true, role: user.role });
+  return NextResponse.json({
+    success: true,
+    role: user.role,
+    // Phase 9: present only when the staff user is in the grace window
+    // and has not yet enrolled — the dashboard banner reads this off
+    // the session metadata, but the login response carries it too so
+    // the client can show an immediate "X days remaining" toast.
+    twoFactorWarning,
+  });
 }

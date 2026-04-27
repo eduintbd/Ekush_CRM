@@ -42,6 +42,12 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [signupGateOpen, setSignupGateOpen] = useState(false);
+  // Phase 9 — when /api/auth/login returns { requires2fa: true } we
+  // reveal a 6-digit input and resubmit the same payload with the
+  // totpCode field added. We keep the password in state so the
+  // re-submit doesn't require the user to retype it.
+  const [requires2fa, setRequires2fa] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
 
   const refuseFileDrop = (e: React.DragEvent) => e.preventDefault();
 
@@ -53,10 +59,19 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login: investorCode, password }),
+        body: JSON.stringify({
+          login: investorCode,
+          password,
+          totpCode: requires2fa ? totpCode : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data.requires2fa) {
+          setRequires2fa(true);
+          setError(data.error ?? "Enter the 6-digit code from your authenticator app.");
+          return;
+        }
         setError(data.error ?? "Login failed");
         return;
       }
@@ -172,17 +187,43 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
                 pattern="^[A-Z][0-9]{1,5}$"
                 style={{ textTransform: "uppercase" }}
                 required
+                disabled={requires2fa}
               />
               <PasswordField
                 value={password}
                 onChange={setPassword}
                 show={showPassword}
                 onToggleShow={() => setShowPassword(!showPassword)}
+                disabled={requires2fa}
               />
+              {requires2fa && (
+                <div>
+                  <label className="block text-[13px] text-text-label mb-1.5">
+                    2FA Code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="^[0-9]{6}$"
+                    maxLength={6}
+                    placeholder="123456"
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+                    autoComplete="one-time-code"
+                    spellCheck={false}
+                    autoFocus
+                    required
+                    className="w-full h-[50px] rounded-[10px] border border-input-border bg-input-bg px-3 text-center text-[20px] tracking-[0.4em] font-semibold text-text-dark focus:outline-none focus:border-ekush-orange transition-colors"
+                  />
+                  <p className="text-[11px] text-text-body mt-1">
+                    Enter the 6-digit code from your authenticator app.
+                  </p>
+                </div>
+              )}
               <ActionButtons
                 onSignUp={handleSignUpClick}
                 loading={loading}
-                primaryLabel="Log In"
+                primaryLabel={requires2fa ? "Verify & Log In" : "Log In"}
               />
             </form>
           ) : (
@@ -341,11 +382,13 @@ function PasswordField({
   onChange,
   show,
   onToggleShow,
+  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
   show: boolean;
   onToggleShow: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="relative">
@@ -357,6 +400,7 @@ function PasswordField({
         onChange={(e) => onChange(e.target.value)}
         autoComplete="current-password"
         required
+        disabled={disabled}
       />
       <button
         type="button"

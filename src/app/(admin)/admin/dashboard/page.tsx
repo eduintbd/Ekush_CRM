@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBDT, formatDate } from "@/lib/utils";
-import { Users, ArrowLeftRight, AlertCircle, TrendingUp, FileText, Bell } from "lucide-react";
+import { Users, ArrowLeftRight, AlertCircle, TrendingUp, FileText, Bell, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { CollapsibleCard } from "@/components/admin/collapsible-card";
 import { ApprovalsPanel } from "@/components/admin/approvals-panel";
+import { getSession } from "@/lib/auth";
+import { currentAdmin2faState } from "@/lib/admin-2fa";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +56,65 @@ export default async function AdminDashboard() {
 
   const totalAum = funds.reduce((s, f) => s + Number(f.totalAum), 0);
 
+  // Phase 9 — surface a 2FA enrollment banner if the staff user hasn't
+  // enrolled yet AND the rollout is in its grace window. After the
+  // window closes, the login route refuses entry, so we can assume any
+  // session that reached the dashboard is either past-grace-and-enrolled
+  // or in-grace-and-warning.
+  const session = await getSession().catch(() => null);
+  let twoFactorBanner: { daysRemaining: number; deadline: Date } | null = null;
+  if (session?.user?.id) {
+    const totp = await prisma.userTotp
+      .findUnique({
+        where: { userId: session.user.id },
+        select: { enrolledAt: true },
+      })
+      .catch(() => null);
+    if (!totp?.enrolledAt) {
+      const state = currentAdmin2faState();
+      if (state.status === "grace") {
+        twoFactorBanner = {
+          daysRemaining: state.daysRemaining,
+          deadline: state.deadline,
+        };
+      }
+    }
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-[20px] font-semibold text-text-dark font-rajdhani">Admin Dashboard</h1>
+
+      {twoFactorBanner && (
+        <div className="bg-amber-50 border border-amber-200 rounded-card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[14px] font-semibold text-amber-900">
+                Two-factor authentication required
+              </p>
+              <p className="text-[13px] text-amber-800/80">
+                Enroll your authenticator app within{" "}
+                <span className="font-semibold">
+                  {twoFactorBanner.daysRemaining} day{twoFactorBanner.daysRemaining === 1 ? "" : "s"}
+                </span>{" "}
+                ({twoFactorBanner.deadline.toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}). After that date, admin login will require a 2FA
+                code.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/security/2fa"
+            className="inline-flex items-center justify-center px-4 py-2 text-[13px] font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-md transition-colors whitespace-nowrap"
+          >
+            Enroll now
+          </Link>
+        </div>
+      )}
 
       {/* Pending KYC / New Registrations */}
       <CollapsibleCard
