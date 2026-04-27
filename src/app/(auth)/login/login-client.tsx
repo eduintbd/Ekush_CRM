@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Eye, EyeOff, Check, MessageCircle, X } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, MessageCircle } from "lucide-react";
 import { STAFF_ROLES } from "@/lib/roles";
 
 // Two-tab login. Investor (default) keeps the existing investor-code
@@ -23,14 +23,6 @@ import { STAFF_ROLES } from "@/lib/roles";
 // Server-side normalization + regex is the actual gate; these are
 // belt-and-braces.
 
-const SIGNUP_CHECKLIST = [
-  "Applicant's and Nominee's National ID Card",
-  "Colour Photos and Signatures of the Applicant(s) and Nominee(s)",
-  "Blank Cheque / Bank Statement of the Applicant",
-  "Applicant's E-TIN Certificate (if any)",
-  "Soft copy of the BO Acknowledgement / BO ID number",
-];
-
 type Tab = "investor" | "prospect";
 
 export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean }) {
@@ -42,7 +34,6 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [signupGateOpen, setSignupGateOpen] = useState(false);
   // Phase 9 — when /api/auth/login returns { requires2fa: true } we
   // reveal a 6-digit input and resubmit the same payload with the
   // totpCode field added. We keep the password in state so the
@@ -108,14 +99,6 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleSignUpClick() {
-    if (tab === "prospect") {
-      router.push("/whatsapp-signup");
-      return;
-    }
-    setSignupGateOpen(true);
   }
 
   return (
@@ -268,11 +251,17 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
                   </p>
                 </div>
               )}
-              <ActionButtons
-                onSignUp={handleSignUpClick}
-                loading={loading}
-                primaryLabel={requires2fa ? "Verify & Log In" : "Log In"}
-              />
+              <Button
+                type="submit"
+                className="w-full h-[50px] text-[15px]"
+                disabled={loading}
+              >
+                {loading
+                  ? "Logging in..."
+                  : requires2fa
+                    ? "Verify & Log In"
+                    : "Log In"}
+              </Button>
             </form>
           ) : (
             <form
@@ -311,11 +300,13 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
                 show={showPassword}
                 onToggleShow={() => setShowPassword(!showPassword)}
               />
-              <ActionButtons
-                onSignUp={handleSignUpClick}
-                loading={loading}
-                primaryLabel="Log In"
-              />
+              <Button
+                type="submit"
+                className="w-full h-[50px] text-[15px]"
+                disabled={loading}
+              >
+                {loading ? "Logging in..." : "Log In"}
+              </Button>
             </form>
           )}
 
@@ -335,76 +326,8 @@ export function LoginClient({ prospectsEnabled }: { prospectsEnabled: boolean })
           Bangladesh Securities and Exchange Commission (BSEC) of the Government of
           the People&rsquo;s Republic of Bangladesh.
         </p>
-
-        <p className="text-center text-[11px] text-text-muted mt-3">
-          Staff member?{" "}
-          <Link
-            href="/staff-login"
-            className="text-ekush-orange hover:underline font-medium"
-          >
-            Sign in with office email &rarr;
-          </Link>
-        </p>
       </div>
 
-      {signupGateOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setSignupGateOpen(false)}
-        >
-          <div
-            className="bg-white rounded-card shadow-card max-w-[520px] w-full relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setSignupGateOpen(false)}
-              className="absolute top-3 right-3 text-text-body hover:text-text-dark"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="p-7">
-              <h3 className="text-[17px] font-semibold text-text-dark font-rajdhani mb-4">
-                Please keep the soft copy of the following documents ready:
-              </h3>
-
-              <ul className="divide-y divide-gray-100">
-                {SIGNUP_CHECKLIST.map((item) => (
-                  <li
-                    key={item}
-                    className="flex items-start gap-2.5 py-2.5 text-[13px] text-text-dark"
-                  >
-                    <Check className="w-4 h-4 text-ekush-orange mt-0.5 shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <p className="text-[11.5px] text-text-body mt-3 italic">
-                Note: Mutual fund units will not be credited to your BO account unless BO
-                Account Number is provided. For any query, please contact +8801713086101 and
-                +88001906440541.
-              </p>
-
-              <div className="mt-5 flex justify-center">
-                <Button
-                  onClick={() => {
-                    setSignupGateOpen(false);
-                    router.push("/register");
-                  }}
-                  className="px-8"
-                >
-                  Accept
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -472,27 +395,3 @@ function PasswordField({
   );
 }
 
-function ActionButtons({
-  onSignUp,
-  loading,
-  primaryLabel,
-}: {
-  onSignUp: () => void;
-  loading: boolean;
-  primaryLabel: string;
-}) {
-  return (
-    <div className="flex gap-3">
-      <Button type="submit" className="flex-1 h-[50px] text-[15px]" disabled={loading}>
-        {loading ? "Logging in..." : primaryLabel}
-      </Button>
-      <Button
-        type="button"
-        onClick={onSignUp}
-        className="flex-1 h-[50px] text-[15px] bg-white border-2 border-ekush-orange text-ekush-orange hover:bg-ekush-orange hover:text-white"
-      >
-        Sign Up
-      </Button>
-    </div>
-  );
-}

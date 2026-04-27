@@ -23,10 +23,11 @@ import { issueOtp, requestOtpResend } from "@/lib/prospects";
 import { validatePassword } from "@/lib/auth-tokens";
 
 const VALID_INTERESTS = new Set([
-  "exploring",
   "mutual_funds",
-  "sukuk",
-  "dpm",
+  "sip",
+  "cip",
+  "fund_return",
+  "exploring",
   "other",
 ]);
 

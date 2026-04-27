@@ -17,10 +17,11 @@ import { Eye, EyeOff } from "lucide-react";
 // course; this just narrows the visibility surface.)
 
 const INTEREST_OPTIONS = [
-  { value: "exploring", label: "Just exploring" },
   { value: "mutual_funds", label: "Mutual Funds" },
-  { value: "sukuk", label: "Sukuk" },
-  { value: "dpm", label: "DPM" },
+  { value: "sip", label: "SIP (Systematic Investment Plan)" },
+  { value: "cip", label: "CIP (Cumulative Investment Plan)" },
+  { value: "fund_return", label: "Fund Return" },
+  { value: "exploring", label: "Just Exploring" },
   { value: "other", label: "Other" },
 ];
 
@@ -39,7 +40,7 @@ export function WhatsAppSignupClient() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [interest, setInterest] = useState("exploring");
+  const [interest, setInterest] = useState("mutual_funds");
   const [marketingConsent, setMarketingConsent] = useState(false);
 
   // OTP state

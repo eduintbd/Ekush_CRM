@@ -19,11 +19,17 @@ import {
 // whole page out of RSC.
 
 const INTEREST_LABELS: Record<string, string> = {
-  exploring: "Just exploring",
   mutual_funds: "Mutual Funds",
-  sukuk: "Sukuk",
-  dpm: "DPM",
+  sip: "SIP (Systematic Investment Plan)",
+  cip: "CIP (Cumulative Investment Plan)",
+  fund_return: "Fund Return",
+  exploring: "Just Exploring",
   other: "Other",
+  // Legacy values from before the interest list was reworked. Kept
+  // here so existing prospect rows render a friendly label instead of
+  // the raw key. Safe to drop once no rows carry them.
+  sukuk: "Sukuk (legacy)",
+  dpm: "DPM (legacy)",
 };
 
 const ACTIVE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
