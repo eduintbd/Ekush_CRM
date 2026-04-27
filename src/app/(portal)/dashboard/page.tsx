@@ -16,6 +16,11 @@ import { ErrorBoundary } from "@/components/error-boundary";
 // (same DB the public route would query) — saves the round-trip to
 // /api/public/portal-banner since we're already inside the CRM. The
 // list is small + cached at the page level by Next's RSC dedupe.
+//
+// Each image on a flagged topic becomes its own slide — a topic with
+// three images contributes three carousel slides (in array order).
+// portalBannerOrder controls the topic-level position; within a topic
+// images appear in the array order set on the admin form.
 async function loadPortalBannerItems(): Promise<PortalBannerItem[]> {
   try {
     const rows = await prisma.learnTopic.findMany({
@@ -27,28 +32,32 @@ async function loadPortalBannerItems(): Promise<PortalBannerItem[]> {
       select: {
         id: true,
         title: true,
-        summary: true,
         images: true,
         imageUrl: true,
         ctaUrl: true,
-        ctaLabel: true,
       },
     });
-    return rows
-      .map((r): PortalBannerItem | null => {
-        const imageUrl =
-          (Array.isArray(r.images) && r.images[0]) || r.imageUrl || null;
-        if (!imageUrl) return null;
-        return {
-          id: r.id,
-          title: r.title,
-          summary: r.summary,
-          imageUrl,
+
+    const items: PortalBannerItem[] = [];
+    for (const r of rows) {
+      // Coalesce legacy single imageUrl into the array shape so old
+      // rows that only have the deprecated column still surface.
+      const urls =
+        Array.isArray(r.images) && r.images.length > 0
+          ? r.images
+          : r.imageUrl
+            ? [r.imageUrl]
+            : [];
+      urls.forEach((url, idx) => {
+        items.push({
+          key: `${r.id}:${idx}`,
+          imageUrl: url,
           ctaUrl: r.ctaUrl,
-          ctaLabel: r.ctaLabel,
-        };
-      })
-      .filter((x): x is PortalBannerItem => x !== null);
+          alt: r.title,
+        });
+      });
+    }
+    return items;
   } catch {
     // Worst-case: DB hiccup. Empty array makes the dashboard fall
     // back to the static TaxRebateBanner — never a broken layout.
