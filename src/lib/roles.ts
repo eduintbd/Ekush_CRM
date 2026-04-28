@@ -5,7 +5,7 @@
 // inline the strings.
 //
 //   SUPER_ADMIN → full access, the only role that can manage team
-//   MAKER       → creates & edits data (investors, NAV, content, etc.)
+//   MAKER       → creates & edits data, AND approves requests/KYC
 //   CHECKER     → approves maker-created requests and KYC registrations
 //   VIEWER      → read-only: reports, statements, mail, tickets
 //   INVESTOR    → end-user investor account (not staff)
@@ -26,7 +26,7 @@ export const STAFF_ROLES: readonly string[] = [
 // these sets exist for the middleware-level "can this role access /admin at
 // all" check and the ubiquitous inline role-array pattern.
 export const EDIT_ROLES: readonly string[] = ["SUPER_ADMIN", "MAKER"];
-export const APPROVE_ROLES: readonly string[] = ["SUPER_ADMIN", "CHECKER"];
+export const APPROVE_ROLES: readonly string[] = ["SUPER_ADMIN", "MAKER", "CHECKER"];
 export const SUPER_ROLES: readonly string[] = ["SUPER_ADMIN"];
 
 // Actions map — single source of truth for "who can do what". Keep flat: no
@@ -43,8 +43,8 @@ export const ACTIONS = {
   SEND_MAIL:           ["SUPER_ADMIN", "MAKER"],
   UPLOAD_FUND_REPORT:  ["SUPER_ADMIN", "MAKER"],
 
-  APPROVE_REQUEST:     ["SUPER_ADMIN", "CHECKER"], // maker-checker approvals
-  APPROVE_KYC:         ["SUPER_ADMIN", "CHECKER"], // pending-investor approval
+  APPROVE_REQUEST:     ["SUPER_ADMIN", "MAKER", "CHECKER"], // maker-checker approvals
+  APPROVE_KYC:         ["SUPER_ADMIN", "MAKER", "CHECKER"], // pending-investor approval
   APPROVE_BANK:        ["SUPER_ADMIN", "CHECKER"],
 
   VIEW_AUDIT_LOG:      ["SUPER_ADMIN", "CHECKER"],
@@ -98,7 +98,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 
 export const ROLE_DESCRIPTIONS: Record<StaffRole, string> = {
   SUPER_ADMIN: "Full access. Only role that can invite teammates and change roles.",
-  MAKER: "Creates and edits investor data, NAV entries, and content.",
+  MAKER: "Creates and edits investor data, and approves pending requests & KYC.",
   CHECKER: "Approves maker-created requests and new-investor KYC.",
   VIEWER: "Read-only: reports, statements, mail, tickets.",
 };

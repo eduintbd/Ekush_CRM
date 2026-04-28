@@ -405,8 +405,8 @@ const PERM_ROWS: Array<{ label: string; roles: StaffRole[]; partial?: StaffRole[
   { label: "Download reports / statements (PDF/Excel)",           roles: ["SUPER_ADMIN", "MAKER", "CHECKER", "VIEWER"] },
   { label: "Respond to tickets & mail",                           roles: ["SUPER_ADMIN", "MAKER", "CHECKER", "VIEWER"] },
   { label: "Create / edit investor data (maker actions)",          roles: ["SUPER_ADMIN", "MAKER"] },
-  { label: "Approve or reject pending requests (maker-checker)",   roles: ["SUPER_ADMIN", "CHECKER"] },
-  { label: "Approve KYC / new investor registration",              roles: ["SUPER_ADMIN", "CHECKER"] },
+  { label: "Approve or reject pending requests (maker-checker)",   roles: ["SUPER_ADMIN", "MAKER", "CHECKER"] },
+  { label: "Approve KYC / new investor registration",              roles: ["SUPER_ADMIN", "MAKER", "CHECKER"] },
   { label: "Manage team members & assign roles",                   roles: ["SUPER_ADMIN"] },
   { label: "View full system audit log",                           roles: ["SUPER_ADMIN", "CHECKER"], partial: ["MAKER"] },
 ];
