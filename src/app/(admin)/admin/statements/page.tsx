@@ -4,6 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBDT, formatDate } from "@/lib/utils";
 import { StatementDownloadBar } from "@/components/admin/statement-download-bar";
+import {
+  PortfolioStatementsTable,
+  type HoldingRow,
+} from "@/components/statements/portfolio-statements-table";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -129,7 +133,15 @@ export default async function AdminStatementsPage({
             ))}
           </div>
 
-          {/* Portfolio tab */}
+          {/* Portfolio tab — same expandable table the investor sees
+              on the portal: each fund row reveals No of Units, Total
+              Cost Value, CIP Units, CIP Unit Value, Unit Cost, NAV,
+              Total Market Value, Dividend, Unrealized Gain, Realized
+              Gain (tax period), and Annualized Return, and exposes a
+              per-fund "Investment Update" PDF link that hits the same
+              /forms/investment-update print page the portal uses
+              (with investorId so the print page renders THIS
+              investor's data, not the admin's). */}
           {tab === "portfolio" && (
             <Card>
               <CardHeader>
@@ -139,40 +151,40 @@ export default async function AdminStatementsPage({
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-0 hover:bg-transparent">
-                      <TableHead>Fund</TableHead>
-                      <TableHead className="text-right">Units</TableHead>
-                      <TableHead className="text-right">Avg Cost</TableHead>
-                      <TableHead className="text-right">Current NAV</TableHead>
-                      <TableHead className="text-right">Cost Value</TableHead>
-                      <TableHead className="text-right">Market Value</TableHead>
-                      <TableHead className="text-right">Gain/Loss</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {investor.holdings.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="text-center text-text-muted">No holdings</TableCell></TableRow>
-                    ) : (
-                      investor.holdings.map((h: any) => {
-                        const mv = Number(h.totalCurrentUnits) * Number(h.fund.currentNav);
-                        const gain = mv - Number(h.totalCostValueCurrent);
-                        return (
-                          <TableRow key={h.id}>
-                            <TableCell className="font-medium">{h.fund.code}</TableCell>
-                            <TableCell className="text-right">{Number(h.totalCurrentUnits).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</TableCell>
-                            <TableCell className="text-right">{Number(h.avgCost).toFixed(4)}</TableCell>
-                            <TableCell className="text-right">{Number(h.fund.currentNav).toFixed(4)}</TableCell>
-                            <TableCell className="text-right">{formatBDT(Number(h.totalCostValueCurrent))}</TableCell>
-                            <TableCell className="text-right">{formatBDT(mv)}</TableCell>
-                            <TableCell className={`text-right ${gain >= 0 ? "text-green-600" : "text-red-500"}`}>{formatBDT(gain)}</TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
+                {investor.holdings.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-text-muted text-sm">No holdings</div>
+                ) : (
+                  <PortfolioStatementsTable
+                    investorId={investor.id}
+                    holdings={investor.holdings.map((h: any): HoldingRow => {
+                      const totalCurrentUnits = Number(h.totalCurrentUnits);
+                      const costValue = Number(h.totalCostValueCurrent);
+                      const nav = Number(h.nav) || Number(h.fund.currentNav);
+                      const marketValue = Number(h.totalMarketValue) || totalCurrentUnits * nav;
+                      return {
+                        id: h.id,
+                        fundCode: h.fund.code,
+                        fundName: h.fund.name,
+                        totalCurrentUnits,
+                        sipCurrentUnits: Number(h.sipCurrentUnits),
+                        avgCost: Number(h.avgCost),
+                        costValue,
+                        sipMarketValue: Number(h.sipMarketValue),
+                        nav,
+                        marketValue,
+                        grossDividend: Number(h.grossDividend),
+                        realizedGain: Number(h.totalRealizedGain),
+                        unrealizedGain: Number(h.totalUnrealizedGain),
+                        // FundHolding doesn't track per-tax-period
+                        // realized gain — schema parity with the portal
+                        // page, which also shows 0 here until that
+                        // reporting period field exists.
+                        realizedGainTaxPeriod: 0,
+                        annualizedReturn: Number(h.annualizedReturn) || 0,
+                      };
+                    })}
+                  />
+                )}
               </CardContent>
             </Card>
           )}

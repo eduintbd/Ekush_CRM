@@ -25,9 +25,14 @@ export interface HoldingRow {
 
 interface Props {
   holdings: HoldingRow[];
+  // When an admin/staff user views another investor's portfolio, the
+  // Investment Update link must include the target investor's id so
+  // the print page knows whose data to render. Omitting this prop
+  // (the portal/investor case) falls back to session-based lookup.
+  investorId?: string;
 }
 
-export function PortfolioStatementsTable({ holdings }: Props) {
+export function PortfolioStatementsTable({ holdings, investorId }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const totalCost = holdings.reduce((s, h) => s + h.costValue, 0);
@@ -87,7 +92,7 @@ export function PortfolioStatementsTable({ holdings }: Props) {
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-[13px] font-semibold text-text-dark">{h.fundName}</p>
                         <a
-                          href={`/forms/investment-update?fundCode=${h.fundCode}`}
+                          href={`/forms/investment-update?fundCode=${h.fundCode}${investorId ? `&investorId=${investorId}` : ""}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] bg-ekush-orange text-white rounded-[5px] hover:bg-ekush-orange-dark transition-colors"

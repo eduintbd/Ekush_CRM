@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { STAFF_ROLES } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ const FUND_REG: Record<string, { regNo: string }> = {
 export default async function InvestmentUpdatePage({
   searchParams,
 }: {
-  searchParams: { fundCode?: string };
+  searchParams: { fundCode?: string; investorId?: string };
 }) {
   let session;
   try { session = await getSession(); } catch { redirect("/login"); }
@@ -26,8 +27,15 @@ export default async function InvestmentUpdatePage({
 
   try {
     const userId = (session.user as any)?.id;
-    let investorId = (session.user as any)?.investorId;
-    if (!investorId && userId) {
+    const role = (session.user as any)?.role as string | undefined;
+    // Staff (admin) can pass ?investorId=... to render the Investment
+    // Update for a specific investor they're viewing in the admin
+    // panel. Investors can only see their own data — the param is
+    // ignored for non-staff sessions.
+    const overrideInvestorId =
+      role && STAFF_ROLES.includes(role) ? searchParams.investorId : undefined;
+    let investorId = overrideInvestorId ?? (session.user as any)?.investorId;
+    if (!investorId && userId && !overrideInvestorId) {
       const u = await prisma.user.findUnique({ where: { id: userId }, select: { investor: { select: { id: true } } } });
       investorId = u?.investor?.id;
     }
